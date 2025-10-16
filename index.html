@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Виртуальная лаборатория физики - ОГЭ 2025 | Labosfera</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- ============================================
+         HEADER
+         ============================================ -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="header-brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">🔬</span>
+                    <span class="logo-text">Labosfera</span>
+                </div>
+                <span class="brand-tagline">Виртуальная лаборатория</span>
+            </div>
+            <nav class="header-nav">
+                <button class="nav-btn" id="profileBtn">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Профиль</span>
+                </button>
+                <button class="nav-btn" id="helpBtn">
+                    <span class="nav-icon">❓</span>
+                    <span class="nav-text">Помощь</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ============================================
+         HERO BANNER
+         ============================================ -->
+    <section class="hero-banner">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                Виртуальная лаборатория физики<br>
+                для подготовки к ОГЭ 2025
+            </h1>
+            <p class="hero-subtitle">
+                Полный набор интерактивных экспериментов с оборудованием Labosfera.<br>
+                Все 7 комплектов по спецификации ФИПИ.
+            </p>
+            <div class="hero-features">
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span class="feature-text">7 комплектов оборудования</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span class="feature-text">33+ экспериментов</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span class="feature-text">Соответствие ФИПИ 2025</span>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <button class="btn-hero-primary" id="startLearningBtn">
+                    <span class="btn-icon">▶</span>
+                    Начать обучение
+                </button>
+                <button class="btn-hero-secondary" id="aboutProjectBtn">
+                    <span class="btn-icon">📖</span>
+                    О проекте
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         PROGRESS PATH
+         ============================================ -->
+    <section class="progress-path">
+        <div class="container">
+            <h2 class="section-title">Ваш путь обучения</h2>
+            <div class="path-visualization">
+                <div class="path-node" data-kit="1" data-status="available">
+                    <div class="node-circle">№1</div>
+                    <div class="node-label">Плотность</div>
+                    <div class="node-status">0/5</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node active" data-kit="2" data-status="active">
+                    <div class="node-circle">№2</div>
+                    <div class="node-label">Пружины</div>
+                    <div class="node-status">🔥 0/7</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node" data-kit="3" data-status="locked">
+                    <div class="node-circle">№3</div>
+                    <div class="node-label">Электричество</div>
+                    <div class="node-status">🔒 0/9</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node" data-kit="4" data-status="locked">
+                    <div class="node-circle">№4</div>
+                    <div class="node-label">Оптика</div>
+                    <div class="node-status">🔒 0/6</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node" data-kit="5" data-status="locked">
+                    <div class="node-circle">№5</div>
+                    <div class="node-label">Кинематика</div>
+                    <div class="node-status">🔒</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node" data-kit="6" data-status="locked">
+                    <div class="node-circle">№6</div>
+                    <div class="node-label">Механика II</div>
+                    <div class="node-status">🔒 0/6</div>
+                </div>
+                <div class="path-line"></div>
+                
+                <div class="path-node" data-kit="7" data-status="locked">
+                    <div class="node-circle">№7</div>
+                    <div class="node-label">Термодинамика</div>
+                    <div class="node-status">🔒</div>
+                </div>
+            </div>
+            <div class="overall-progress">
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: 0%" id="progressFill"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressPercent">0%</span> 
+                    (<span id="progressCount">0/33+</span> опытов выполнено)
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================
+         QUICK NAVIGATION (Sticky)
+         ============================================ -->
+    <nav class="quick-nav" id="quickNav">
+        <a href="#kit1" class="quick-nav-item" data-kit="1">
+            №1 <span class="quick-status">○</span>
+        </a>
+        <a href="#kit2" class="quick-nav-item active" data-kit="2">
+            №2 <span class="quick-status">🔥</span>
+        </a>
+        <a href="#kit3" class="quick-nav-item locked" data-kit="3">
+            №3 <span class="quick-status">🔒</span>
+        </a>
+        <a href="#kit4" class="quick-nav-item locked" data-kit="4">
+            №4 <span class="quick-status">🔒</span>
+        </a>
+        <a href="#kit5" class="quick-nav-item locked" data-kit="5">
+            №5 <span class="quick-status">🔒</span>
+        </a>
+        <a href="#kit6" class="quick-nav-item locked" data-kit="6">
+            №6 <span class="quick-status">🔒</span>
+        </a>
+        <a href="#kit7" class="quick-nav-item locked" data-kit="7">
+            №7 <span class="quick-status">🔒</span>
+        </a>
+    </nav>
+
+    <!-- ============================================
+         MAIN CONTENT - ALL 7 KITS
+         ============================================ -->
+    <main class="main-content">
+        <div class="container">
+            
+            <!-- КОМПЛЕКТ №1 -->
+            <section class="kit-section" id="kit1" data-kit-id="1" data-status="available">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">⚖️</span>
+                            КОМПЛЕКТ №1: Механика - Плотность и Архимедова сила
+                            <span class="kit-badge available">○ Доступен</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">
+                            <span class="meta-icon">🔬</span>
+                            Комплект №1
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">⏱️</span>
+                            ~2.5 часа
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">⭐</span>
+                            0% пройдено
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">●</span>
+                            0/5 опытов
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Карусель опытов комплекта 1 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="1">‹</button>
+                    <div class="carousel-track" id="carouselKit1">
+                        <!-- 5 карточек опытов -->
+                        <div class="experiment-card-mini" data-exp-id="1-1" data-status="available">
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder">⚖️</div>
+                            <h4 class="card-mini-title">Измерение плотности</h4>
+                            <p class="card-mini-desc">Определение ρ = m/V</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="1-2" data-status="locked">
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder">💧</div>
+                            <h4 class="card-mini-title">Архимедова сила</h4>
+                            <p class="card-mini-desc">F_A = ρ_ж × g × V</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="1-3" data-status="locked">
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder">📊</div>
+                            <h4 class="card-mini-title">F_A от объема</h4>
+                            <p class="card-mini-desc">График зависимости</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="1-4" data-status="locked">
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder">🧪</div>
+                            <h4 class="card-mini-title">F_A от плотности</h4>
+                            <p class="card-mini-desc">Соляной раствор</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="1-5" data-status="locked">
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder">⚗️</div>
+                            <h4 class="card-mini-title">F_A от массы</h4>
+                            <p class="card-mini-desc">Независимость</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Легко</span>
+                            </div>
+                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                        </div>
+                    </div>
+                    <button class="carousel-btn next" data-kit="1">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-kit-info" data-kit="1">
+                        ℹ️ О комплекте
+                    </button>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТ №2 - АКТИВНЫЙ (Пилот) -->
+            <section class="kit-section active" id="kit2" data-kit-id="2" data-status="active">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">🔧</span>
+                            КОМПЛЕКТ №2: Механика (пружины, трение, рычаги)
+                            <span class="kit-badge active">🔥 АКТИВНЫЙ - ПИЛОТ</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">
+                            <span class="meta-icon">🔬</span>
+                            Комплект №2
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">⏱️</span>
+                            ~3 часа
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">⭐</span>
+                            0% пройдено
+                        </span>
+                        <span class="meta-tag">
+                            <span class="meta-icon">●</span>
+                            0/6 опытов
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Карусель опытов комплекта 2 (РЕАЛИЗОВАН) -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="2">‹</button>
+                    <div class="carousel-track" id="carouselKit2">
+                        <!-- 6 карточек опытов с реальными фото - ОФИЦИАЛЬНАЯ СПЕЦИФИКАЦИЯ ФИПИ -->
+                        <div class="experiment-card-mini" data-exp-id="2-1" data-status="available">
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo">
+                                <img src="фото оборудования/Пружина 1  с жесткостью 50 Нм.png" 
+                                     alt="Пружина" 
+                                     onerror="this.parentElement.innerHTML='🔩'">
+                            </div>
+                            <h4 class="card-mini-title">Измерение жёсткости пружины</h4>
+                            <p class="card-mini-desc">F = k × Δl</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Легко</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="2-2" data-status="available">
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo">
+                                <img src="фото оборудования/брусок деревянный с крючками масса бруска m = (50 ± 5) г.png" 
+                                     alt="Брусок" 
+                                     onerror="this.parentElement.innerHTML='📦'">
+                            </div>
+                            <h4 class="card-mini-title">Измерение коэффициента трения скольжения</h4>
+                            <p class="card-mini-desc">μ = F_тр / N</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="2-3" data-status="available">
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo">
+                                <img src="фото оборудования/динамометр 2 предел измерения 5 Н (С = 0,1 Н).png" 
+                                     alt="Динамометр" 
+                                     onerror="this.parentElement.innerHTML='⚖️'">
+                            </div>
+                            <h4 class="card-mini-title">Измерение работы силы трения</h4>
+                            <p class="card-mini-desc">A = F_тр × S</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="2-4" data-status="available">
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo">
+                                <img src="фото оборудования/Пружина 2 с жесткостью 10 НМ.png" 
+                                     alt="Пружина 2" 
+                                     onerror="this.parentElement.innerHTML='🔩'">
+                            </div>
+                            <h4 class="card-mini-title">Измерение работы силы упругости</h4>
+                            <p class="card-mini-desc">A = F × h</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="2-5" data-status="available">
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo">
+                                <img src="фото оборудования/Гибкая лента с коэфициентом трения 0,6 - прикрепляется к направляющей на липкой ленте.png" 
+                                     alt="Поверхности" 
+                                     onerror="this.parentElement.innerHTML='🛤️'">
+                            </div>
+                            <h4 class="card-mini-title">Исследование зависимости F_тр</h4>
+                            <p class="card-mini-desc">От давления и рода поверхности</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 40 мин</span>
+                                <span>⭐⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                        
+                        <div class="experiment-card-mini" data-exp-id="2-6" data-status="available">
+                            <div class="card-mini-number">06</div>
+                            <div class="card-mini-photo-placeholder">📈</div>
+                            <h4 class="card-mini-title">Исследование зависимости F_упр от деформации</h4>
+                            <p class="card-mini-desc">Закон Гука: F(Δl)</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start">▶ Начать</button>
+                        </div>
+                    </div>
+                    <button class="carousel-btn next" data-kit="2">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-start-kit primary" data-kit="2">
+                        ▶ НАЧАТЬ ЭКСПЕРИМЕНТЫ
+                    </button>
+                    <button class="btn-kit-info" data-kit="2">
+                        ℹ️ О комплекте
+                    </button>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТЫ №3-7 - В РАЗРАБОТКЕ -->
+            
+            <!-- КОМПЛЕКТ №3 -->
+            <section class="kit-section locked" id="kit3" data-kit-id="3" data-status="locked">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">⚡</span>
+                            КОМПЛЕКТ №3: Электричество - Законы постоянного тока
+                            <span class="kit-badge locked">🔒 В разработке</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">🔬 Комплект №3</span>
+                        <span class="meta-tag">⏱️ ~4 часа</span>
+                        <span class="meta-tag">🔒 9 опытов</span>
+                    </div>
+                </div>
+
+                <div class="locked-preview">
+                    <div class="locked-overlay">
+                        <div class="locked-content">
+                            <div class="locked-icon">🚧</div>
+                            <h3>В РАЗРАБОТКЕ</h3>
+                            <p>Этот комплект будет доступен в следующей версии</p>
+                            <p class="locked-desc">Закон Ома, соединения проводников, мощность тока</p>
+                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                        </div>
+                    </div>
+                    <div class="experiments-preview-locked">
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТ №4 -->
+            <section class="kit-section locked" id="kit4" data-kit-id="4" data-status="locked">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">🔍</span>
+                            КОМПЛЕКТ №4: Оптика - Линзы и преломление
+                            <span class="kit-badge locked">🔒 В разработке</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">🔬 Комплект №4</span>
+                        <span class="meta-tag">⏱️ ~3 часа</span>
+                        <span class="meta-tag">🔒 6 опытов</span>
+                    </div>
+                </div>
+
+                <div class="locked-preview">
+                    <div class="locked-overlay">
+                        <div class="locked-content">
+                            <div class="locked-icon">🚧</div>
+                            <h3>В РАЗРАБОТКЕ</h3>
+                            <p>Этот комплект будет доступен в следующей версии</p>
+                            <p class="locked-desc">Фокусное расстояние, изображения в линзах, закон преломления</p>
+                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                        </div>
+                    </div>
+                    <div class="experiments-preview-locked">
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТ №5 -->
+            <section class="kit-section locked" id="kit5" data-kit-id="5" data-status="locked">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">🚀</span>
+                            КОМПЛЕКТ №5: Кинематика и колебания
+                            <span class="kit-badge locked">🔒 В разработке</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">🔬 Комплект №5</span>
+                        <span class="meta-tag">⏱️ ~3.5 часа</span>
+                        <span class="meta-tag">🔒 Скоро</span>
+                    </div>
+                </div>
+
+                <div class="locked-preview">
+                    <div class="locked-overlay">
+                        <div class="locked-content">
+                            <div class="locked-icon">🚧</div>
+                            <h3>В РАЗРАБОТКЕ</h3>
+                            <p>Этот комплект будет доступен в следующей версии</p>
+                            <p class="locked-desc">Равномерное движение, ускорение, колебания маятника</p>
+                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                        </div>
+                    </div>
+                    <div class="experiments-preview-locked">
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТ №6 -->
+            <section class="kit-section locked" id="kit6" data-kit-id="6" data-status="locked">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">🎭</span>
+                            КОМПЛЕКТ №6: Механика - Рычаги и блоки
+                            <span class="kit-badge locked">🔒 В разработке</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">🔬 Комплект №6</span>
+                        <span class="meta-tag">⏱️ ~3 часа</span>
+                        <span class="meta-tag">🔒 6 опытов</span>
+                    </div>
+                </div>
+
+                <div class="locked-preview">
+                    <div class="locked-overlay">
+                        <div class="locked-content">
+                            <div class="locked-icon">🚧</div>
+                            <h3>В РАЗРАБОТКЕ</h3>
+                            <p>Этот комплект будет доступен в следующей версии</p>
+                            <p class="locked-desc">Условие равновесия, момент силы, простые механизмы</p>
+                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                        </div>
+                    </div>
+                    <div class="experiments-preview-locked">
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- КОМПЛЕКТ №7 -->
+            <section class="kit-section locked" id="kit7" data-kit-id="7" data-status="locked">
+                <div class="kit-header">
+                    <div class="kit-title-row">
+                        <h2 class="kit-title">
+                            <span class="kit-icon">🌡️</span>
+                            КОМПЛЕКТ №7: Термодинамика - Теплообмен
+                            <span class="kit-badge locked">🔒 В разработке</span>
+                        </h2>
+                    </div>
+                    <div class="kit-meta">
+                        <span class="meta-tag">🔬 Комплект №7</span>
+                        <span class="meta-tag">⏱️ ~3 часа</span>
+                        <span class="meta-tag">🔒 Скоро</span>
+                    </div>
+                </div>
+
+                <div class="locked-preview">
+                    <div class="locked-overlay">
+                        <div class="locked-content">
+                            <div class="locked-icon">🚧</div>
+                            <h3>В РАЗРАБОТКЕ</h3>
+                            <p>Этот комплект будет доступен в следующей версии</p>
+                            <p class="locked-desc">Количество теплоты, уравнение теплового баланса, фазовые переходы</p>
+                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                        </div>
+                    </div>
+                    <div class="experiments-preview-locked">
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                        <div class="locked-card"></div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ============================================
+         FOOTER
+         ============================================ -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <div class="brand-logo">
+                    <span class="logo-icon">🔬</span>
+                    <span class="logo-text">Labosfera</span>
+                </div>
+                <p class="footer-tagline">
+                    Профессиональное оборудование для школьных лабораторий
+                </p>
+            </div>
+            <div class="footer-links">
+                <div class="footer-section">
+                    <h4>Проект</h4>
+                    <a href="#about">О проекте</a>
+                    <a href="#help">Помощь</a>
+                    <a href="#contacts">Контакты</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Ресурсы</h4>
+                    <a href="https://labosfera.ru" target="_blank">Сайт Labosfera</a>
+                    <a href="#fipi">Спецификация ФИПИ 2025</a>
+                    <a href="#docs">Документация</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Поддержка</h4>
+                    <a href="#faq">FAQ</a>
+                    <a href="#feedback">Обратная связь</a>
+                    <a href="#updates">Обновления</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Labosfera. Все права защищены.</p>
+            <p>Виртуальная лаборатория для подготовки к ОГЭ по физике</p>
+        </div>
+    </footer>
+
+    <!-- ============================================
+         MODAL: О КОМПЛЕКТЕ
+         ============================================ -->
+    <div class="modal" id="kitInfoModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <div class="modal-header">
+                <h2 id="modalTitle">Комплект №2</h2>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Контент загружается динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         SCRIPTS
+         ============================================ -->
+    <script src="app.js"></script>
+</body>
+</html>

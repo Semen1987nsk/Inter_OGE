@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивные опыты по физике - ОГЭ | Labosfera</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Стартовый экран выбора комплекта -->
+    <div id="startScreen" class="start-screen active">
+        <div class="start-screen-bg">
+            <div class="animated-gradient"></div>
+            <div class="floating-particles"></div>
+        </div>
+        
+        <div class="start-screen-content">
+            <div class="start-header">
+                <div class="brand-logo-large">
+                    <span class="logo-icon-large">🔬</span>
+                    <span class="logo-text-large">Labosfera</span>
+                </div>
+                <h1 class="start-title">Интерактивная лаборатория физики</h1>
+                <p class="start-subtitle">Виртуальные эксперименты для подготовки к ОГЭ</p>
+            </div>
+            
+            <div class="kit-selection-container">
+                <h2 class="section-title">
+                    <span class="section-icon">📦</span>
+                    Выберите комплект оборудования
+                </h2>
+                <p class="section-description">7 комплектов по спецификации ФИПИ 2025</p>
+                
+                <div class="kits-grid" id="kitsGrid">
+                    <!-- Карточки комплектов будут добавлены через JS -->
+                </div>
+            </div>
+            
+            <div class="start-footer">
+                <p>Powered by <strong>Labosfera</strong> | www.labosfera.ru</p>
+            </div>
+        </div>
+    </div>
+
+    <header id="mainHeader" class="hidden">
+        <div class="header-brand">
+            <div class="brand-logo">
+                <span class="logo-icon">🔬</span>
+                <span class="logo-text">Labosfera</span>
+            </div>
+            <div class="header-title">
+                <h1>Интерактивная лаборатория физики</h1>
+                <p>Виртуальные опыты для подготовки к ОГЭ с оборудованием Labosfera</p>
+            </div>
+        </div>
+        <div class="header-info">
+            <span class="info-badge">📋 16 экспериментов по спецификации ФИПИ</span>
+            <span class="info-badge">🔬 Цифровое оборудование Labosfera</span>
+        </div>
+    </header>
+
+    <nav class="menu">
+        <button class="menu-btn active" data-experiment="mechanics">
+            <span class="menu-icon">⚙️</span>
+            <span>Механика</span>
+            <span class="menu-count">4 опыта</span>
+        </button>
+        <button class="menu-btn" data-experiment="electricity">
+            <span class="menu-icon">⚡</span>
+            <span>Электричество</span>
+            <span class="menu-count">6 опытов</span>
+        </button>
+        <button class="menu-btn" data-experiment="optics">
+            <span class="menu-icon">🔍</span>
+            <span>Оптика</span>
+            <span class="menu-count">3 опыта</span>
+        </button>
+        <button class="menu-btn" data-experiment="thermal">
+            <span class="menu-icon">🌡️</span>
+            <span>Тепловые явления</span>
+            <span class="menu-count">2 опыта</span>
+        </button>
+        <button class="menu-btn" data-experiment="catalog">
+            <span class="menu-icon">📚</span>
+            <span>Каталог экспериментов</span>
+        </button>
+    </nav>
+
+    <div class="container">
+        <!-- Механика -->
+        <div id="mechanics" class="experiment-panel active">
+            <h2>Опыт: Измерение плотности жидкости</h2>
+            <div class="experiment-area">
+                <canvas id="densityCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Выберите жидкость:</label>
+                    <select id="liquidSelect">
+                        <option value="water">Вода</option>
+                        <option value="oil">Масло</option>
+                        <option value="alcohol">Спирт</option>
+                        <option value="glycerin">Глицерин</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <button id="resetBtn" class="action-btn">🔄 Сбросить</button>
+                    <button id="measureBtn" class="action-btn">📏 Измерить</button>
+                </div>
+                <div class="results" id="results">
+                    <h3>Результаты измерений:</h3>
+                    <div id="measurements"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Электричество -->
+        <div id="electricity" class="experiment-panel">
+            <h2>Опыт: Сборка электрической цепи</h2>
+            <div class="experiment-area">
+                <canvas id="circuitCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="controls">
+                <div class="tool-palette">
+                    <h3>Элементы цепи:</h3>
+                    <button class="tool-btn" data-tool="battery">🔋 Батарейка</button>
+                    <button class="tool-btn" data-tool="bulb">💡 Лампочка</button>
+                    <button class="tool-btn" data-tool="resistor">⚡ Резистор</button>
+                    <button class="tool-btn" data-tool="switch">🔘 Выключатель</button>
+                    <button class="tool-btn" data-tool="ammeter">📊 Амперметр</button>
+                    <button class="tool-btn" data-tool="voltmeter">📈 Вольтметр</button>
+                    <button class="tool-btn" data-tool="wire">➖ Провод</button>
+                </div>
+                <div class="control-group">
+                    <button id="clearCircuit" class="action-btn">🗑️ Очистить</button>
+                    <button id="testCircuit" class="action-btn">⚡ Проверить цепь</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Оптика -->
+        <div id="optics" class="experiment-panel">
+            <h2>Опыт: Преломление света</h2>
+            <div class="experiment-area">
+                <canvas id="opticsCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Угол падения: <span id="angleValue">45°</span></label>
+                    <input type="range" id="angleSlider" min="0" max="90" value="45">
+                </div>
+                <div class="control-group">
+                    <label>Среда:</label>
+                    <select id="mediumSelect">
+                        <option value="air">Воздух → Вода</option>
+                        <option value="glass">Воздух → Стекло</option>
+                        <option value="diamond">Воздух → Алмаз</option>
+                    </select>
+                </div>
+                <div class="results">
+                    <p>Угол преломления: <strong id="refractionAngle">--</strong></p>
+                    <p>Показатель преломления: <strong id="refractiveIndex">--</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тепловые явления -->
+        <div id="thermal" class="experiment-panel">
+            <h2>Опыт: Нагревание и охлаждение</h2>
+            <div class="experiment-area">
+                <canvas id="thermalCanvas" width="1200" height="800"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Мощность нагрева: <span id="powerValue">500 Вт</span></label>
+                    <input type="range" id="powerSlider" min="0" max="1000" value="500">
+                </div>
+                <div class="control-group">
+                    <button id="startHeating" class="action-btn">🔥 Начать нагрев</button>
+                    <button id="stopHeating" class="action-btn">❄️ Остановить</button>
+                </div>
+                <div class="results">
+                    <p>Температура: <strong id="temperature">20°C</strong></p>
+                    <p>Время: <strong id="heatingTime">0 с</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Каталог экспериментов -->
+        <div id="catalog" class="experiment-panel">
+            <h2>📚 Каталог экспериментов по спецификации ФИПИ</h2>
+            <div class="catalog-intro">
+                <p class="catalog-description">
+                    Все 16 экспериментальных заданий ОГЭ по физике с оборудованием <strong>Labosfera</strong>
+                </p>
+                <div class="equipment-showcase">
+                    <h3>🔬 Используемое оборудование Labosfera:</h3>
+                    <div class="equipment-grid">
+                        <div class="equipment-card">
+                            <span class="equipment-icon">🌡️</span>
+                            <div>
+                                <h4>Датчик температуры</h4>
+                                <p>LS-T100 | -40...+180°C</p>
+                            </div>
+                        </div>
+                        <div class="equipment-card">
+                            <span class="equipment-icon">⚡</span>
+                            <div>
+                                <h4>Датчик тока</h4>
+                                <p>LS-I3 | ±3 А</p>
+                            </div>
+                        </div>
+                        <div class="equipment-card">
+                            <span class="equipment-icon">🔌</span>
+                            <div>
+                                <h4>Датчик напряжения</h4>
+                                <p>LS-V15 | ±15 В</p>
+                            </div>
+                        </div>
+                        <div class="equipment-card">
+                            <span class="equipment-icon">💪</span>
+                            <div>
+                                <h4>Датчик силы</h4>
+                                <p>LS-F50 | ±50 Н</p>
+                            </div>
+                        </div>
+                        <div class="equipment-card">
+                            <span class="equipment-icon">📏</span>
+                            <div>
+                                <h4>Датчик расстояния</h4>
+                                <p>LS-D600 | 0.15-6 м</p>
+                            </div>
+                        </div>
+                        <div class="equipment-card">
+                            <span class="equipment-icon">💡</span>
+                            <div>
+                                <h4>Датчик освещенности</h4>
+                                <p>LS-L180 | 0-180000 лк</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="experiments-list">
+                <div class="experiment-category">
+                    <h3>⚙️ Механические явления</h3>
+                    <div class="experiment-items">
+                        <div class="experiment-item">
+                            <div class="experiment-number">1</div>
+                            <div class="experiment-content">
+                                <h4>Измерение плотности вещества</h4>
+                                <p>Оборудование: весы Labosfera, мензурка, набор тел</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" data-exp="mechanics">Начать опыт</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">2</div>
+                            <div class="experiment-content">
+                                <h4>Измерение силы трения скольжения</h4>
+                                <p>Оборудование: динамометр Labosfera, деревянный брусок, набор грузов</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">3</div>
+                            <div class="experiment-content">
+                                <h4>Исследование упругих свойств пружины</h4>
+                                <p>Оборудование: штатив, пружина, набор грузов, датчик силы LS-F50</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">4</div>
+                            <div class="experiment-content">
+                                <h4>Изучение условия равновесия рычага</h4>
+                                <p>Оборудование: рычаг-линейка, набор грузов, динамометр Labosfera</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="experiment-category">
+                    <h3>⚡ Электромагнитные явления</h3>
+                    <div class="experiment-items">
+                        <div class="experiment-item">
+                            <div class="experiment-number">5</div>
+                            <div class="experiment-content">
+                                <h4>Сборка электрической цепи и измерение силы тока</h4>
+                                <p>Оборудование: источник тока, датчик тока LS-I3, резистор, ключ</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" data-exp="electricity">Начать опыт</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">6</div>
+                            <div class="experiment-content">
+                                <h4>Исследование зависимости силы тока от напряжения</h4>
+                                <p>Оборудование: датчики LS-I3 и LS-V15, резистор, реостат</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">7</div>
+                            <div class="experiment-content">
+                                <h4>Определение электрического сопротивления проводника</h4>
+                                <p>Оборудование: датчики Labosfera, резисторы, источник тока</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">8</div>
+                            <div class="experiment-content">
+                                <h4>Последовательное соединение проводников</h4>
+                                <p>Оборудование: цифровые датчики Labosfera, 2-3 резистора</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">9</div>
+                            <div class="experiment-content">
+                                <h4>Параллельное соединение проводников</h4>
+                                <p>Оборудование: цифровые датчики Labosfera, 2-3 резистора</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">10</div>
+                            <div class="experiment-content">
+                                <h4>Определение работы и мощности электрического тока</h4>
+                                <p>Оборудование: датчики LS-I3, LS-V15, лампа накаливания</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="experiment-category">
+                    <h3>🌡️ Тепловые явления</h3>
+                    <div class="experiment-items">
+                        <div class="experiment-item">
+                            <div class="experiment-number">11</div>
+                            <div class="experiment-content">
+                                <h4>Сравнение количества теплоты при смешивании воды</h4>
+                                <p>Оборудование: калориметр, датчик температуры LS-T100, мензурка</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" data-exp="thermal">Начать опыт</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">12</div>
+                            <div class="experiment-content">
+                                <h4>Определение удельной теплоемкости вещества</h4>
+                                <p>Оборудование: калориметр, датчик LS-T100, весы, нагреватель</p>
+                                <span class="experiment-duration">⏱️ 35 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="experiment-category">
+                    <h3>🔍 Оптические явления</h3>
+                    <div class="experiment-items">
+                        <div class="experiment-item">
+                            <div class="experiment-number">13</div>
+                            <div class="experiment-content">
+                                <h4>Исследование зависимости угла преломления от угла падения</h4>
+                                <p>Оборудование: стеклянная пластина, транспортир, булавки</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" data-exp="optics">Начать опыт</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">14</div>
+                            <div class="experiment-content">
+                                <h4>Определение фокусного расстояния собирающей линзы</h4>
+                                <p>Оборудование: линза, экран, источник света, датчик расстояния LS-D600</p>
+                                <span class="experiment-duration">⏱️ 25 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">15</div>
+                            <div class="experiment-content">
+                                <h4>Получение изображения с помощью собирающей линзы</h4>
+                                <p>Оборудование: линза, экран, источник света, линейка</p>
+                                <span class="experiment-duration">⏱️ 30 мин</span>
+                                <button class="start-experiment-btn" disabled>В разработке</button>
+                            </div>
+                        </div>
+                        <div class="experiment-item">
+                            <div class="experiment-number">16</div>
+                            <div class="experiment-content">
+                                <h4>Дополнительный опыт (по выбору комиссии)</h4>
+                                <p>Оборудование: зависит от выбранного эксперимента</p>
+                                <span class="experiment-duration">⏱️ варьируется</span>
+                                <button class="start-experiment-btn" disabled>Скоро</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="catalog-footer">
+                <div class="footer-info">
+                    <h3>ℹ️ О платформе</h3>
+                    <p>Виртуальная лаборатория с оборудованием <strong>Labosfera</strong> - это современный способ подготовки к ОГЭ по физике.</p>
+                    <ul>
+                        <li>✅ Все эксперименты соответствуют спецификации ФИПИ 2025</li>
+                        <li>✅ Реалистичное цифровое оборудование Labosfera</li>
+                        <li>✅ Пошаговые инструкции и подсказки</li>
+                        <li>✅ Автоматические расчёты и проверка результатов</li>
+                    </ul>
+                </div>
+                <div class="footer-link">
+                    <a href="https://www.labosfera.ru" target="_blank" class="labosfera-link">
+                        🌐 Узнать больше об оборудовании Labosfera
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="logo-icon">🔬</span>
+                <span class="logo-text">Labosfera</span>
+            </div>
+            <div class="footer-text">
+                <p>Интерактивная платформа для подготовки к ОГЭ по физике | 2025</p>
+                <p>Виртуальная лаборатория с оборудованием <a href="https://www.labosfera.ru" target="_blank">www.labosfera.ru</a></p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="labosfera-config.js"></script>
+    <script src="equipment-kits.js"></script>
+    <script src="image-loader.js"></script>
+    <script src="experiments/mechanics.js"></script>
+    <script src="experiments/electricity.js"></script>
+    <script src="experiments/optics.js"></script>
+    <script src="experiments/thermal.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Минимальный тест эксперимента</title>
+    <link rel="stylesheet" href="../styles/experiment-common.css">
+    <link rel="stylesheet" href="experiment-1-spring.css">
+</head>
+<body>
+    <div class="experiment-container">
+        <div class="canvas-container">
+            <canvas id="backgroundCanvas"></canvas>
+            <canvas id="equipmentCanvas"></canvas>
+            <canvas id="dynamicCanvas"></canvas>
+            <canvas id="particlesCanvas"></canvas>
+            <canvas id="uiCanvas"></canvas>
+            
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+                <p>Загрузка оборудования...</p>
+            </div>
+        </div>
+        
+        <div class="controls-panel">
+            <h3>Контрольная панель</h3>
+            <p>Эксперимент загружен!</p>
+            <button onclick="testHideLoading()">Тест: Скрыть загрузчик</button>
+        </div>
+    </div>
+
+    <script>
+        console.log('🔍 МИНИМАЛЬНЫЙ ТЕСТ');
+        
+        // Тест 1: DOM элементы
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOMContentLoaded');
+            
+            const canvases = {
+                background: document.getElementById('backgroundCanvas'),
+                equipment: document.getElementById('equipmentCanvas'),
+                dynamic: document.getElementById('dynamicCanvas'),
+                particles: document.getElementById('particlesCanvas'),
+                ui: document.getElementById('uiCanvas')
+            };
+            
+            console.log('Canvas elements:', canvases);
+            
+            Object.keys(canvases).forEach(key => {
+                if (!canvases[key]) {
+                    console.error(`❌ Canvas ${key} not found!`);
+                } else {
+                    console.log(`✅ Canvas ${key} found`);
+                }
+            });
+            
+            // Тест 2: Resize canvases
+            const container = document.querySelector('.canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            console.log(`Container size: ${width}x${height}`);
+            
+            Object.values(canvases).forEach(canvas => {
+                if (canvas) {
+                    canvas.width = width;
+                    canvas.height = height;
+                }
+            });
+            
+            console.log('✅ Canvases resized');
+            
+            // Тест 3: Рисование на canvas
+            const ctx = canvases.background.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#0f1429');
+            gradient.addColorStop(0.5, '#1a1f3a');
+            gradient.addColorStop(1, '#2d3561');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            console.log('✅ Background drawn');
+            
+            // Тест 4: Скрытие загрузчика через 2 секунды
+            setTimeout(() => {
+                hideLoading();
+                console.log('✅ Loading hidden after 2s');
+            }, 2000);
+        });
+        
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                    console.log('✅ Loading overlay removed');
+                }, 300);
+            }
+        }
+        
+        function testHideLoading() {
+            hideLoading();
+        }
+    </script>
+</body>
+</html>
