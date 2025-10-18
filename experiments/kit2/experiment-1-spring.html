@@ -18,6 +18,7 @@
     <script src="../shared/physics-engine.js" defer></script>
     <script src="../shared/particle-effects.js" defer></script>
     <script src="../shared/canvas-utils.js" defer></script>
+    <script src="../shared/realistic-renderer.js" defer></script>
     <script src="experiment-1-spring.js" defer></script>
 </head>
 <body>
@@ -40,31 +41,6 @@
         </div>
     </header>
 
-    <!-- Progress Bar -->
-    <div class="progress-container">
-        <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-        </div>
-        <div class="progress-steps">
-            <div class="step active" data-step="1">
-                <div class="step-circle">1</div>
-                <div class="step-label">Подготовка</div>
-            </div>
-            <div class="step" data-step="2">
-                <div class="step-circle">2</div>
-                <div class="step-label">Измерения</div>
-            </div>
-            <div class="step" data-step="3">
-                <div class="step-circle">3</div>
-                <div class="step-label">График</div>
-            </div>
-            <div class="step" data-step="4">
-                <div class="step-circle">4</div>
-                <div class="step-label">Результат</div>
-            </div>
-        </div>
-    </div>
-
     <!-- Main Content -->
     <main class="experiment-container">
         <!-- Left Panel: Simulator -->
@@ -76,11 +52,12 @@
             <!-- Canvas Container -->
             <div class="canvas-container" id="canvas-container">
                 <!-- Multi-layer canvas system -->
-                <canvas id="canvas-background" width="800" height="600"></canvas>
-                <canvas id="canvas-equipment" width="800" height="600"></canvas>
-                <canvas id="canvas-dynamic" width="800" height="600"></canvas>
-                <canvas id="canvas-particles" width="800" height="600"></canvas>
-                <canvas id="canvas-ui" width="800" height="600"></canvas>
+                <canvas id="canvas-background" width="900" height="700"></canvas>
+                <canvas id="canvas-equipment" width="900" height="700"></canvas>
+                <canvas id="canvas-dynamic" width="900" height="700"></canvas>
+                <canvas id="canvas-particles" width="900" height="700"></canvas>
+                <canvas id="canvas-ui" width="900" height="700"></canvas>
+                <div id="drag-drop-overlay"></div>
                 
                 <!-- Loading overlay -->
                 <div class="loading-overlay" id="loading-overlay">
@@ -137,8 +114,34 @@
                         <span class="unit">см</span>
                     </div>
                 </div>
-                <button class="btn-primary" id="btn-add-point" disabled>
-                    <span class="icon">✓</span> Добавить точку
+                <button class="btn-primary" id="btn-record-measurement" disabled>
+                    <span class="icon">📝</span> Записать измерение
+                </button>
+            </div>
+
+            <!-- Measurements Table -->
+            <div class="panel-section">
+                <h3>Таблица измерений</h3>
+                <div class="measurements-table-container">
+                    <table class="measurements-table" id="measurements-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>Масса, г</th>
+                                <th>Сила, Н</th>
+                                <th>Δl, см</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="measurements-tbody">
+                            <tr class="empty-state">
+                                <td colspan="5">Пока нет измерений</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <button class="btn-primary" id="btn-calculate" disabled>
+                    <span class="icon">🧮</span> Рассчитать жёсткость
                 </button>
             </div>
 
@@ -241,11 +244,5 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="../shared/physics-engine.js"></script>
-    <script src="../shared/particle-effects.js"></script>
-    <script src="../shared/canvas-utils.js"></script>
-    <script src="../shared/realistic-renderer.js"></script>
-    <script src="experiment-1-spring.js"></script>
 </body>
 </html>

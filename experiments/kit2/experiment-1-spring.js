@@ -34,18 +34,21 @@ class SpringExperiment {
             attachedSpringId: null,
             weightAttached: false,
             currentWeight: null,
+            currentWeightId: null,
             // springPosition — координаты ВЕРХНЕГО конца пружины (крючка)
             springPosition: { x: 200, y: 150 },
             springLength: 140, // 3.5 см * 40 px/см = 140px (компактная реалистичная пружина)
             springNaturalLength: 140, // натуральная длина без нагрузки
             springElongation: 0,
             measurements: [],
+            attachedWeights: [],
             selectedWeights: new Set(),
             showGraph: false,
             experimentComplete: false
         };
 
         this.springDragged = false;
+        this.pendingWeightIds = new Set();
 
         // Конфигурация планшета с пружиной (используем фото реального оборудования)
         this.layout = {
@@ -89,14 +92,32 @@ class SpringExperiment {
         // Kinematics for motion blur
         this.prevSpringLength = null;
         this.springVelocity = 0;
+        this.currentAnimation = null;
+        this.attachmentManager = new AttachmentManager(this);
         
         // Spring offset for dragging
         this.springOffset = { x: 0, y: 0 };
+        this.reinitDragSources = null;
+        this.dragGhost = null; // Призрачная копия элемента при перетаскивании
+
+        // Visual scaling to keep soft пружины в кадре
+        this.visual = {
+            scale: 1,
+            minScale: 0.2,
+            marginTop: 120,
+            marginBottom: 140
+        };
 
         // UI references
         this.ui = {
             equipmentContainer: document.getElementById('equipment-container'),
             weightsContainer: document.getElementById('weights-container')
+        };
+
+        // Visual configuration toggles
+        this.visualSettings = {
+            measurementParticles: false,
+            completionConfetti: true
         };
 
         // Inventory metadata
@@ -118,6 +139,44 @@ class SpringExperiment {
                 naturalLength: 140
             }
         };
+
+        // Набор грузов комплекта №2 (ФИПИ ОГЭ 2025)
+        this.weightsInventory = [
+            {
+                id: 'weight100_double_1',
+                mass: 100,
+                name: 'Груз 100 г №1',
+                description: 'Двойной крюк для стыковки',
+                icon: '../../assets/equipment/weight-100g-double-hook.svg',
+                hooksTop: true,
+                hooksBottom: true,
+                targetSize: 88,
+                hookGap: 28
+            },
+            {
+                id: 'weight100_double_2',
+                mass: 100,
+                name: 'Груз 100 г №2',
+                description: 'Двойной крюк для стыковки',
+                icon: '../../assets/equipment/weight-100g-double-hook.svg',
+                hooksTop: true,
+                hooksBottom: true,
+                targetSize: 88,
+                hookGap: 28
+            },
+            {
+                id: 'weight100_double_3',
+                mass: 100,
+                name: 'Груз 100 г №3',
+                description: 'Двойной крюк для стыковки',
+                icon: '../../assets/equipment/weight-100g-double-hook.svg',
+                hooksTop: true,
+                hooksBottom: true,
+                targetSize: 88,
+                hookGap: 28
+            },
+            // Дополнительные грузы отключены по запросу заказчика
+        ];
 
         // Cache for tracking last pointer position during canvas drag
         this.lastPointer = { x: 0, y: 0 };
@@ -146,6 +205,7 @@ class SpringExperiment {
 
             // Render side panel inventory
             this.renderEquipmentInventory();
+            this.renderWeightsInventory();
 
             // Draw static elements
             this.drawBackground();
@@ -161,6 +221,11 @@ class SpringExperiment {
             // Добавляем управление оборудованием (перемещение верхнего конца пружины)
             this.setupEquipmentDragListeners();
             this.handleStepChange();
+
+            // Инициализация UI для таблицы измерений
+            this.renderMeasurementsTable();
+            this.updateRecordButton();
+            this.updateCalculateButton();
 
             // Hide loading overlay
             this.hideLoading();
@@ -216,6 +281,8 @@ class SpringExperiment {
         }
 
         console.log('✅ Virtual board prepared:', rig.width, 'x', rig.height);
+
+        await this.loadWeightAssets();
     }
 
     updateRigPositionFromSpring() {
@@ -239,6 +306,50 @@ class SpringExperiment {
 
     getAttachedSpring() {
         return this.getEquipmentById(this.state.attachedSpringId);
+    }
+
+    getWeightById(id) {
+        if (!id || !Array.isArray(this.weightsInventory)) {
+            return null;
+        }
+
+        return this.weightsInventory.find(weight => weight.id === id) || null;
+    }
+
+    canAttachWeight(weight) {
+        if (!weight) {
+            return false;
+        }
+
+        if (!this.state.attachedWeights?.length) {
+            return !!weight.hooksTop;
+        }
+
+        const last = this.state.attachedWeights[this.state.attachedWeights.length - 1];
+        const lastDef = this.getWeightById(last.id);
+
+        return !!(lastDef?.hooksBottom && weight.hooksTop);
+    }
+
+    async loadWeightAssets() {
+        if (!Array.isArray(this.weightsInventory)) {
+            return;
+        }
+
+        const tasks = this.weightsInventory.map(async (weight) => {
+            if (!weight?.icon || this.images.weights[weight.id]) {
+                return;
+            }
+
+            try {
+                const img = await this.loadImage(weight.icon);
+                this.images.weights[weight.id] = img;
+            } catch (err) {
+                console.warn(`⚠️ Не удалось загрузить изображение груза ${weight.name}:`, err.message);
+            }
+        });
+
+        await Promise.all(tasks);
     }
 
     clampSpringPosition() {
@@ -281,8 +392,6 @@ class SpringExperiment {
         
         for (let i = 0; i < coils; i++) {
             const y = i * coilHeight;
-                // Pointer tracking for highlight
-                this.setupPointerTracking();
             ctx.beginPath();
             ctx.ellipse(canvas.width / 2, y + coilHeight / 2, 25, 8, 0, 0, Math.PI * 2);
             ctx.stroke();
@@ -406,13 +515,121 @@ class SpringExperiment {
 
             container.appendChild(item);
         });
+
+        this.reinitDragSources?.();
     }
 
-    resetDraggablePosition(element) {
+    renderWeightsInventory() {
+        const container = this.ui?.weightsContainer;
+        if (!container) {
+            console.warn('⚠️ Weights container not found');
+            return;
+        }
+
+        container.innerHTML = '';
+
+        this.weightsInventory.forEach((weight) => {
+            const isPending = this.pendingWeightIds.has(weight.id);
+            const isAttached = this.state.selectedWeights.has(weight.id);
+
+            const item = document.createElement('div');
+            item.className = 'weight-item';
+            item.dataset.type = 'weight';
+            item.dataset.mass = weight.mass;
+            item.dataset.weightId = weight.id;
+            item.dataset.hooksTop = weight.hooksTop ? 'true' : 'false';
+            item.dataset.hooksBottom = weight.hooksBottom ? 'true' : 'false';
+            item.dataset.status = isAttached ? 'attached' : isPending ? 'pending' : 'available';
+
+            if (isAttached || isPending) {
+                item.classList.add('used');
+                item.classList.add('weight-item--attached');
+            }
+
+            const figure = document.createElement('div');
+
+                    this.reinitDragSources?.();
+            figure.className = 'weight-figure';
+
+            if (weight.icon) {
+                const img = document.createElement('img');
+                img.src = weight.icon;
+                img.alt = weight.name;
+                figure.appendChild(img);
+            } else {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'weight-placeholder';
+                placeholder.textContent = `${weight.mass} г`;
+                figure.appendChild(placeholder);
+            }
+
+            const label = document.createElement('div');
+            label.className = 'weight-label';
+            label.textContent = weight.name;
+
+            const meta = document.createElement('div');
+            meta.className = 'weight-meta';
+            meta.textContent = weight.description ?? '';
+
+            const status = document.createElement('div');
+            status.className = 'weight-status';
+            status.textContent = isAttached ? 'На пружине' : isPending ? 'Подвешивается…' : 'В комплекте';
+
+            item.append(figure, label, meta, status);
+
+            if (isAttached) {
+                const action = document.createElement('button');
+                action.type = 'button';
+                action.className = 'weight-action';
+                action.textContent = 'Вернуть в комплект';
+                action.addEventListener('click', (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    this.detachWeight(weight.id);
+                });
+                item.appendChild(action);
+            } else if (!isPending) {
+                const hint = document.createElement('div');
+                hint.className = 'weight-hint';
+                hint.textContent = 'Перетащите на пружину';
+                item.appendChild(hint);
+            }
+
+            container.appendChild(item);
+        });
+
+        this.reinitDragSources?.();
+    }
+
+    resetDraggablePosition(element, clearDroppedFlag = true) {
         if (!element) return;
+        
+        // Принудительно удаляем призрак, если он есть
+        if (this.dragGhost) {
+            this.dragGhost.remove();
+            this.dragGhost = null;
+        }
+        
+        // Сбрасываем transform с анимацией
+        element.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
         element.style.transform = '';
+        element.style.opacity = '';
+        
+        // Очищаем data атрибуты
         element.setAttribute('data-x', 0);
         element.setAttribute('data-y', 0);
+        
+        // Удаляем флаг wasDropped только если разрешено
+        if (clearDroppedFlag && element.dataset) {
+            delete element.dataset.wasDropped;
+        }
+        
+        // Убираем transition после анимации
+        setTimeout(() => {
+            if (element && element.style) {
+                element.style.transition = '';
+            }
+        }, 300);
     }
 
     setSpringAnchor(x, y) {
@@ -488,6 +705,12 @@ class SpringExperiment {
         this.drawDynamic();
         this.showHint(`${spring.name} закреплена. Теперь подвесьте груз.`);
 
+        if (this.state.currentStep < 2) {
+            this.state.currentStep = 2;
+            this.updateProgress();
+            this.handleStepChange();
+        }
+
         this.resetDraggablePosition(element);
     }
 
@@ -519,62 +742,189 @@ class SpringExperiment {
         this.showHint('Пружина возвращена в комплект.');
     }
 
-    setupInteractions() {
-        document.querySelectorAll('.weight-item').forEach(item => {
-            if (!item.dataset.type) {
-                item.dataset.type = 'weight';
-            }
-        });
-
-        // Drag & Drop: грузы
-        interact('.weight-item').draggable({
-            inertia: true,
-            modifiers: [
-                interact.modifiers.restrictRect({
-                    restriction: 'parent',
-                    endOnly: true
-                })
-            ],
-            autoScroll: true,
-            listeners: {
-                start: (event) => this.onDragStart(event),
-                move: (event) => this.onDragMove(event),
-                end: (event) => this.onDragEnd(event)
-            }
-        });
-
-        // Drag & Drop: оборудование (пружина)
-        interact('.equipment-item').draggable({
-            inertia: true,
-            autoScroll: true,
-            listeners: {
-                start: (event) => this.onDragStart(event),
-                move: (event) => this.onDragMove(event),
-                end: (event) => this.onDragEnd(event)
-            }
-        });
-
-        // Drop zone на пружине (match HTML id 'canvas-dynamic')
-        const dropzone = document.getElementById('canvas-dynamic');
-        if (!dropzone) {
-            console.error('❌ Dropzone canvas #canvas-dynamic not found!');
+    detachWeight(weightId) {
+        console.log('[DETACH-WEIGHT] Запрос снять груз', weightId);
+        if (!this.state.springAttached) {
+            console.warn('[DETACH-WEIGHT] Нет пружины, операция невозможна');
+            this.showHint('Сначала установите пружину на установку.');
             return;
         }
-        
-        console.log('✅ Dropzone canvas found, setting up drop handler');
-        
-        interact('#canvas-dynamic')
-            .dropzone({
-                accept: '.weight-item, .equipment-item',
-                overlap: 0.4,
-                ondrop: (event) => this.handleCanvasDrop(event)
+
+        if (this.state.isAnimating) {
+            console.warn('[DETACH-WEIGHT] Нельзя снять во время анимации');
+            this.showHint('Дождитесь завершения измерения, затем снимите груз.');
+            return;
+        }
+
+        if (!this.state.attachedWeights?.length) {
+            console.warn('[DETACH-WEIGHT] На пружине нет грузов');
+            this.showHint('На пружине нет подвешенных грузов.');
+            return;
+        }
+
+        const lastWeight = this.state.attachedWeights[this.state.attachedWeights.length - 1];
+        if (!lastWeight || lastWeight.id !== weightId) {
+            console.warn('[DETACH-WEIGHT] Пытаемся снять не последний груз', {
+                requested: weightId,
+                lastWeight: lastWeight?.id,
+                chain: this.state.attachedWeights.map(item => item.id)
             });
+            this.showHint('Сначала снимите нижний (последний) груз в цепочке.');
+            return;
+        }
+
+        this.state.attachedWeights.pop();
+        this.state.selectedWeights.delete(weightId);
+        this.pendingWeightIds.delete(weightId);
+        console.log('[DETACH-WEIGHT] Груз снят, цепочка теперь:', this.state.attachedWeights.map(item => item.id));
+
+        if (!this.state.attachedWeights.length) {
+            this.state.weightAttached = false;
+            this.state.currentWeight = null;
+            this.state.currentWeightId = null;
+            this.state.springLength = this.state.springNaturalLength;
+            this.state.springElongation = 0;
+            this.updateVisualScale(this.state.springLength);
+            this.resetMeasurementDisplay();
+            this.showHint('Груз возвращён в комплект. Пружина свободна.');
+        } else {
+            console.log('[DETACH-WEIGHT] После снятия остались грузы, перерасчёт параметров');
+            const totalMass = this.state.attachedWeights.reduce((sum, item) => {
+                const def = this.getWeightById(item.id);
+                return sum + (def?.mass ?? 0);
+            }, 0);
+
+            this.state.weightAttached = true;
+            this.state.currentWeight = totalMass;
+            const currentWeight = this.state.attachedWeights[this.state.attachedWeights.length - 1];
+            this.state.currentWeightId = currentWeight?.id ?? null;
+
+            const massKg = totalMass / 1000;
+            const force = massKg * this.physics.gravity;
+            const elongationM = force / this.physics.springConstant;
+            const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
+            const targetLength = this.state.springNaturalLength + elongationPx;
+
+            this.state.springLength = targetLength;
+            this.state.springElongation = targetLength - this.state.springNaturalLength;
+            this.updateVisualScale(this.state.springLength);
+
+            const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+            this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
+            this.showHint(`Груз снят. Текущая масса на пружине: ${totalMass.toFixed(0)} г.`);
+        }
+
+        this.drawDynamic();
+        this.renderWeightsInventory();
+        this.updateResultDisplay();
+    }
+
+    setupInteractions() {
+        this.setupDragAndDrop();
+    }
+
+    setupDragAndDrop() {
+        if (typeof interact === 'undefined') {
+            console.error('[DRAG] interact.js недоступен');
+            return;
+        }
+
+        interact.dynamicDrop(true);
+
+        const initDraggables = () => {
+            interact('.weight-item').unset?.();
+            interact('.equipment-item').unset?.();
+
+            interact('.weight-item').draggable({
+                inertia: false,
+                // Убираем restrictRect - он мешает drop на canvas
+                autoScroll: true,
+                listeners: {
+                    start: (event) => this.onDragStart(event),
+                    move: (event) => this.onDragMove(event),
+                    end: (event) => this.onDragEnd(event)
+                }
+            });
+
+            interact('.equipment-item').draggable({
+                inertia: true,
+                autoScroll: true,
+                listeners: {
+                    start: (event) => this.onDragStart(event),
+                    move: (event) => this.onDragMove(event),
+                    end: (event) => this.onDragEnd(event)
+                }
+            });
+        };
+
+        initDraggables();
+        this.reinitDragSources = initDraggables;
+
+        const overlay = document.getElementById('drag-drop-overlay');
+        if (!overlay) {
+            console.error('❌ drag-drop-overlay не найден');
+            return;
+        }
+
+        interact('#drag-drop-overlay').unset?.();
+
+        interact('#drag-drop-overlay').dropzone({
+            accept: '.weight-item, .equipment-item',
+            overlap: 0.1,
+            ondrop: (event) => {
+                console.log('[DROPZONE] ondrop вызван!');
+                this.handleCanvasDrop(event);
+            },
+            ondropactivate: (event) => {
+                const weightId = event.relatedTarget?.dataset?.weightId || 'unknown';
+                console.log('[DROPZONE] Drop активирован для', weightId);
+            },
+            ondragenter: (event) => {
+                // Устанавливаем флаг когда элемент входит в dropzone
+                if (event.relatedTarget?.dataset) {
+                    event.relatedTarget.dataset.wasDropped = 'true';
+                    console.log('[DROPZONE] Установлен wasDropped=true в ondragenter');
+                }
+            },
+            ondropdeactivate: (event) => {
+                console.log('[DROPZONE] Drop деактивирован');
+            }
+        });
     }
 
     onDragStart(event) {
         const type = event.target.dataset.type || 'weight';
         this.state.isDragging = true;
         event.target.classList.add('dragging');
+        
+        // Визуальная обратная связь - делаем элемент более заметным
+        event.target.style.transition = 'none';
+        event.target.style.opacity = '0.6';
+        event.target.style.zIndex = '1000';
+        
+        // Создаём призрачную копию для визуального перетаскивания
+        const clone = event.target.cloneNode(true);
+        clone.id = 'drag-ghost';
+        clone.style.position = 'fixed';
+        clone.style.pointerEvents = 'none';
+        clone.style.zIndex = '10000';
+        clone.style.opacity = '0.9';
+        clone.style.transform = 'scale(1.2)';
+        clone.style.boxShadow = '0 10px 30px rgba(0, 168, 107, 0.6)';
+        clone.style.border = '3px solid #00A86B';
+        
+        const rect = event.target.getBoundingClientRect();
+        clone.style.left = rect.left + 'px';
+        clone.style.top = rect.top + 'px';
+        clone.style.width = rect.width + 'px';
+        clone.style.height = rect.height + 'px';
+        
+        document.body.appendChild(clone);
+        this.dragGhost = clone;
+        
+        if (event.target.dataset) {
+            event.target.dataset.wasDropped = 'false';
+        }
 
         if (type === 'weight') {
             const mass = parseInt(event.target.dataset.mass, 10);
@@ -582,6 +932,26 @@ class SpringExperiment {
             console.log('🎯 Drag started: груз', mass, 'г');
         } else if (type === 'equipment') {
             console.log('🔧 Dragging equipment item:', event.target.dataset.equipmentId);
+        }
+        
+        // Инициализируем trail для визуального следа
+        if (this.visualSettings?.dragTrail) {
+            const trailColor = type === 'equipment' ? '#0066CC' : '#00A86B';
+            this.particleSystem.createTrail(
+                rect.left + rect.width / 2,
+                rect.top + rect.height / 2,
+                trailColor
+            );
+        }
+        
+        // Создаём эффект частиц при начале перетаскивания
+        if (this.visualSettings?.dragParticles) {
+            const canvasRect = this.canvases.particles.getBoundingClientRect();
+            this.particleSystem.createDustParticles(
+                rect.left - canvasRect.left + rect.width / 2,
+                rect.top - canvasRect.top + rect.height / 2,
+                8
+            );
         }
     }
 
@@ -594,22 +964,89 @@ class SpringExperiment {
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
 
-        // Update trail
-    // Trail effect disabled per latest UX update
+        // Двигаем призрачную копию вместе с курсором
+        if (this.dragGhost) {
+            const rect = target.getBoundingClientRect();
+            this.dragGhost.style.left = rect.left + 'px';
+            this.dragGhost.style.top = rect.top + 'px';
+        }
+
+        // Добавляем визуальный след при перемещении
+        if (this.visualSettings?.dragTrail && this.dragGhost) {
+            const rect = this.dragGhost.getBoundingClientRect();
+            const canvasRect = this.canvases.particles.getBoundingClientRect();
+            
+            this.particleSystem.updateTrail(
+                rect.left - canvasRect.left + rect.width / 2,
+                rect.top - canvasRect.top + rect.height / 2
+            );
+        }
     }
 
     onDragEnd(event) {
         this.state.isDragging = false;
         event.target.classList.remove('dragging');
-        // Trail effect disabled per latest UX update
-
-        if ((event.target.dataset.type || 'weight') === 'equipment') {
+        
+        const wasDropped = event.target.dataset.wasDropped === 'true';
+        
+        console.log('[DRAG-END] Start cleanup', {
+            type: event.target.dataset.type,
+            weightId: event.target.dataset.weightId,
+            hasGhost: !!this.dragGhost,
+            wasDropped: wasDropped
+        });
+        
+        // ВАЖНО: Удаляем призрака ПЕРВЫМ делом
+        if (this.dragGhost) {
+            console.log('[DRAG-END] Removing ghost');
+            this.dragGhost.remove();
+            this.dragGhost = null;
+        }
+        
+        // Проверяем все возможные призраки в DOM
+        const existingGhosts = document.querySelectorAll('#drag-ghost');
+        existingGhosts.forEach(ghost => {
+            console.log('[DRAG-END] Removing orphaned ghost');
+            ghost.remove();
+        });
+        
+        // Возвращаем плавные переходы
+        event.target.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+        event.target.style.opacity = '1';
+        event.target.style.zIndex = '';
+        
+        // Очищаем trail
+        if (this.visualSettings?.dragTrail) {
+            this.particleSystem.clearTrail();
+        }
+        
+        console.log('[DRAG-END]', {
+            type: event.target.dataset.type,
+            weightId: event.target.dataset.weightId,
+            wasDropped: wasDropped
+        });
+        
+        // ТОЛЬКО если НЕ был успешный drop - возвращаем элемент на место
+        const type = event.target.dataset.type || 'weight';
+        if (!wasDropped && (type === 'equipment' || type === 'weight')) {
+            console.log('[DRAG-END] Resetting position (not dropped)');
             this.resetDraggablePosition(event.target);
+        } else if (wasDropped) {
+            console.log('[DRAG-END] Successful drop - not resetting position');
         }
     }
 
     handleCanvasDrop(event) {
         const itemType = event.relatedTarget?.dataset?.type || 'weight';
+
+        console.log('[DROPZONE] Срабатывание drop:', {
+            itemType,
+            isAnimating: this.state.isAnimating,
+            springAttached: this.state.springAttached,
+            targetId: event.target?.id,
+            relatedId: event.relatedTarget?.dataset?.weightId || event.relatedTarget?.dataset?.equipmentId || 'unknown',
+            overlap: event.interaction?.dropState?.rect ? 'rect-mode' : 'default'
+        });
 
         if (itemType === 'equipment') {
             this.handleEquipmentAttach(event);
@@ -624,70 +1061,176 @@ class SpringExperiment {
     }
 
     async handleWeightDrop(event) {
-        if (this.state.currentStep !== 2) {
-            this.showHint('Сначала закрепите пружину на штативе!');
-            return;
-        }
+        const element = event.relatedTarget;
+
+        console.log('[ATTACH-WEIGHT] handleWeightDrop start', {
+            springAttached: this.state.springAttached,
+            isAnimating: this.state.isAnimating,
+            selectedWeights: Array.from(this.state.selectedWeights)
+        });
 
         if (!this.state.springAttached) {
+            console.warn('[ATTACH-WEIGHT] Пружина не установлена, drop отклонён');
             this.showHint('Сначала установите пружину на установку.');
             return;
         }
 
-        const mass = parseInt(event.relatedTarget.dataset.mass);
-        
-        if (this.state.selectedWeights.has(mass)) {
-            this.showHint('Этот груз уже использован!');
+        if (this.state.currentStep < 2) {
+            this.state.currentStep = 2;
+            this.updateProgress();
+            this.handleStepChange();
+        }
+
+        const weightId = element?.dataset?.weightId;
+        console.log('[ATTACH-WEIGHT] Получили weightId из элемента', weightId, element?.dataset);
+        const weight = this.getWeightById(weightId);
+
+        if (!weight) {
+            console.warn('[ATTACH-WEIGHT] Не найден вес по id', weightId);
+            this.showHint('Не удалось распознать груз. Попробуйте снова.');
+            this.resetDraggablePosition(element);
             return;
         }
 
-        // Анимация прикрепления груза
-        await this.attachWeight(mass);
+        if (this.state.selectedWeights.has(weightId)) {
+            console.warn('[ATTACH-WEIGHT] Груз уже в selectedWeights', weightId);
+            this.showHint('Этот груз уже находится на установке.');
+            this.resetDraggablePosition(element);
+            return;
+        }
+
+        const canAttach = this.canAttachWeight(weight);
+        console.log('[ATTACH-WEIGHT] Проверка возможности подвесить', {
+            weightId,
+            canAttach,
+            attachedChain: this.state.attachedWeights.map(item => item.id)
+        });
+
+        if (!canAttach) {
+            this.showHint('Нет свободного крючка для этого груза. Сначала снимите нижний груз.');
+            this.resetDraggablePosition(element);
+            return;
+        }
+
+        console.log('[ATTACH-WEIGHT] Старт подвешивания (постановка в очередь)', weightId);
         
-        // Particle effect
-        this.particleSystem.createImpact(
-            this.state.springPosition.x,
-            this.state.springPosition.y + this.state.springLength,
-            20
-        );
+        // Сбрасываем позицию элемента (но НЕ удаляем флаг wasDropped)
+        this.resetDraggablePosition(element, false);
 
-        // Обновляем UI
-        event.relatedTarget.classList.add('used');
-        this.state.selectedWeights.add(mass);
+        this.pendingWeightIds.add(weightId);
+        this.renderWeightsInventory();
 
-        // Проверяем прогресс
-        if (this.state.selectedWeights.size >= 3) {
-            this.enableNextStep();
+        const wasProcessing = this.attachmentManager.isBusy();
+        const attachmentPromise = this.attachmentManager.enqueue({ weight, weightId });
+        if (wasProcessing) {
+            this.showHint('Предыдущее измерение завершается. Груз добавлен в очередь.');
+        }
+
+        try {
+            await attachmentPromise;
+
+            this.pendingWeightIds.delete(weightId);
+            this.state.selectedWeights.add(weightId);
+            element.classList.add('used');
+
+            console.log('[ATTACH-WEIGHT] Подвешивание завершено', {
+                weightId,
+                totalAttached: this.state.attachedWeights.length
+            });
+
+            this.renderWeightsInventory();
+            this.updateRecordButton();
+        } catch (err) {
+            console.error('[ATTACH-WEIGHT] Ошибка при подвешивании', err);
+            this.pendingWeightIds.delete(weightId);
+            this.renderWeightsInventory();
+            this.showHint('Не удалось подвесить груз. Попробуйте снова.');
         }
     }
 
-    async attachWeight(mass) {
+    async attachWeight(weight) {
+        console.log('[ATTACH-WEIGHT] attachWeight вызван', weight?.id);
         this.state.isAnimating = true;
+        console.log('[ATTACH-WEIGHT] Флаг isAnimating → true');
         this.state.weightAttached = true;
-        this.state.currentWeight = mass;
 
-        // Рассчитываем удлинение пружины
-        const massKg = mass / 1000; // г -> кг
-        const force = massKg * this.physics.gravity; // F = mg
-        const elongationM = force / this.physics.springConstant; // Δl = F/k
-        const elongationPx = elongationM * 100 * this.physics.pixelsPerCm; // м -> см -> px
+        // Очистка любых ранее запущенных эффектов, чтобы не оставалось свечения
+        this.particleSystem.clear();
+
+        if (!Array.isArray(this.state.attachedWeights)) {
+            this.state.attachedWeights = [];
+        }
+
+        this.state.attachedWeights.push({ id: weight.id });
+        console.log('[ATTACH-WEIGHT] Цепочка грузов:', this.state.attachedWeights.map(item => item.id));
+        this.state.currentWeightId = weight.id;
+
+        const totalMass = this.state.attachedWeights.reduce((sum, item) => {
+            const def = this.getWeightById(item.id);
+            return sum + (def?.mass ?? 0);
+        }, 0);
+
+        console.log('[ATTACH-WEIGHT] Текущая суммарная масса (г):', totalMass);
+
+        this.state.currentWeight = totalMass;
+
+        const massKg = totalMass / 1000;
+        const force = massKg * this.physics.gravity;
+        const elongationM = force / this.physics.springConstant;
+        const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
+
+        console.log('[ATTACH-WEIGHT] Расчёт удлинения', {
+            massKg,
+            force,
+            elongationM,
+            elongationPx
+        });
 
         const targetLength = this.state.springNaturalLength + elongationPx;
 
-        // Анимация растяжения с осцилляцией
-        await this.animateSpringStretch(targetLength, massKg);
+        console.log('[ATTACH-WEIGHT] Целевая длина пружины (px):', targetLength);
 
-        // Измерение
-        this.takeMeasurement(mass, elongationPx / this.physics.pixelsPerCm);
+        this.updateVisualScale(targetLength);
+
+        // Показываем подсказку во время анимации
+        this.showHint(`Груз ${weight.name} подвешен. Масса: ${totalMass} г. Наблюдайте колебания...`);
+
+        // ИЗМЕРЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ - обновляем показания сразу
+        const elongationCm = elongationPx / this.physics.pixelsPerCm;
+        this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
+
+        console.log('[ATTACH-WEIGHT] Запуск анимации растяжения');
+        this.currentAnimation = this.animateSpringStretch(targetLength, massKg);
+        try {
+            await this.currentAnimation;
+        } finally {
+            this.currentAnimation = null;
+        }
+        console.log('[ATTACH-WEIGHT] Анимация растяжения завершена');
+
+        // Финальное измерение после затухания колебаний
+        const finalElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        this.takeMeasurement(totalMass, finalElongationCm);
+
+        // Успешное завершение - подсказываем записать измерение
+        this.showHint(`Измерение готово! Удлинение: ${finalElongationCm.toFixed(2)} см. Нажмите "Записать измерение" для добавления в таблицу.`);
 
         this.state.isAnimating = false;
+        console.log('[ATTACH-WEIGHT] Флаг isAnimating → false');
     }
 
     async animateSpringStretch(targetLength, mass) {
         return new Promise(resolve => {
             const startLength = this.state.springLength;
             const startTime = performance.now();
-            const duration = 2000; // 2 секунды
+            const duration = 2500; // 2.5 секунды для более плавной анимации
+
+            console.log('[ANIMATION] Запуск animateSpringStretch', {
+                startLength,
+                targetLength,
+                mass,
+                currentTime: startTime
+            });
 
             const animateFrame = (currentTime) => {
                 const elapsed = currentTime - startTime;
@@ -704,19 +1247,30 @@ class SpringExperiment {
                 this.state.springLength = startLength + oscillation * this.physics.pixelsPerCm * 100;
                 this.state.springElongation = this.state.springLength - this.state.springNaturalLength;
 
-                // Particle effects во время колебаний
-                if (Math.random() < 0.1) {
-                    this.particleSystem.createSpringGlow(
-                        this.state.springPosition.x,
-                        this.state.springPosition.y + this.state.springLength / 2,
-                        2
-                    );
-                }
+                this.updateVisualScale(this.state.springLength);
+
+                // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
+                const totalMass = this.state.attachedWeights.reduce((sum, item) => {
+                    const def = this.getWeightById(item.id);
+                    return sum + (def?.mass ?? 0);
+                }, 0);
+                const force = (totalMass / 1000) * this.physics.gravity;
+                const currentElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+                this.updateCurrentMeasurementDisplay(totalMass, force, currentElongationCm);
 
                 if (progress < 1) {
                     requestAnimationFrame(animateFrame);
                 } else {
+                    // Фиксируем финальную длину
                     this.state.springLength = targetLength;
+                    this.state.springElongation = targetLength - this.state.springNaturalLength;
+                    this.updateVisualScale(this.state.springLength);
+                    
+                    // Финальное обновление показаний
+                    const finalElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+                    this.updateCurrentMeasurementDisplay(totalMass, force, finalElongationCm);
+                    
+                    console.log('[ANIMATION] Пройдено 100% времени, завершаем');
                     resolve();
                 }
             };
@@ -726,82 +1280,168 @@ class SpringExperiment {
     }
 
     takeMeasurement(mass, elongationCm) {
-        const measurement = {
-            mass: mass,
-            massKg: mass / 1000,
-            force: (mass / 1000) * this.physics.gravity,
-            elongation: elongationCm,
-            elongationM: elongationCm / 100
-        };
-
-        this.state.measurements.push(measurement);
+        // Теперь только обновляем текущее отображение измерения
+        // Реальная запись происходит по нажатию кнопки "Записать измерение"
+        const force = (mass / 1000) * this.physics.gravity;
         
-        // Обновляем таблицу измерений
-        this.updateMeasurementsTable();
+        console.log('[MEASURE] Измерение готово к записи', { mass, force, elongationCm });
+        
+        // Показатели уже обновлены в реальном времени, просто фиксируем финальное значение
+        this.updateCurrentMeasurementDisplay(mass, force, elongationCm);
 
-        // Успех эффект
-        this.particleSystem.createSuccess(
-            this.state.springPosition.x,
-            this.state.springPosition.y + this.state.springLength
-        );
+        // Активируем кнопку записи
+        this.updateRecordButton();
+
+        if (this.visualSettings.measurementParticles) {
+            this.particleSystem.createSuccess(
+                this.state.springPosition.x,
+                this.state.springPosition.y + this.state.springLength
+            );
+        }
 
         // Звук (если есть)
         this.playSound('measurement');
 
-        console.log('📊 Measurement:', measurement);
+        console.log('📊 Measurement ready to record:', { mass, force, elongationCm });
+        
+        // Обновляем прогресс шагов
+        if (this.state.currentStep < 2) {
+            this.state.currentStep = 2;
+            this.updateProgress();
+            this.handleStepChange();
+        }
+
+        if (this.state.measurements.length >= 3) {
+            this.showHint(`✅ Отлично! ${this.state.measurements.length} измерения — результат вычислен автоматически.`);
+        }
     }
 
-    updateMeasurementsTable() {
-        const container = document.querySelector('.measurement-value');
-        if (!container) return;
+    updateCurrentMeasurementDisplay(mass, force, elongationCm) {
+        const massEl = document.getElementById('current-mass');
+        const forceEl = document.getElementById('current-force');
+        const elongationEl = document.getElementById('current-elongation');
 
-        container.innerHTML = `
-            <table class="measurements-table">
-                <thead>
-                    <tr>
-                        <th>Масса (г)</th>
-                        <th>Сила (Н)</th>
-                        <th>Удлинение (см)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${this.state.measurements.map(m => `
-                        <tr>
-                            <td>${m.mass}</td>
-                            <td>${m.force.toFixed(3)}</td>
-                            <td>${m.elongation.toFixed(2)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        `;
+        if (massEl) {
+            massEl.textContent = Number.isFinite(mass) ? mass.toFixed(0) : '—';
+        }
+
+        if (forceEl) {
+            forceEl.textContent = Number.isFinite(force) ? force.toFixed(3) : '—';
+        }
+
+        if (elongationEl) {
+            elongationEl.textContent = Number.isFinite(elongationCm) ? elongationCm.toFixed(2) : '—';
+        }
     }
+
+    resetMeasurementDisplay() {
+        this.updateCurrentMeasurementDisplay(NaN, NaN, NaN);
+    }
+
+    // Старый метод updateMeasurementsTable удалён - используется renderMeasurementsTable
 
     calculateSpringConstant() {
-        if (this.state.measurements.length < 3) {
-            this.showHint('Нужно минимум 3 измерения!');
+        const count = this.state.measurements.length;
+        if (count === 0) {
             return null;
         }
 
-        // Подготовка данных для линейной регрессии
+        // Для одного измерения используем прямое отношение F/Δl (предварительный результат)
+        if (count === 1) {
+            const measurement = this.state.measurements[0];
+            const elongationM = measurement.elongationM || (measurement.elongationCm / 100);
+            if (elongationM <= 0) {
+                return null;
+            }
+
+            const k = measurement.force / elongationM;
+            return {
+                k,
+                r2: null,
+                points: count,
+                equation: `F = ${k.toFixed(1)} × Δl`,
+                quality: 'Предварительно'
+            };
+        }
+
+        // Подготовка данных для линейной регрессии (2 и более точек)
         const points = this.state.measurements.map(m => ({
-            x: m.elongationM,
+            x: m.elongationM || (m.elongationCm / 100),
             y: m.force
         }));
 
-        // Линейная регрессия: F = k * Δl
         const regression = linearRegression(points);
-        
-        // k = slope (наклон)
         const springConstant = regression.slope;
         const r2 = regression.r2;
 
         return {
             k: springConstant,
-            r2: r2,
+            r2,
+            points: count,
             equation: `F = ${springConstant.toFixed(1)} × Δl`,
-            quality: r2 > 0.95 ? 'Отлично!' : r2 > 0.90 ? 'Хорошо' : 'Удовлетворительно'
+            quality: r2 >= 0.98 ? 'Превосходно' : r2 >= 0.95 ? 'Отлично' : r2 >= 0.90 ? 'Хорошо' : 'Требует уточнения'
         };
+    }
+
+    updateResultDisplay() {
+        const valueElement = document.getElementById('calculated-k');
+        const accuracyContainer = document.getElementById('accuracy-indicator');
+        const accuracyFill = accuracyContainer?.querySelector('.accuracy-fill');
+        const accuracyLabel = accuracyContainer?.querySelector('.accuracy-label');
+
+        if (!valueElement || !accuracyContainer || !accuracyFill || !accuracyLabel) {
+            return;
+        }
+
+        const result = this.calculateSpringConstant();
+
+        if (!result || !Number.isFinite(result.k)) {
+            valueElement.textContent = '—';
+            accuracyFill.style.width = '0%';
+            accuracyLabel.textContent = 'Точность: требуется минимум одно измерение';
+            this.updateCompletionState(false);
+            return;
+        }
+
+        valueElement.textContent = result.k.toFixed(1);
+
+        if (result.points === 1 || result.r2 === null) {
+            accuracyFill.style.width = '35%';
+            accuracyFill.style.background = 'rgba(255, 193, 7, 0.8)';
+            accuracyLabel.textContent = 'Точность: предварительный результат (добавьте ещё измерения)';
+            this.updateCompletionState(false);
+        } else {
+            const accuracyPercent = Math.min(100, Math.max(0, Math.round(result.r2 * 100)));
+            accuracyFill.style.width = `${accuracyPercent}%`;
+            accuracyFill.style.background = accuracyPercent > 90 ? 'rgba(0, 168, 107, 0.85)' : accuracyPercent > 75 ? 'rgba(255, 193, 7, 0.85)' : 'rgba(244, 67, 54, 0.85)';
+            accuracyLabel.textContent = `Точность: R² = ${result.r2.toFixed(3)} (${result.quality})`;
+            this.updateCompletionState(result.points >= 3 && result.r2 >= 0.9);
+        }
+    }
+
+    resetResultDisplay() {
+        const valueElement = document.getElementById('calculated-k');
+        const accuracyContainer = document.getElementById('accuracy-indicator');
+        const accuracyFill = accuracyContainer?.querySelector('.accuracy-fill');
+        const accuracyLabel = accuracyContainer?.querySelector('.accuracy-label');
+
+        if (!valueElement || !accuracyFill || !accuracyLabel) {
+            return;
+        }
+
+        valueElement.textContent = '—';
+        accuracyFill.style.width = '0%';
+        accuracyFill.style.background = 'rgba(255,255,255,0.2)';
+        accuracyLabel.textContent = 'Точность: пока нет данных';
+        this.updateCompletionState(false);
+    }
+
+    updateCompletionState(ready) {
+        const completeBtn = document.getElementById('btn-complete');
+        if (!completeBtn) return;
+
+        completeBtn.disabled = !ready;
+        completeBtn.classList.toggle('pulse', ready);
     }
 
     showGraph() {
@@ -811,20 +1451,25 @@ class SpringExperiment {
         const result = this.calculateSpringConstant();
         if (!result) return;
 
-        // Обновляем результаты
-        document.getElementById('spring-constant').textContent = 
-            `k = ${result.k.toFixed(1)} Н/м`;
-        document.getElementById('accuracy').textContent = 
-            `R² = ${result.r2.toFixed(3)} (${result.quality})`;
+        // Обновляем информацию о графике
+        const pointsCount = document.getElementById('points-count');
+        const rSquared = document.getElementById('r-squared');
+        const equation = document.getElementById('equation');
+        
+        if (pointsCount) pointsCount.textContent = result.points;
+        if (rSquared) rSquared.textContent = result.r2 ? result.r2.toFixed(3) : '—';
+        if (equation) equation.textContent = result.equation;
 
         // Строим график
         this.drawChart();
 
         // Конфетти!
-        this.particleSystem.createConfetti(
-            this.canvases.particles.width / 2,
-            this.canvases.particles.height / 2
-        );
+        if (this.visualSettings.completionConfetti) {
+            this.particleSystem.createConfetti(
+                this.canvases.particles.width / 2,
+                this.canvases.particles.height / 2
+            );
+        }
 
         // Показываем достижение
         this.showAchievement(result);
@@ -844,7 +1489,7 @@ class SpringExperiment {
         }
 
         const data = this.state.measurements.map(m => ({
-            x: m.elongationM * 100, // см для читаемости
+            x: m.elongationCm || (m.elongationM * 100), // см для читаемости
             y: m.force
         }));
 
@@ -941,93 +1586,80 @@ class SpringExperiment {
     }
 
     setupEventListeners() {
-        // Next step button
-        document.getElementById('next-step')?.addEventListener('click', () => {
-            this.nextStep();
+        const helpButton = document.getElementById('btn-help');
+        const resetButton = document.getElementById('btn-reset');
+        const completeButton = document.getElementById('btn-complete');
+        const settingsButton = document.getElementById('btn-settings');
+        const recordButton = document.getElementById('btn-record-measurement');
+        const calculateButton = document.getElementById('btn-calculate');
+
+        helpButton?.addEventListener('click', () => {
+            document.getElementById('help-modal').style.display = 'block';
         });
 
-        // Build graph button
-        document.getElementById('build-graph')?.addEventListener('click', () => {
-            this.showGraph();
-        });
-
-        // Reset button
-        document.getElementById('reset-experiment')?.addEventListener('click', () => {
+        resetButton?.addEventListener('click', () => {
             this.reset();
+            this.showHint('Измерения сброшены. Начните заново с выбора пружины.');
         });
 
-        // Help button
-        document.getElementById('help-btn')?.addEventListener('click', () => {
-            document.getElementById('help-modal').classList.add('show');
+        completeButton?.addEventListener('click', () => {
+            this.finishExperiment();
         });
 
-        // Close modal
-        document.querySelector('.close-modal')?.addEventListener('click', () => {
-            document.getElementById('help-modal').classList.remove('show');
+        settingsButton?.addEventListener('click', () => {
+            this.showHint('Настройки появятся позже. Пока продолжайте эксперимент!');
         });
-    }
 
-    nextStep() {
-        if (this.state.currentStep < 4) {
-            this.state.currentStep++;
-            this.updateProgress();
-            this.handleStepChange();
-        }
+        recordButton?.addEventListener('click', () => {
+            this.recordCurrentMeasurement();
+        });
+
+        calculateButton?.addEventListener('click', () => {
+            this.calculateAndDisplayResult();
+        });
+
+        document.querySelector('#help-modal .modal-close')?.addEventListener('click', () => {
+            document.getElementById('help-modal').style.display = 'none';
+        });
     }
 
     handleStepChange() {
         switch (this.state.currentStep) {
+            case 1:
+                this.showHint('Перетащите пружину из секции «Оборудование», затем подвесьте первый груз.');
+                break;
             case 2:
                 if (!this.state.springAttached) {
-                    this.showHint('Сначала установите «Пружина №1» на установку, затем подвесьте груз.');
+                    this.showHint('Установите пружину на установку, затем подвесьте груз.');
                 } else {
-                    this.showHint('Перетащите грузы на пружину для измерения удлинения');
+                    this.showHint('Продолжайте добавлять грузы, чтобы получить больше измерений.');
                 }
                 break;
             case 3:
-                this.showHint('Постройте график зависимости F(Δl) и определите жёсткость');
+                this.showHint('Расчёт жёсткости выполняется автоматически. Добавьте ещё одно измерение для высокой точности.');
                 break;
             case 4:
-                this.showHint('Эксперимент завершён! Проверьте результаты.');
+                this.showHint('Эксперимент завершён! Вы можете вернуться к комплекту или повторить измерения.');
                 this.state.experimentComplete = true;
                 break;
         }
     }
 
     updateProgress() {
-        const steps = document.querySelectorAll('.progress-step');
-        steps.forEach((step, index) => {
-            if (index < this.state.currentStep) {
-                step.classList.add('completed');
-            }
-            if (index === this.state.currentStep - 1) {
-                step.classList.add('active');
-            } else {
-                step.classList.remove('active');
-            }
-        });
-
-        document.getElementById('progress-fill').style.width = 
-            `${(this.state.currentStep / 4) * 100}%`;
-    }
-
-    enableNextStep() {
-        const btn = document.getElementById('next-step');
-        if (btn) {
-            btn.disabled = false;
-            btn.classList.add('pulse');
-        }
+        // Progress bar removed - method kept for compatibility
     }
 
     showHint(message) {
-        const hintBox = document.querySelector('.hint-box p');
-        if (hintBox) {
-            hintBox.textContent = message;
-            hintBox.parentElement.classList.add('pulse');
-            setTimeout(() => {
-                hintBox.parentElement.classList.remove('pulse');
-            }, 2000);
-        }
+        const hintContainer = document.getElementById('hint-box');
+        const hintText = document.getElementById('hint-text');
+        if (!hintContainer || !hintText) return;
+
+        hintContainer.style.display = 'flex';
+        hintText.textContent = message;
+        hintContainer.classList.add('pulse');
+        setTimeout(() => {
+            hintContainer.classList.remove('pulse');
+        }, 2000);
     }
 
     showError(message) {
@@ -1040,13 +1672,169 @@ class SpringExperiment {
         // audio.play().catch(() => {});
     }
 
+    // Записать текущее измерение в таблицу
+    recordCurrentMeasurement() {
+        if (this.state.attachedWeights.length === 0) {
+            this.showHint('Сначала подвесьте груз на пружину!');
+            return;
+        }
+
+        // Получаем текущие значения
+        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
+            const weightDef = this.getWeightById(w.id);
+            return sum + (weightDef?.mass || 0);
+        }, 0);
+        const force = (totalMass / 1000) * this.physics.gravity; // Н
+        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        
+        console.log('[RECORD] Recording measurement:', { totalMass, force, elongationCm });
+
+        // Проверка валидности данных
+        if (!totalMass || totalMass <= 0 || !Number.isFinite(totalMass)) {
+            this.showHint('Ошибка: некорректная масса груза!');
+            console.error('[RECORD] Invalid mass:', totalMass);
+            return;
+        }
+
+        if (!elongationCm || elongationCm <= 0 || !Number.isFinite(elongationCm)) {
+            this.showHint('Ошибка: некорректное удлинение пружины!');
+            console.error('[RECORD] Invalid elongation:', elongationCm);
+            return;
+        }
+
+        // Проверяем, нет ли уже такого измерения
+        const isDuplicate = this.state.measurements.some(m => 
+            Math.abs(m.mass - totalMass) < 1 && Math.abs(m.elongationCm - elongationCm) < 0.01
+        );
+
+        if (isDuplicate) {
+            this.showHint('Такое измерение уже записано!');
+            return;
+        }
+
+        // Добавляем измерение
+        const measurement = {
+            id: Date.now(),
+            mass: totalMass,
+            force: force,
+            elongationCm: elongationCm,
+            elongationM: elongationCm / 100
+        };
+
+        this.state.measurements.push(measurement);
+        this.renderMeasurementsTable();
+        this.updateRecordButton();
+        this.updateCalculateButton();
+
+        // Эффект успешной записи
+        if (this.visualSettings?.measurementParticles) {
+            this.particleSystem.createSuccess(
+                this.state.springPosition.x,
+                this.state.springPosition.y + this.state.springLength
+            );
+        }
+
+        this.showHint(`✓ Измерение №${this.state.measurements.length} записано в таблицу!`);
+    }
+
+    // Отрисовка таблицы измерений
+    renderMeasurementsTable() {
+        const tbody = document.getElementById('measurements-tbody');
+        if (!tbody) return;
+
+        if (this.state.measurements.length === 0) {
+            tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Пока нет измерений</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = this.state.measurements.map((m, index) => `
+            <tr data-measurement-id="${m.id}">
+                <td>${index + 1}</td>
+                <td>${m.mass.toFixed(0)}</td>
+                <td>${m.force.toFixed(3)}</td>
+                <td>${m.elongationCm.toFixed(2)}</td>
+                <td>
+                    <button class="btn-delete" onclick="experiment.deleteMeasurement(${m.id})">
+                        ✕
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    // Удалить измерение из таблицы
+    deleteMeasurement(id) {
+        const index = this.state.measurements.findIndex(m => m.id === id);
+        if (index === -1) return;
+
+        this.state.measurements.splice(index, 1);
+        this.renderMeasurementsTable();
+        this.updateCalculateButton();
+        this.showHint('Измерение удалено из таблицы');
+    }
+
+    // Обновить состояние кнопки "Записать измерение"
+    updateRecordButton() {
+        const btn = document.getElementById('btn-record-measurement');
+        if (!btn) return;
+
+        const canRecord = this.state.attachedWeights.length > 0 && !this.state.isAnimating;
+        btn.disabled = !canRecord;
+    }
+
+    // Обновить состояние кнопки "Рассчитать"
+    updateCalculateButton() {
+        const btn = document.getElementById('btn-calculate');
+        if (!btn) return;
+
+        btn.disabled = this.state.measurements.length === 0;
+    }
+
+    // Рассчитать и отобразить результат
+    calculateAndDisplayResult() {
+        if (this.state.measurements.length === 0) {
+            this.showHint('Сначала запишите хотя бы одно измерение!');
+            return;
+        }
+
+        // Вычисляем жёсткость и обновляем отображение
+        this.updateResultDisplay();
+
+        // Показываем график
+        if (this.state.measurements.length >= 2) {
+            this.showGraph();
+        }
+
+        // Проверяем возможность завершения
+        const result = this.calculateSpringConstant();
+        if (result && result.points >= 3 && result.r2 >= 0.9) {
+            this.updateCompletionState(true);
+            this.showHint('Отличная работа! Вы можете завершить эксперимент.');
+        } else if (this.state.measurements.length < 3) {
+            this.showHint('Добавьте ещё измерения для более точного результата (рекомендуется 3-5 точек).');
+        } else {
+            this.showHint('Результат рассчитан. Для повышения точности добавьте ещё измерения.');
+        }
+    }
+
     reset() {
         this.state.currentStep = 1;
         this.state.measurements = [];
         this.state.selectedWeights.clear();
+    this.pendingWeightIds.clear();
+        this.state.attachedWeights = [];
+        this.state.weightAttached = false;
+        this.state.currentWeight = null;
+        this.state.currentWeightId = null;
         this.state.springLength = this.state.springNaturalLength;
+        this.state.springElongation = 0;
         this.state.showGraph = false;
         this.state.experimentComplete = false;
+
+        this.visual.scale = 1;
+        this.updateVisualScale(this.state.springLength);
+
+        this.attachmentManager?.clear();
 
         document.querySelectorAll('.weight-item').forEach(item => {
             item.classList.remove('used');
@@ -1055,10 +1843,17 @@ class SpringExperiment {
             item.setAttribute('data-y', 0);
         });
 
+        this.renderWeightsInventory();
+
+        this.resetMeasurementDisplay();
+
         document.getElementById('graph-section').style.display = 'none';
         
         this.updateProgress();
-        this.updateMeasurementsTable();
+        this.renderMeasurementsTable();
+        this.updateRecordButton();
+        this.updateCalculateButton();
+        this.resetResultDisplay();
         
         if (this.chart) {
             this.chart.destroy();
@@ -1078,9 +1873,62 @@ class SpringExperiment {
             canvas.height = height;
         });
 
+        this.updateVisualScale(this.state.springLength || this.state.springNaturalLength);
+
         // Redraw static elements
         this.drawBackground();
         this.drawEquipment();
+    }
+
+    getVisualPixelsPerCm() {
+        return this.physics.pixelsPerCm * this.visual.scale;
+    }
+
+    getVisualLength(lengthPx = null) {
+        const physicalLength = lengthPx ?? (this.state.springLength || this.state.springNaturalLength);
+        return physicalLength * this.visual.scale;
+    }
+
+    estimateWeightStackHeight() {
+        if (!this.state.attachedWeights?.length) {
+            return 140;
+        }
+
+    const baseClearance = 60;
+        return this.state.attachedWeights.reduce((total, item) => {
+            const def = this.getWeightById(item.id);
+            const hookGap = def?.hookGap ?? 28;
+            const targetSize = def?.targetSize ?? 88;
+            return total + hookGap + targetSize;
+        }, baseClearance);
+    }
+
+    updateVisualScale(requiredLengthPx) {
+        if (!Number.isFinite(requiredLengthPx)) {
+            requiredLengthPx = this.state.springNaturalLength;
+        }
+
+        const canvas = this.canvases.dynamic;
+        if (!canvas) {
+            this.visual.scale = 1;
+            return;
+        }
+
+        const anchorY = this.state.springPosition?.y ?? canvas.height * 0.25;
+        const stackHeight = this.estimateWeightStackHeight();
+        const available = canvas.height - anchorY - stackHeight - this.visual.marginBottom;
+
+        if (available <= 0) {
+            this.visual.scale = this.visual.minScale;
+            return;
+        }
+
+        if (requiredLengthPx > available) {
+            const proposed = available / requiredLengthPx;
+            this.visual.scale = Math.max(this.visual.minScale, Math.min(1, proposed));
+        } else {
+            this.visual.scale = 1;
+        }
     }
 
     drawBackground() {
@@ -1094,7 +1942,12 @@ class SpringExperiment {
 
     drawDynamic() {
         const ctx = this.contexts.dynamic;
-        canvasUtils.clear(ctx);
+        
+        // Полная очистка с сохранением контекста
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.restore();
 
         const canvas = ctx.canvas;
         if (!this.state.springAttached) {
@@ -1104,8 +1957,8 @@ class SpringExperiment {
 
         const anchor = this.getSpringAnchor();
 
-        // Используем реальную длину из состояния (по умолчанию 3.5 см = 140px)
-        const length = this.state.springLength || 140;
+        const physicalLength = this.state.springLength || this.state.springNaturalLength;
+        const length = this.getVisualLength(physicalLength);
         const coils = 14;
         const wireRadius = 5;
         const springRadius = 22;
@@ -1121,9 +1974,12 @@ class SpringExperiment {
         
         // Нижний крючок
         this.drawBottomHook(ctx, anchor.x, anchor.y + length, wireRadius);
+
+        // Подвешенные грузы
+        this.drawAttachedWeights(ctx, anchor.x, anchor.y + length);
         
         // Измерительная линейка
-        this.drawRuler(ctx, anchor.x + 80, anchor.y, length);
+        this.drawRuler(ctx, anchor.x + 80, anchor.y, physicalLength);
     }
 
     drawSpringPlaceholder(ctx) {
@@ -1175,13 +2031,15 @@ class SpringExperiment {
         ctx.restore();
     }
 
-    drawRuler(ctx, x, y, height) {
+    drawRuler(ctx, x, y, physicalHeightPx) {
         const rulerWidth = 50;
-        const cmToPx = this.physics.pixelsPerCm; // 40px = 1cm
-        
-        // Линейка на 12 см — достаточно для экспериментов
-        const maxCm = 12;
-        const rulerHeight = maxCm * cmToPx; // 12 см * 40 px/см = 480px
+        const cmToPx = this.getVisualPixelsPerCm();
+        const canvas = ctx.canvas;
+
+        // Поддерживаем растянутые пружины до 30 см, но ограничиваемся размерами канваса
+        const maxCmByCanvas = Math.max(5, Math.floor((canvas.height - y - 20) / cmToPx));
+        const maxCm = Math.min(30, maxCmByCanvas);
+        const rulerHeight = maxCm * cmToPx;
         
         ctx.save();
         
@@ -1205,7 +2063,7 @@ class SpringExperiment {
         ctx.textBaseline = 'middle';
         ctx.lineWidth = 1.5;
         
-        for (let cm = 0; cm <= maxCm; cm++) {
+    for (let cm = 0; cm <= maxCm; cm++) {
             const markY = y + cm * cmToPx;
             
             // Главная метка (1 см)
@@ -1238,8 +2096,10 @@ class SpringExperiment {
         ctx.restore();
         
         // Индикатор текущей длины пружины (только если в пределах линейки)
-        if (height <= rulerHeight) {
-            const indicatorY = y + height;
+        const visualHeight = physicalHeightPx * this.visual.scale;
+
+        if (visualHeight <= rulerHeight) {
+            const indicatorY = y + visualHeight;
             
             // Стрелка-указатель на текущую длину
             ctx.save();
@@ -1260,6 +2120,12 @@ class SpringExperiment {
             ctx.lineTo(x - 60, indicatorY);
             ctx.stroke();
             ctx.setLineDash([]);
+            ctx.restore();
+        } else {
+            // Если пружина длиннее линейки, подсвечиваем низ линейки
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 179, 0, 0.8)';
+            ctx.fillRect(x - 6, y + rulerHeight - 8, 12, 8);
             ctx.restore();
         }
         
@@ -1437,12 +2303,97 @@ class SpringExperiment {
         ctx.restore();
     }
 
+    drawAttachedWeights(ctx, hookX, hookY) {
+        if (!this.state.weightAttached || !this.state.attachedWeights?.length) {
+            return;
+        }
+
+        let currentY = hookY;
+        const now = performance.now() / 1000;
+        const baseTension = Math.min(1, 0.4 + (this.state.springElongation || 0) / 220);
+
+        this.state.attachedWeights.forEach((item, index) => {
+            const def = this.getWeightById(item.id);
+            if (!def) {
+                return;
+            }
+
+            const img = this.images.weights[item.id] || this.images.weights[def.id];
+            const targetSize = def.targetSize ?? 72;
+            const hookGap = def.hookGap ?? 22;
+            const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
+            const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
+            
+            // Более мягкое покачивание только во время анимации
+            const rotationAmplitude = this.state.isAnimating ? 0.12 : 0.02;
+            const rotation = Math.sin(now * 1.5 + index * 0.4) * rotationAmplitude;
+
+            // Соединительный крючок (нить между грузом и пружиной)
+            ctx.save();
+            ctx.strokeStyle = 'rgba(180, 180, 180, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hookX, currentY);
+            ctx.lineTo(hookX, currentY + hookGap);
+            ctx.stroke();
+            ctx.restore();
+
+            const centerY = currentY + hookGap + renderedHeight / 2;
+
+            if (img) {
+                // Рисуем груз через реалистичный рендерер
+                ctx.save();
+                ctx.translate(hookX, centerY);
+                ctx.rotate(rotation);
+                
+                const scale = targetSize / Math.max(img.width, img.height);
+                ctx.scale(scale, scale);
+                
+                // Тень груза
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 5;
+                
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                ctx.restore();
+            } else {
+                this.drawWeightPlaceholder(ctx, hookX, centerY, targetSize, renderedHeight, rotation);
+            }
+
+            currentY = centerY + renderedHeight / 2;
+        });
+    }
+
+    drawWeightPlaceholder(ctx, x, y, width, height, rotation) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rotation);
+
+        const w = width * 0.6;
+        const h = height * 0.7;
+
+        const gradient = ctx.createLinearGradient(-w / 2, -h / 2, w / 2, h / 2);
+        gradient.addColorStop(0, '#8d99ae');
+        gradient.addColorStop(0.5, '#edf2f4');
+        gradient.addColorStop(1, '#8d99ae');
+
+        ctx.fillStyle = gradient;
+        ctx.strokeStyle = '#2b2d42';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+        ctx.restore();
+    }
+
     // ===== Подготовка оборудования: перетаскивание пружины =====
     setupEquipmentDragListeners() {
         const dynamicCanvas = document.getElementById('canvas-dynamic');
-        
-        if (!dynamicCanvas) {
-            console.error('Dynamic canvas not found');
+        const interactionSurface = document.getElementById('drag-drop-overlay') || dynamicCanvas;
+
+        if (!dynamicCanvas || !interactionSurface) {
+            console.error('Interactive surface for spring drag not found');
             return;
         }
         
@@ -1460,7 +2411,7 @@ class SpringExperiment {
         const isClickOnSpring = (mouseX, mouseY) => {
             if (!this.state.springAttached) return false;
             const anchor = getAnchor();
-            const length = this.state.springLength || 140;
+            const length = this.getVisualLength();
             const springRadius = 30;
 
             return (
@@ -1474,7 +2425,7 @@ class SpringExperiment {
         const handlePointerMove = (e) => {
             if (!isDragging) return;
 
-            const rect = dynamicCanvas.getBoundingClientRect();
+            const rect = interactionSurface.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             this.lastPointer = { x: e.clientX, y: e.clientY };
@@ -1484,6 +2435,8 @@ class SpringExperiment {
 
             this.state.springPosition = { x: newAnchorX, y: newAnchorY };
             this.clampSpringPosition();
+
+            this.updateVisualScale(this.state.springLength || this.state.springNaturalLength);
 
             const anchor = this.getSpringAnchor();
             this.springOffset = {
@@ -1519,11 +2472,11 @@ class SpringExperiment {
             this.drawDynamic();
 
             isDragging = false;
-            dynamicCanvas.style.cursor = 'default';
+            interactionSurface.style.cursor = 'default';
         };
 
-        dynamicCanvas.addEventListener('mousedown', (e) => {
-            const rect = dynamicCanvas.getBoundingClientRect();
+        interactionSurface.addEventListener('mousedown', (e) => {
+            const rect = interactionSurface.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
@@ -1532,18 +2485,18 @@ class SpringExperiment {
                 const anchor = getAnchor();
                 dragOffset.x = x - anchor.x;
                 dragOffset.y = y - anchor.y;
-                dynamicCanvas.style.cursor = 'grabbing';
+                interactionSurface.style.cursor = 'grabbing';
                 window.addEventListener('mousemove', handlePointerMove);
                 window.addEventListener('mouseup', handlePointerUp);
             }
         });
         
-        dynamicCanvas.addEventListener('mousemove', (e) => {
+        interactionSurface.addEventListener('mousemove', (e) => {
             if (isDragging) return;
-            const rect = dynamicCanvas.getBoundingClientRect();
+            const rect = interactionSurface.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-            dynamicCanvas.style.cursor = isClickOnSpring(x, y) ? 'grab' : 'default';
+            interactionSurface.style.cursor = isClickOnSpring(x, y) ? 'grab' : 'default';
         });
         
         console.log('✅ Spring drag enabled');
@@ -1574,6 +2527,62 @@ class SpringExperiment {
 
         // Continue loop
         requestAnimationFrame((time) => this.animate(time));
+    }
+}
+
+class AttachmentManager {
+    constructor(experiment) {
+        this.experiment = experiment;
+        this.queue = [];
+        this.processing = false;
+    }
+
+    enqueue(job) {
+        return new Promise((resolve, reject) => {
+            this.queue.push({ ...job, resolve, reject });
+            console.log('[QUEUE] Добавлена задача подвешивания', {
+                weightId: job.weightId ?? job.weight?.id,
+                pending: this.queue.length,
+                processing: this.processing
+            });
+            this.processQueue();
+        });
+    }
+
+    clear() {
+        this.queue.length = 0;
+    }
+
+    isBusy() {
+        return this.processing;
+    }
+
+    async processQueue() {
+        if (this.processing) {
+            return;
+        }
+
+        const nextJob = this.queue.shift();
+        if (!nextJob) {
+            return;
+        }
+
+        this.processing = true;
+
+        console.log('[QUEUE] Начало обработки задачи', {
+            weightId: nextJob.weightId ?? nextJob.weight?.id
+        });
+
+        try {
+            await this.experiment.attachWeight(nextJob.weight);
+            nextJob.resolve();
+        } catch (error) {
+            nextJob.reject(error);
+        } finally {
+            console.log('[QUEUE] Завершение обработки задачи');
+            this.processing = false;
+            this.processQueue();
+        }
     }
 }
 
