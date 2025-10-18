@@ -52,11 +52,11 @@
             <!-- Canvas Container -->
             <div class="canvas-container" id="canvas-container">
                 <!-- Multi-layer canvas system -->
-                <canvas id="canvas-background" width="900" height="700"></canvas>
-                <canvas id="canvas-equipment" width="900" height="700"></canvas>
-                <canvas id="canvas-dynamic" width="900" height="700"></canvas>
-                <canvas id="canvas-particles" width="900" height="700"></canvas>
-                <canvas id="canvas-ui" width="900" height="700"></canvas>
+                <canvas id="canvas-background" width="900" height="600"></canvas>
+                <canvas id="canvas-equipment" width="900" height="600"></canvas>
+                <canvas id="canvas-dynamic" width="900" height="600"></canvas>
+                <canvas id="canvas-particles" width="900" height="600"></canvas>
+                <canvas id="canvas-ui" width="900" height="600"></canvas>
                 <div id="drag-drop-overlay"></div>
                 
                 <!-- Loading overlay -->
@@ -96,51 +96,59 @@
 
             <!-- Current Measurement -->
             <div class="panel-section">
-                <h3>Текущее измерение</h3>
+                <h3>
+                    <span id="step-indicator">ЭТАП 1:</span> 
+                    <span id="step-title">Измерение силы</span>
+                </h3>
                 <div class="measurement-display">
                     <div class="measurement-row">
                         <span class="label">Масса груза:</span>
                         <span class="value" id="current-mass">—</span>
                         <span class="unit">г</span>
                     </div>
-                    <div class="measurement-row">
-                        <span class="label">Сила тяжести:</span>
-                        <span class="value" id="current-force">—</span>
-                        <span class="unit">Н</span>
-                    </div>
-                    <div class="measurement-row highlight">
+                    <div class="measurement-row highlight" id="elongation-row" style="display: none;">
                         <span class="label">Удлинение:</span>
                         <span class="value" id="current-elongation">—</span>
                         <span class="unit">см</span>
                     </div>
+                    <div class="measurement-row highlight" id="force-display-row">
+                        <span class="label">Сила (динамометр):</span>
+                        <span class="value" id="current-force-display">—</span>
+                        <span class="unit">Н</span>
+                    </div>
+                    <div class="measurement-info" id="step-info">
+                        💡 Подвесьте груз на динамометр и снимите показание
+                    </div>
                 </div>
                 <button class="btn-primary" id="btn-record-measurement" disabled>
-                    <span class="icon">📝</span> Записать измерение
+                    <span class="icon">📝</span> <span id="btn-record-text">Записать силу</span>
+                </button>
+                <button class="btn-secondary" id="btn-switch-mode" style="display: none; margin-top: 0.5rem;">
+                    <span class="icon">➡️</span> Перейти к измерению жёсткости
                 </button>
             </div>
 
             <!-- Measurements Table -->
             <div class="panel-section">
-                <h3>Таблица измерений</h3>
+                <h3 id="table-title">Таблица: Сила тяжести</h3>
                 <div class="measurements-table-container">
                     <table class="measurements-table" id="measurements-table">
-                        <thead>
+                        <thead id="table-header">
                             <tr>
                                 <th>№</th>
                                 <th>Масса, г</th>
                                 <th>Сила, Н</th>
-                                <th>Δl, см</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody id="measurements-tbody">
                             <tr class="empty-state">
-                                <td colspan="5">Пока нет измерений</td>
+                                <td colspan="4" id="empty-message">Пока нет измерений силы</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
-                <button class="btn-primary" id="btn-calculate" disabled>
+                <button class="btn-primary" id="btn-calculate" disabled style="display: none;">
                     <span class="icon">🧮</span> Рассчитать жёсткость
                 </button>
             </div>
@@ -188,34 +196,54 @@
         </aside>
     </main>
 
-    <!-- Graph Section -->
-    <section class="graph-section" id="graph-section">
-        <h2>График зависимости F(Δl)</h2>
-        <div class="graph-container">
-            <canvas id="chart" width="800" height="400"></canvas>
-        </div>
-        <div class="graph-info">
-            <div class="info-item">
-                <span class="label">Точек построено:</span>
-                <span class="value" id="points-count">0</span>
-            </div>
-            <div class="info-item">
-                <span class="label">Коэффициент R²:</span>
-                <span class="value" id="r-squared">—</span>
-            </div>
-            <div class="info-item">
-                <span class="label">Уравнение:</span>
-                <span class="value" id="equation">—</span>
-            </div>
-        </div>
-    </section>
-
     <!-- Achievement Popup -->
     <div class="achievement-popup" id="achievement-popup" style="display: none;">
         <div class="achievement-content">
             <div class="achievement-icon">🏆</div>
             <h3 class="achievement-title"></h3>
             <p class="achievement-desc"></p>
+        </div>
+    </div>
+
+    <!-- Force Input Modal -->
+    <div class="modal" id="force-input-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📏 Снимите показания приборов</h2>
+                <button class="modal-close" id="close-force-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-instruction">
+                    Посмотрите на виртуальный динамометр на экране и запишите показание силы
+                </p>
+                
+                <div class="input-group">
+                    <label for="force-input">
+                        <strong>Сила тяжести F:</strong>
+                        <small>(измерьте по динамометру)</small>
+                    </label>
+                    <div class="input-with-unit">
+                        <input type="number" id="force-input" step="0.01" min="0" max="10" placeholder="0.00">
+                        <span class="unit-label">Н</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="elongation-display">
+                        <strong>Удлинение пружины Δl:</strong>
+                        <small>(измерено автоматически)</small>
+                    </label>
+                    <div class="input-with-unit">
+                        <input type="text" id="elongation-display" readonly>
+                        <span class="unit-label">см</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="btn-secondary" id="cancel-force-input">Отмена</button>
+                    <button class="btn-primary" id="confirm-force-input">✓ Записать</button>
+                </div>
+            </div>
         </div>
     </div>
 
