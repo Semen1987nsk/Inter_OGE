@@ -3,6 +3,8 @@
  * Interactive Spring Stiffness Measurement
  */
 
+import { FreeformManager } from '../shared/freeform-manager.js';
+
 class SpringExperiment {
     constructor() {
         // Canvas layers (IDs must match HTML)
@@ -27,29 +29,33 @@ class SpringExperiment {
         // State
         this.state = {
             currentStep: 1,
-            experimentMode: 'dynamometer', // 'dynamometer' или 'spring'
+            experimentMode: 'spring', // Теперь по умолчанию работаем с пружиной
             isAnimating: false,
             isDragging: false,
             draggingSpring: false,
             springAttached: false,
             attachedSpringId: null,
-            dynamometerAttached: false,
+            dynamometerAttached: false, // Опциональный инструмент для проверки
             attachedDynamometerId: null,
-            dynamometerPosition: { x: 450, y: 200 }, // Позиция динамометра
+            dynamometerPosition: { x: 450, y: 200 },
             weightAttached: false,
             currentWeight: null,
             currentWeightId: null,
-            // springPosition — координаты ВЕРХНЕГО конца пружины (крючка)
             springPosition: { x: 200, y: 150 },
-            springLength: 140, // 3.5 см * 40 px/см = 140px (компактная реалистичная пружина)
-            springNaturalLength: 140, // натуральная длина без нагрузки
+            springLength: 140,
+            springNaturalLength: 140,
             springElongation: 0,
-            measurements: [],
-            forceMeasurements: [], // Измерения силы на динамометре (Этап 1)
-            stiffnessMeasurements: [], // Измерения жёсткости (Этап 2)
+            measurements: [], // Единая таблица измерений
             attachedWeights: [],
             selectedWeights: new Set(),
-            experimentComplete: false
+            experimentComplete: false,
+            // Опциональная проверка на динамометре
+            dynamometerCheckMode: false, // Режим проверки силы на динамометре
+            lastDynamometerReading: null, // Последнее показание динамометра
+            // 🆕 Свободные грузы на столе
+            freeWeights: [], // Грузы, размещённые на canvas, но не подвешенные
+            // 🆕 Учёт использованных грузов
+            usedWeightIds: new Set() // ID грузов, которые уже использованы (подвешены или на canvas)
         };
 
         this.springDragged = false;
@@ -242,6 +248,10 @@ class SpringExperiment {
 
             // Добавляем управление оборудованием (перемещение верхнего конца пружины)
             this.setupEquipmentDragListeners();
+            
+            // 🆕 Настройка перетаскивания свободных грузов
+            this.setupFreeWeightsDrag();
+            
             this.handleStepChange();
 
             // Инициализация UI для таблицы измерений
@@ -571,11 +581,45 @@ class SpringExperiment {
             return;
         }
 
+        // Логирование только при наличии подвешенных грузов
+        if (this.state.attachedWeights?.length > 0) {
+            console.log('[RENDER-WEIGHTS] Подвешено грузов:', this.state.attachedWeights.length, 
+                        '| Последний:', this.state.attachedWeights[this.state.attachedWeights.length - 1]?.id,
+                        '| selectedWeights:', Array.from(this.state.selectedWeights));
+        }
+
         container.innerHTML = '';
+
+        console.log('[RENDER-WEIGHTS] 📋 Состояние всех грузов:');
 
         this.weightsInventory.forEach((weight) => {
             const isPending = this.pendingWeightIds.has(weight.id);
             const isAttached = this.state.selectedWeights.has(weight.id);
+            // 🆕 Груз "использован" = в usedWeightIds НО не подвешен (свободный на canvas)
+            const isUsedButNotAttached = this.state.usedWeightIds.has(weight.id) && !isAttached;
+            // ✅ Проверяем, является ли груз ПОСЛЕДНИМ в цепочке (только его можно снять)
+            const attachedArray = this.state.attachedWeights;
+            const lastIndex = attachedArray?.length > 0 ? attachedArray.length - 1 : -1;
+            const lastWeightInChain = lastIndex >= 0 ? attachedArray[lastIndex] : null;
+            const isLastInChain = lastWeightInChain?.id === weight.id;
+            
+
+            
+            // 🆕 Находим позицию груза в цепочке (1, 2, 3...)
+            const positionInChain = isAttached ? 
+                this.state.attachedWeights.findIndex(w => w.id === weight.id) + 1 : 
+                null;
+
+            // 🔍 Логируем состояние каждого груза
+            console.log(`  • ${weight.id}: isAttached=${isAttached}, isLastInChain=${isLastInChain}, pos=${positionInChain}`);
+
+            // 🔍 DEBUG - только для проблемных случаев
+            if (isAttached && !isLastInChain && positionInChain === null) {
+                console.warn(`[RENDER-WEIGHT] ⚠️ Груз подвешен но не найден в цепочке:`, {
+                    weight_id: weight.id,
+                    attachedWeights: this.state.attachedWeights.map(w => w.id)
+                });
+            }
 
             const item = document.createElement('div');
             item.className = 'weight-item';
@@ -584,9 +628,9 @@ class SpringExperiment {
             item.dataset.weightId = weight.id;
             item.dataset.hooksTop = weight.hooksTop ? 'true' : 'false';
             item.dataset.hooksBottom = weight.hooksBottom ? 'true' : 'false';
-            item.dataset.status = isAttached ? 'attached' : isPending ? 'pending' : 'available';
+            item.dataset.status = isAttached ? 'attached' : isPending ? 'pending' : isUsedButNotAttached ? 'used' : 'available';
 
-            if (isAttached || isPending) {
+            if (isAttached || isPending || isUsedButNotAttached) {
                 item.classList.add('used');
                 item.classList.add('weight-item--attached');
             }
@@ -621,19 +665,23 @@ class SpringExperiment {
             
             let statusText = 'В комплекте';
             if (isAttached) {
+                const chainInfo = positionInChain ? ` (${positionInChain}-й в цепочке)` : '';
                 if (this.state.dynamometerAttached) {
-                    statusText = 'На динамометре';
+                    statusText = `На динамометре${chainInfo}`;
                 } else {
-                    statusText = 'На пружине';
+                    statusText = `На пружине${chainInfo}`;
                 }
             } else if (isPending) {
                 statusText = 'Подвешивается…';
+            } else if (isUsedButNotAttached) {
+                statusText = 'На столе'; // 🆕 Груз свободный на canvas
             }
             status.textContent = statusText;
 
             item.append(figure, label, meta, status);
 
-            if (isAttached) {
+            // ✅ Кнопка "Снять" - ТОЛЬКО для последнего груза в цепочке!
+            if (isAttached && isLastInChain) {
                 const action = document.createElement('button');
                 action.type = 'button';
                 action.className = 'weight-action';
@@ -641,9 +689,46 @@ class SpringExperiment {
                 action.addEventListener('click', (evt) => {
                     evt.preventDefault();
                     evt.stopPropagation();
+                    console.log('[UI] 🔴 Кнопка "Снять" нажата:', {
+                        weightId: weight.id,
+                        isLastInChain,
+                        attachedWeights: this.state.attachedWeights.map(w => w.id)
+                    });
                     this.detachWeight(weight.id);
                 });
                 item.appendChild(action);
+                console.log('[UI] ✅ Кнопка "Снять" добавлена для:', weight.id, '(последний в цепочке)');
+            } else if (isAttached && !isLastInChain) {
+                // 🆕 Груз подвешен, но НЕ последний - показываем массу
+                const massInfo = document.createElement('div');
+                massInfo.className = 'weight-mass-info';
+                massInfo.textContent = `${weight.mass} г`;
+                item.appendChild(massInfo);
+                console.log('[UI] 📊 Груз подвешен (НЕ последний):', weight.id);
+            } else if (isAttached) {
+                // 🔍 DEBUG: груз подвешен но ни то ни другое условие не сработало
+                console.error('[UI] ❌ Груз подвешен но кнопка НЕ создана!', {
+                    weightId: weight.id,
+                    isAttached,
+                    isLastInChain,
+                    lastWeightInChain,
+                    attachedWeights: this.state.attachedWeights
+                });
+            } else if (isUsedButNotAttached) {
+                // 🆕 Груз на canvas (свободный) - можно убрать
+                const action = document.createElement('button');
+                action.type = 'button';
+                action.className = 'weight-action';
+                action.textContent = 'Убрать';
+                action.addEventListener('click', (evt) => {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    console.log('[UI] 🔴 Кнопка "Убрать" нажата для груза:', weight.id);
+                    console.log('[UI] Вызов removeFreeWeight...');
+                    this.removeFreeWeight(weight.id);
+                });
+                item.appendChild(action);
+                console.log('[UI] ✅ Добавлена кнопка "Убрать" для груза:', weight.id);
             } else if (!isPending) {
                 const hint = document.createElement('div');
                 hint.className = 'weight-hint';
@@ -849,10 +934,20 @@ class SpringExperiment {
                 y: canvas.height * 0.15
             };
         }
+        
+        // 🆕 Очищаем свободные грузы и возвращаем их в инвентарь
+        if (this.state.freeWeights && this.state.freeWeights.length > 0) {
+            console.log('[DETACH-SPRING] Возврат', this.state.freeWeights.length, 'свободных грузов');
+            this.state.freeWeights.forEach(fw => {
+                this.state.usedWeightIds.delete(fw.weightId);
+            });
+            this.state.freeWeights = [];
+        }
 
         this.renderEquipmentInventory();
+        this.renderWeightsInventory(); // 🆕 Обновляем инвентарь грузов
         this.drawDynamic();
-        this.showHint('Пружина возвращена в комплект.');
+        this.showHint('Пружина возвращена в комплект. Грузы возвращены в инвентарь.');
     }
 
     detachDynamometerToInventory() {
@@ -863,8 +958,18 @@ class SpringExperiment {
         // Сбрасываем все грузы
         this.state.attachedWeights.forEach(weight => {
             this.state.selectedWeights.delete(weight.id);
+            this.state.usedWeightIds.delete(weight.id); // 🆕 Возвращаем в доступные
         });
         this.state.attachedWeights = [];
+
+        // 🆕 Очищаем свободные грузы и возвращаем их в инвентарь
+        if (this.state.freeWeights && this.state.freeWeights.length > 0) {
+            console.log('[DETACH-DYN] Возврат', this.state.freeWeights.length, 'свободных грузов');
+            this.state.freeWeights.forEach(fw => {
+                this.state.usedWeightIds.delete(fw.weightId);
+            });
+            this.state.freeWeights = [];
+        }
 
         // Сбрасываем состояние динамометра
         this.state.dynamometerAttached = false;
@@ -880,8 +985,9 @@ class SpringExperiment {
         }
 
         this.renderEquipmentInventory();
+        this.renderWeightsInventory(); // 🆕 Обновляем инвентарь грузов
         this.drawDynamic();
-        this.showHint('Динамометр возвращён в комплект.');
+        this.showHint('Динамометр возвращён в комплект. Грузы возвращены в инвентарь.');
     }
 
     detachWeight(weightId) {
@@ -917,9 +1023,19 @@ class SpringExperiment {
             return;
         }
 
+        console.log('[DETACH-WEIGHT] ✅ Снимаем груз:', weightId);
         this.state.attachedWeights.pop();
         this.state.selectedWeights.delete(weightId);
         this.pendingWeightIds.delete(weightId);
+        this.state.usedWeightIds.delete(weightId); // 🆕 Возвращаем груз в доступные
+        
+        console.log('[DETACH-WEIGHT] 🔄 State после снятия:', {
+            attachedWeights: this.state.attachedWeights.map(w => w.id),
+            selectedWeights: Array.from(this.state.selectedWeights),
+            usedWeightIds: Array.from(this.state.usedWeightIds)
+        });
+        
+        this.renderWeightsInventory(); // 🆕 Обновляем инвентарь
         console.log('[DETACH-WEIGHT] Груз снят, цепочка теперь:', this.state.attachedWeights.map(item => item.id));
 
         if (!this.state.attachedWeights.length) {
@@ -994,7 +1110,6 @@ class SpringExperiment {
 
             interact('.weight-item').draggable({
                 inertia: false,
-                // Убираем restrictRect - он мешает drop на canvas
                 autoScroll: true,
                 listeners: {
                     start: (event) => this.onDragStart(event),
@@ -1051,6 +1166,18 @@ class SpringExperiment {
 
     onDragStart(event) {
         const type = event.target.dataset.type || 'weight';
+        
+        // 🆕 Проверяем: груз уже использован?
+        if (type === 'weight') {
+            const weightId = event.target.dataset.weightId;
+            if (this.state.usedWeightIds.has(weightId)) {
+                console.log('[DRAG] ⛔ Груз уже использован:', weightId);
+                event.preventDefault?.();
+                event.stopPropagation?.();
+                return false;
+            }
+        }
+        
         this.state.isDragging = true;
         event.target.classList.add('dragging');
         
@@ -1227,21 +1354,7 @@ class SpringExperiment {
             selectedWeights: Array.from(this.state.selectedWeights)
         });
 
-        // Проверяем, что установлен ЛЮБОЙ прибор (динамометр или пружина)
-        if (!this.state.springAttached && !this.state.dynamometerAttached) {
-            console.warn('[ATTACH-WEIGHT] Ни пружина, ни динамометр не установлены');
-            this.showHint('Сначала установите динамометр или пружину.');
-            return;
-        }
-
-        if (this.state.currentStep < 2) {
-            this.state.currentStep = 2;
-            this.updateProgress();
-            this.handleStepChange();
-        }
-
         const weightId = element?.dataset?.weightId;
-        console.log('[ATTACH-WEIGHT] Получили weightId из элемента', weightId, element?.dataset);
         const weight = this.getWeightById(weightId);
 
         if (!weight) {
@@ -1251,60 +1364,140 @@ class SpringExperiment {
             return;
         }
 
-        if (this.state.selectedWeights.has(weightId)) {
-            console.warn('[ATTACH-WEIGHT] Груз уже в selectedWeights', weightId);
-            this.showHint('Этот груз уже находится на установке.');
-            this.resetDraggablePosition(element);
-            return;
-        }
-
-        const canAttach = this.canAttachWeight(weight);
-        console.log('[ATTACH-WEIGHT] Проверка возможности подвесить', {
-            weightId,
-            canAttach,
-            attachedChain: this.state.attachedWeights.map(item => item.id)
-        });
-
-        if (!canAttach) {
-            this.showHint('Нет свободного крючка для этого груза. Сначала снимите нижний груз.');
-            this.resetDraggablePosition(element);
-            return;
-        }
-
-        console.log('[ATTACH-WEIGHT] Старт подвешивания (постановка в очередь)', weightId);
+        // � УМНАЯ ЛОГИКА: проверяем куда упал груз
+        const canvasRect = this.canvases.dynamic.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
         
-        // Сбрасываем позицию элемента (но НЕ удаляем флаг wasDropped)
-        this.resetDraggablePosition(element, false);
-
-        this.pendingWeightIds.add(weightId);
-        this.renderWeightsInventory();
-
-        const wasProcessing = this.attachmentManager.isBusy();
-        const attachmentPromise = this.attachmentManager.enqueue({ weight, weightId });
-        if (wasProcessing) {
-            this.showHint('Предыдущее измерение завершается. Груз добавлен в очередь.');
-        }
-
-        try {
-            await attachmentPromise;
-
-            this.pendingWeightIds.delete(weightId);
-            this.state.selectedWeights.add(weightId);
-            element.classList.add('used');
-
-            console.log('[ATTACH-WEIGHT] Подвешивание завершено', {
-                weightId,
-                totalAttached: this.state.attachedWeights.length
+        const canvasX = elementRect.left + elementRect.width/2 - canvasRect.left;
+        const canvasY = elementRect.top + elementRect.height/2 - canvasRect.top;
+        
+        // Проверяем попадание на пружину
+        let shouldAttachDirectly = false;
+        let attachmentTarget = null;
+        
+        if (this.state.springAttached) {
+            const springPos = this.state.springPosition;
+            const springLength = this.state.springLength || this.state.springNaturalLength;
+            const hookX = springPos.x;
+            const hookY = springPos.y + springLength;
+            
+            const distanceToSpring = Math.hypot(canvasX - hookX, canvasY - hookY);
+            
+            console.log('[ATTACH-WEIGHT] Check spring drop:', {
+                canvasPos: [canvasX.toFixed(1), canvasY.toFixed(1)],
+                springHook: [hookX.toFixed(1), hookY.toFixed(1)],
+                distance: distanceToSpring.toFixed(1),
+                threshold: 80
             });
-
-            this.renderWeightsInventory();
-            this.updateRecordButton();
-        } catch (err) {
-            console.error('[ATTACH-WEIGHT] Ошибка при подвешивании', err);
-            this.pendingWeightIds.delete(weightId);
-            this.renderWeightsInventory();
-            this.showHint('Не удалось подвесить груз. Попробуйте снова.');
+            
+            if (distanceToSpring < 80) {
+                shouldAttachDirectly = true;
+                attachmentTarget = 'spring';
+            }
         }
+        
+        // Проверяем попадание на динамометр
+        if (!shouldAttachDirectly && this.state.dynamometerAttached) {
+            const dynPos = this.state.dynamometerPosition;
+            const hookX = dynPos.x;
+            // Высота корпуса (300) + нижний крючок (23)
+            const hookY = dynPos.y + 300 + 23;
+            
+            const distanceToDynamometer = Math.hypot(canvasX - hookX, canvasY - hookY);
+            
+            console.log('[ATTACH-WEIGHT] Check dynamometer drop:', {
+                canvasPos: [canvasX.toFixed(1), canvasY.toFixed(1)],
+                dynHook: [hookX.toFixed(1), hookY.toFixed(1)],
+                distance: distanceToDynamometer.toFixed(1),
+                threshold: 80
+            });
+            
+            if (distanceToDynamometer < 80) {
+                shouldAttachDirectly = true;
+                attachmentTarget = 'dynamometer';
+            }
+        }
+        
+        if (shouldAttachDirectly) {
+            // 🎯 СЦЕНАРИЙ 1: Упал на пружину/динамометр → подвешиваем сразу
+            console.log(`[ATTACH-WEIGHT] Direct drop on ${attachmentTarget}`);
+            element.classList.add('used');
+            this.resetDraggablePosition(element, false);
+            this.attachWeight(weight);
+            this.renderWeightsInventory(); // 🆕 Обновляем инвентарь
+            return;
+        }
+        
+        // 🎨 СЦЕНАРИЙ 2: Упал в свободное место → размещаем как свободный объект
+        if (!this.state.freeWeights) {
+            this.state.freeWeights = [];
+        }
+        
+        // 🆕 Помечаем груз как использованный
+        this.state.usedWeightIds.add(weightId);
+        
+        const freeWeight = {
+            id: `free-${Date.now()}`,
+            weightId: weightId,
+            mass: weight.mass,
+            x: canvasX,
+            y: canvasY,
+            width: weight.targetSize || 88,
+            height: weight.targetSize || 88,
+            isDragging: false,
+            isAttached: false
+        };
+        
+        this.state.freeWeights.push(freeWeight);
+        // ❌ НЕ добавляем в selectedWeights! Это только для подвешенных грузов!
+        // this.state.selectedWeights.add(weightId);
+        element.classList.add('used');
+        
+        this.resetDraggablePosition(element, false);
+        this.drawDynamic();
+        this.renderWeightsInventory(); // 🆕 Обновляем инвентарь
+        
+        console.log('[FREE-WEIGHT] Груз размещён свободно:', {
+            weightId,
+            usedWeightIds: Array.from(this.state.usedWeightIds),
+            selectedWeights: Array.from(this.state.selectedWeights),
+            freeWeights: this.state.freeWeights.length
+        });
+        
+        this.showToast(`✓ Груз ${weight.mass}г размещён на столе. Перетащите к пружине для подвешивания!`);
+        
+        console.log('[FREE-WEIGHT] Weight placed freely:', freeWeight);
+    }
+
+    /**
+     * 🏗️ ЦЕНТРАЛЬНАЯ ФУНКЦИЯ: Добавление груза в цепочку
+     * Используется ВЕЗДЕ для гарантии консистентности state
+     * 
+     * ЛОГИКА СОСТОЯНИЙ:
+     * - Груз подвешен → в attachedWeights + selectedWeights (usedWeightIds удаляется!)
+     * - Груз на canvas → в freeWeights + usedWeightIds (но НЕ в selectedWeights)
+     * - Груз в инвентаре → НИ в чём
+     */
+    addWeightToChain(weightId) {
+        console.log('[ADD-TO-CHAIN] ➕ Добавление груза в цепочку:', weightId);
+        
+        if (!Array.isArray(this.state.attachedWeights)) {
+            this.state.attachedWeights = [];
+        }
+        
+        // ✅ ЕДИНАЯ ТОЧКА добавления
+        this.state.attachedWeights.push({ id: weightId });
+        this.state.selectedWeights.add(weightId);
+        
+        // ❌ УДАЛЯЕМ из usedWeightIds - груз теперь "подвешен", а не "использован на canvas"
+        // usedWeightIds используется ТОЛЬКО для свободных грузов на canvas!
+        this.state.usedWeightIds.delete(weightId);
+        
+        console.log('[ADD-TO-CHAIN] ✅ Груз добавлен:', {
+            chain: this.state.attachedWeights.map(w => w.id),
+            selectedWeights: Array.from(this.state.selectedWeights),
+            usedWeightIds: Array.from(this.state.usedWeightIds)
+        });
     }
 
     async attachWeight(weight) {
@@ -1316,13 +1509,17 @@ class SpringExperiment {
         // Очистка любых ранее запущенных эффектов, чтобы не оставалось свечения
         this.particleSystem.clear();
 
-        if (!Array.isArray(this.state.attachedWeights)) {
-            this.state.attachedWeights = [];
-        }
-
-        this.state.attachedWeights.push({ id: weight.id });
-        console.log('[ATTACH-WEIGHT] Цепочка грузов:', this.state.attachedWeights.map(item => item.id));
+        // ✅ Используем центральную функцию
+        this.addWeightToChain(weight.id);
         this.state.currentWeightId = weight.id;
+        
+        console.log('[ATTACH-WEIGHT] 🔍 ПРОВЕРКА после addWeightToChain:', {
+            weightId: weight.id,
+            inSelectedWeights: this.state.selectedWeights.has(weight.id),
+            selectedWeights: Array.from(this.state.selectedWeights),
+            inAttachedWeights: this.state.attachedWeights.some(w => w.id === weight.id),
+            attachedWeights: this.state.attachedWeights.map(w => w.id)
+        });
 
         const totalMass = this.state.attachedWeights.reduce((sum, item) => {
             const def = this.getWeightById(item.id);
@@ -1334,67 +1531,72 @@ class SpringExperiment {
         this.state.currentWeight = totalMass;
 
         const massKg = totalMass / 1000;
-        const force = massKg * this.physics.gravity;
+        const force = massKg * this.physics.gravity; // F = mg (автоматически!)
 
-        // === РЕЖИМ ДИНАМОМЕТРА ===
-        if (this.state.experimentMode === 'dynamometer') {
-            console.log('[DYNAMOMETER MODE] Вес подвешен к динамометру', {
-                totalMass,
-                force: force.toFixed(3) + ' Н'
+        // === РЕЖИМ ПРУЖИНЫ (основной) ===
+        if (this.state.springAttached) {
+            const elongationM = force / this.physics.springConstant;
+            const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
+
+            console.log('[SPRING MODE] Расчёт удлинения', {
+                massKg,
+                force,
+                elongationM,
+                elongationPx
             });
 
-            this.showHint(`Груз ${weight.name} подвешен. Масса: ${totalMass} г. Снимите показание с динамометра и запишите.`);
+            const targetLength = this.state.springNaturalLength + elongationPx;
+
+            console.log('[ATTACH-WEIGHT] Целевая длина пружины (px):', targetLength);
+
+            this.updateVisualScale(targetLength);
+
+            // Показываем подсказку во время анимации
+            this.showHint(`Груз ${weight.name} подвешен. Масса: ${totalMass} г. Наблюдайте колебания...`);
+
+            // ИЗМЕРЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ - обновляем показания сразу
+            const elongationCm = elongationPx / this.physics.pixelsPerCm;
+            this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
+
+            console.log('[ATTACH-WEIGHT] Запуск анимации растяжения');
+            this.currentAnimation = this.animateSpringStretch(targetLength, massKg);
+            try {
+                await this.currentAnimation;
+            } finally {
+                this.currentAnimation = null;
+            }
+            console.log('[ATTACH-WEIGHT] Анимация растяжения завершена');
+
+            // Финальное измерение после затухания колебаний
+            const finalElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+            
+            // Успешное завершение - подсказываем записать измерение
+            this.showHint(`Измерение готово! Удлинение: ${finalElongationCm.toFixed(2)} см. Нажмите "Записать измерение" для добавления в таблицу.`);
+        }
+
+        // === РЕЖИМ ДИНАМОМЕТРА (опциональная проверка) ===
+        if (this.state.dynamometerAttached) {
+            console.log('[DYNAMOMETER MODE - OPTIONAL CHECK] Вес подвешен к динамометру', {
+                totalMass,
+                theoreticalForce: force.toFixed(3) + ' Н'
+            });
+
+            this.showHint(`✓ Проверка: Груз ${weight.name} (${totalMass} г). Теоретическая сила: ${force.toFixed(2)} Н. Сравните с показанием динамометра!`);
+            
+            // Сохраняем показание для сравнения
+            this.state.lastDynamometerReading = force;
             
             // Перерисовываем динамометр с новым показанием
             this.drawDynamic();
             
-            this.state.isAnimating = false;
-            console.log('[ATTACH-WEIGHT] Режим динамометра - анимация не нужна');
-            return;
+            // Обновляем отображение текущих измерений
+            this.updateCurrentMeasurementDisplay(totalMass, force, 0);
         }
-
-        // === РЕЖИМ ПРУЖИНЫ ===
-        const elongationM = force / this.physics.springConstant;
-        const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
-
-        console.log('[SPRING MODE] Расчёт удлинения', {
-            massKg,
-            force,
-            elongationM,
-            elongationPx
-        });
-
-        const targetLength = this.state.springNaturalLength + elongationPx;
-
-        console.log('[ATTACH-WEIGHT] Целевая длина пружины (px):', targetLength);
-
-        this.updateVisualScale(targetLength);
-
-        // Показываем подсказку во время анимации
-        this.showHint(`Груз ${weight.name} подвешен. Масса: ${totalMass} г. Наблюдайте колебания...`);
-
-        // ИЗМЕРЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ - обновляем показания сразу
-        const elongationCm = elongationPx / this.physics.pixelsPerCm;
-        this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
-
-        console.log('[ATTACH-WEIGHT] Запуск анимации растяжения');
-        this.currentAnimation = this.animateSpringStretch(targetLength, massKg);
-        try {
-            await this.currentAnimation;
-        } finally {
-            this.currentAnimation = null;
-        }
-        console.log('[ATTACH-WEIGHT] Анимация растяжения завершена');
-
-        // Финальное измерение после затухания колебаний
-        const finalElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
-        this.takeMeasurement(totalMass, finalElongationCm);
-
-        // Успешное завершение - подсказываем записать измерение
-        this.showHint(`Измерение готово! Удлинение: ${finalElongationCm.toFixed(2)} см. Нажмите "Записать измерение" для добавления в таблицу.`);
 
         this.state.isAnimating = false;
         console.log('[ATTACH-WEIGHT] Флаг isAnimating → false');
+        this.renderWeightsInventory(); // ✅ Обновляем инвентарь после подвешивания
+        this.updateRecordButton();
     }
 
     async animateSpringStretch(targetLength, mass) {
@@ -1650,6 +1852,7 @@ class SpringExperiment {
         const settingsButton = document.getElementById('btn-settings');
         const recordButton = document.getElementById('btn-record-measurement');
         const calculateButton = document.getElementById('btn-calculate');
+        const switchModeButton = document.getElementById('btn-switch-mode');
 
         helpButton?.addEventListener('click', () => {
             document.getElementById('help-modal').style.display = 'block';
@@ -1669,12 +1872,15 @@ class SpringExperiment {
         });
 
         recordButton?.addEventListener('click', () => {
-            this.openForceInputModal();
+            console.log('[BUTTON-CLICK] Кнопка "Записать" нажата');
+            this.recordMeasurementDirect();
         });
 
         calculateButton?.addEventListener('click', () => {
             this.calculateAndDisplayResult();
         });
+
+        // УДАЛЕНО: switchModeButton - больше нет переключения этапов
 
         // Force input modal handlers
         document.getElementById('close-force-modal')?.addEventListener('click', () => {
@@ -1697,20 +1903,20 @@ class SpringExperiment {
     handleStepChange() {
         switch (this.state.currentStep) {
             case 1:
-                this.showHint('Перетащите пружину из секции «Оборудование», затем подвесьте первый груз.');
+                this.showHint('📌 Шаг 1: Перетащите пружину из секции «Оборудование», затем подвесьте первый груз.');
                 break;
             case 2:
                 if (!this.state.springAttached) {
-                    this.showHint('Установите пружину на установку, затем подвесьте груз.');
+                    this.showHint('🔧 Установите пружину на штатив, затем подвесьте груз.');
                 } else {
-                    this.showHint('Продолжайте добавлять грузы, чтобы получить больше измерений.');
+                    this.showHint('📊 Запишите измерение, затем добавьте ещё грузы для большей точности.');
                 }
                 break;
             case 3:
-                this.showHint('Расчёт жёсткости выполняется автоматически. Добавьте ещё одно измерение для высокой точности.');
+                this.showHint('📈 Расчёт жёсткости выполняется автоматически. Добавьте 3-5 измерений для высокой точности.');
                 break;
             case 4:
-                this.showHint('Эксперимент завершён! Вы можете вернуться к комплекту или повторить измерения.');
+                this.showHint('✅ Эксперимент завершён! Вы можете вернуться к комплекту или повторить измерения.');
                 this.state.experimentComplete = true;
                 break;
         }
@@ -1743,225 +1949,291 @@ class SpringExperiment {
         // audio.play().catch(() => {});
     }
 
-    // Открыть модальное окно для ввода силы
-    openForceInputModal() {
+    // ═══════════════════════════════════════════════════════════
+    //  НОВАЯ УПРОЩЁННАЯ ЛОГИКА ЗАПИСИ (БЕЗ МОДАЛОК!)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Прямая запись измерения - УПРОЩЁННАЯ ВЕРСИЯ
+     */
+    recordMeasurementDirect() {
         if (this.state.attachedWeights.length === 0) {
             this.showHint('Сначала подвесьте груз на пружину!');
             return;
         }
 
-        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        const weightCount = this.state.attachedWeights.length;
+        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
+            const weightDef = this.getWeightById(w.id);
+            return sum + (weightDef?.mass || 0);
+        }, 0);
+
+        // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
+        const force = (totalMass / 1000) * this.physics.gravity;
         
+        // Удлинение
+        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+
         if (!elongationCm || elongationCm <= 0) {
             this.showHint('Ошибка: пружина не растянута!');
             return;
         }
 
-        // Заполняем поле удлинения (readonly)
-        const elongationDisplay = document.getElementById('elongation-display');
-        if (elongationDisplay) {
-            elongationDisplay.value = elongationCm.toFixed(2);
-        }
-
-        // Очищаем поле ввода силы
-        const forceInput = document.getElementById('force-input');
-        if (forceInput) {
-            forceInput.value = '';
-            forceInput.focus();
-        }
-
-        // Показываем модальное окно
-        const modal = document.getElementById('force-input-modal');
-        if (modal) {
-            modal.style.display = 'flex';
-        }
-    }
-
-    // Закрыть модальное окно
-    closeForceInputModal() {
-        const modal = document.getElementById('force-input-modal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    // Подтвердить ввод силы и записать измерение
-    confirmForceInput() {
-        const forceInput = document.getElementById('force-input');
-        const force = parseFloat(forceInput?.value);
-
-        if (!force || force <= 0 || !Number.isFinite(force)) {
-            this.showHint('Введите корректное значение силы!');
-            forceInput?.focus();
-            return;
-        }
-
-        if (force > 10) {
-            this.showHint('Слишком большое значение силы! Проверьте показания динамометра.');
-            forceInput?.focus();
-            return;
-        }
-
-        // Получаем данные для записи
-        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
-            const weightDef = this.getWeightById(w.id);
-            return sum + (weightDef?.mass || 0);
-        }, 0);
-        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
-
-        console.log('[RECORD] Recording measurement:', { totalMass, force, elongationCm });
-
-        // Проверяем дубликаты
+        // Проверка дубликатов
         const isDuplicate = this.state.measurements.some(m => 
-            Math.abs(m.force - force) < 0.01 && Math.abs(m.elongationCm - elongationCm) < 0.01
+            m.weightCount === weightCount
         );
 
         if (isDuplicate) {
-            this.showHint('Такое измерение уже записано!');
+            this.showHint(`Измерение для ${weightCount} груза(ов) уже записано!`);
             return;
         }
 
-        // Добавляем измерение
+        // ЗАПИСЬ ИЗМЕРЕНИЯ
         const measurement = {
             id: Date.now(),
+            number: this.state.measurements.length + 1,
+            weightCount: weightCount,
             mass: totalMass,
-            force: force,
+            force: force, // F = mg (автоматически!)
             elongationCm: elongationCm,
-            elongationM: elongationCm / 100
+            elongationM: elongationCm / 100,
+            stiffness: force / (elongationCm / 100), // k = F / Δl
+            // Дополнительно: если есть показание динамометра
+            dynamometerReading: this.state.lastDynamometerReading,
+            dynamometerDiff: this.state.lastDynamometerReading ? 
+                Math.abs(this.state.lastDynamometerReading - force) : null
         };
 
         this.state.measurements.push(measurement);
+        
+        console.log('[RECORD] Измерение записано:', measurement);
+
+        // Обновляем UI
         this.renderMeasurementsTable();
         this.updateRecordButton();
-        this.updateCalculateButton();
+        this.calculateAndDisplayFinalResult();
+        this.updateProgress();
+        
+        // Показываем уведомление
+        const diffText = measurement.dynamometerDiff !== null ? 
+            ` (отклонение от динамометра: ${(measurement.dynamometerDiff * 100 / force).toFixed(1)}%)` : '';
+        this.showToast(`✓ Записано: k = ${measurement.stiffness.toFixed(1)} Н/м${diffText}`);
 
-        // Эффект успешной записи
+        // Эффекты
         if (this.visualSettings?.measurementParticles) {
             this.particleSystem.createSuccess(
                 this.state.springPosition.x,
                 this.state.springPosition.y + this.state.springLength
             );
         }
-
-        this.showHint(`✓ Измерение записано: F = ${force.toFixed(2)} Н, Δl = ${elongationCm.toFixed(2)} см`);
         
-        // Закрываем модальное окно
-        this.closeForceInputModal();
-
-        console.log('[RECORD] Total measurements:', this.state.measurements.length);
+        // Сбрасываем показание динамометра
+        this.state.lastDynamometerReading = null;
     }
 
-    // СТАРЫЙ метод recordCurrentMeasurement (оставлен для совместимости, но не используется)
-    recordCurrentMeasurement() {
-        if (this.state.attachedWeights.length === 0) {
-            this.showHint('Сначала подвесьте груз на пружину!');
-            return;
-        }
-
-        // Получаем текущие значения
-        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
-            const weightDef = this.getWeightById(w.id);
-            return sum + (weightDef?.mass || 0);
-        }, 0);
-        const force = (totalMass / 1000) * this.physics.gravity; // Н
-        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
-        
-        console.log('[RECORD] Recording measurement:', { totalMass, force, elongationCm });
-
-        // Проверка валидности данных
-        if (!totalMass || totalMass <= 0 || !Number.isFinite(totalMass)) {
-            this.showHint('Ошибка: некорректная масса груза!');
-            console.error('[RECORD] Invalid mass:', totalMass);
-            return;
-        }
-
-        if (!elongationCm || elongationCm <= 0 || !Number.isFinite(elongationCm)) {
-            this.showHint('Ошибка: некорректное удлинение пружины!');
-            console.error('[RECORD] Invalid elongation:', elongationCm);
-            return;
-        }
-
-        // Проверяем, нет ли уже такого измерения
-        const isDuplicate = this.state.measurements.some(m => 
-            Math.abs(m.mass - totalMass) < 1 && Math.abs(m.elongationCm - elongationCm) < 0.01
-        );
-
-        if (isDuplicate) {
-            this.showHint('Такое измерение уже записано!');
-            return;
-        }
-
-        // Добавляем измерение
-        const measurement = {
-            id: Date.now(),
-            mass: totalMass,
-            force: force,
-            elongationCm: elongationCm,
-            elongationM: elongationCm / 100
-        };
-
-        this.state.measurements.push(measurement);
-        this.renderMeasurementsTable();
-        this.updateRecordButton();
-        this.updateCalculateButton();
-
-        // Эффект успешной записи
-        if (this.visualSettings?.measurementParticles) {
-            this.particleSystem.createSuccess(
-                this.state.springPosition.x,
-                this.state.springPosition.y + this.state.springLength
-            );
-        }
-
-        this.showHint(`✓ Измерение №${this.state.measurements.length} записано в таблицу!`);
+    /**
+     * ЭТАП 1: Записать измерение силы
+     */
+    /**
+     * @deprecated СТАРЫЙ МЕТОД: Используется только для обратной совместимости
+     * Теперь используется recordMeasurementDirect() - упрощённая версия
+     */
+    recordForceMeasurement() {
+        console.warn('[DEPRECATED] recordForceMeasurement() устарел, используйте recordMeasurementDirect()');
+        // Перенаправляем на новый метод
+        this.recordMeasurementDirect();
     }
 
-    // Отрисовка таблицы измерений
+    /**
+     * @deprecated СТАРЫЙ МЕТОД: Используется только для обратной совместимости
+     * Теперь используется recordMeasurementDirect() - упрощённая версия
+     */
+    recordStiffnessMeasurement() {
+        console.warn('[DEPRECATED] recordStiffnessMeasurement() устарел, используйте recordMeasurementDirect()');
+        // Перенаправляем на новый метод
+        this.recordMeasurementDirect();
+    }
+
+    /**
+     * Показать toast-уведомление
+     */
+    showToast(message) {
+        // Удаляем старый toast если есть
+        const oldToast = document.querySelector('.toast-notification');
+        if (oldToast) {
+            oldToast.remove();
+        }
+
+        // Создаём новый
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = `
+            <span class="toast-icon">✓</span>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(toast);
+
+        // Автоматически удаляем через 3 секунды
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+
+    /**
+     * Обновить прогресс-бар
+     */
+    updateProgress() {
+        const progressIndicator = document.getElementById('progress-indicator');
+        const progressText = document.getElementById('progress-text');
+        const progressFill = document.getElementById('progress-fill');
+
+        if (!progressIndicator) return;
+
+        if (this.state.experimentMode === 'dynamometer') {
+            // ЭТАП 1
+            const count = this.state.forces.length;
+            const total = 3; // Минимум 3 измерения
+            const percent = Math.min((count / total) * 100, 100);
+
+            progressIndicator.style.display = 'block';
+            progressText.textContent = `Измерено: ${count}/${total}`;
+            progressFill.style.width = `${percent}%`;
+
+        } else if (this.state.experimentMode === 'spring') {
+            // ЭТАП 2
+            const count = this.state.measurements.length;
+            const total = 3; // Минимум 3 измерения
+            const percent = Math.min((count / total) * 100, 100);
+            progressIndicator.style.display = 'block';
+            progressText.textContent = `Измерено: ${count}/${total}`;
+            progressFill.style.width = `${percent}%`;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ОТРИСОВКА ТАБЛИЦЫ ИЗМЕРЕНИЙ
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Отрисовка таблицы измерений
+     */
     renderMeasurementsTable() {
         const tbody = document.getElementById('measurements-tbody');
+        const tableTitle = document.getElementById('table-title');
+        const tableCount = document.getElementById('table-count');
+        const tableHeader = document.getElementById('table-header');
+        const emptyMessage = document.getElementById('empty-message');
+        
         if (!tbody) return;
 
-        if (this.state.measurements.length === 0) {
-            tbody.innerHTML = '<tr class="empty-state"><td colspan="5">Пока нет измерений</td></tr>';
+        const measurements = this.state.measurements;
+
+        // УПРОЩЁННЫЙ заголовок таблицы - без этапов!
+        if (tableTitle) {
+            tableTitle.innerHTML = `📊 Таблица измерений`;
+        }
+
+        // Обновляем счётчик
+        if (tableCount) {
+            const count = measurements.length;
+            const word = count === 1 ? 'измерение' : (count >= 2 && count <= 4) ? 'измерения' : 'измерений';
+            tableCount.textContent = `${count} ${word}`;
+        }
+
+        // ЕДИНАЯ структура таблицы
+        if (tableHeader) {
+            tableHeader.innerHTML = `
+                <tr>
+                    <th>№</th>
+                    <th>m, г</th>
+                    <th title="Сила упругости F = mg">F, Н</th>
+                    <th title="Удлинение пружины">Δl, см</th>
+                    <th title="Жёсткость k = F / Δl">k, Н/м</th>
+                    <th></th>
+                </tr>
+            `;
+        }
+
+        // Если нет измерений
+        if (measurements.length === 0) {
+            if (emptyMessage) {
+                emptyMessage.textContent = 'Подвесьте груз на пружину и нажмите "Записать"';
+            }
+            tbody.innerHTML = `<tr class="empty-state"><td colspan="6">Пока нет измерений</td></tr>`;
             return;
         }
 
-        tbody.innerHTML = this.state.measurements.map((m, index) => `
-            <tr data-measurement-id="${m.id}">
-                <td>${index + 1}</td>
-                <td>${m.mass.toFixed(0)}</td>
-                <td>${m.force.toFixed(3)}</td>
-                <td>${m.elongationCm.toFixed(2)}</td>
-                <td>
-                    <button class="btn-delete" onclick="experiment.deleteMeasurement(${m.id})">
-                        ✕
-                    </button>
-                </td>
-            </tr>
-        `).join('');
+        // Рендерим строки с ВСЕМИ данными
+        tbody.innerHTML = measurements.map((m, index) => {
+            // Показываем динамометр, если был
+            const dynamometerHint = m.dynamometerReading ? 
+                ` title="Проверка динамометром: ${m.dynamometerReading.toFixed(2)} Н (отклонение ${(m.dynamometerDiff * 100 / m.force).toFixed(1)}%)"` : '';
+            
+            return `
+                <tr data-measurement-id="${m.id}" class="just-added">
+                    <td>${index + 1}</td>
+                    <td>${m.mass}</td>
+                    <td${dynamometerHint}>${m.force.toFixed(2)}${m.dynamometerReading ? ' ✓' : ''}</td>
+                    <td>${m.elongationCm.toFixed(2)}</td>
+                    <td><strong>${m.stiffness.toFixed(1)}</strong></td>
+                    <td>
+                        <button class="btn-delete" onclick="experiment.deleteMeasurement(${m.id})">
+                            ✕
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Убираем подсветку после 2 секунд
+        setTimeout(() => {
+            const rows = tbody.querySelectorAll('.just-added');
+            rows.forEach(row => row.classList.remove('just-added'));
+        }, 2000);
     }
 
-    // Удалить измерение из таблицы
+    /**
+     * Удалить измерение - УПРОЩЁННАЯ ВЕРСИЯ
+     */
     deleteMeasurement(id) {
-        const index = this.state.measurements.findIndex(m => m.id === id);
-        if (index === -1) return;
-
-        this.state.measurements.splice(index, 1);
+        this.state.measurements = this.state.measurements.filter(m => m.id !== id);
         this.renderMeasurementsTable();
-        this.updateCalculateButton();
-        this.showHint('Измерение удалено из таблицы');
+        this.calculateAndDisplayFinalResult(); // Пересчитываем результат
+        this.updateRecordButton();
+        this.updateProgress();
+        console.log('[DELETE] Измерение удалено:', id);
+        this.showToast('Измерение удалено');
     }
 
-    // Обновить состояние кнопки "Записать измерение"
+    // ═══════════════════════════════════════════════════════════
+    //  ОБНОВЛЕНИЕ СОСТОЯНИЯ КНОПОК И ЭЛЕМЕНТОВ UI
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Обновить состояние кнопки "Записать"
+     */
     updateRecordButton() {
         const btn = document.getElementById('btn-record-measurement');
-        if (!btn) return;
+        if (!btn) {
+            console.warn('[UPDATE-BTN] Кнопка btn-record-measurement не найдена!');
+            return;
+        }
 
         const canRecord = this.state.attachedWeights.length > 0 && !this.state.isAnimating;
         btn.disabled = !canRecord;
+        
+        console.log('[UPDATE-BTN] Кнопка "Записать":', {
+            attachedWeights: this.state.attachedWeights.length,
+            isAnimating: this.state.isAnimating,
+            canRecord,
+            disabled: btn.disabled
+        });
     }
 
-    // Обновить состояние кнопки "Рассчитать"
+    /**
+     * Обновить состояние кнопки "Рассчитать"
+     */
     updateCalculateButton() {
         const btn = document.getElementById('btn-calculate');
         if (!btn) return;
@@ -1969,10 +2241,23 @@ class SpringExperiment {
         btn.disabled = this.state.measurements.length === 0;
     }
 
+    /**
+     * Обновить видимость кнопки переключения на ЭТАП 2
+     */
+    // УДАЛЕНО: updateSwitchButton() - больше нет кнопки переключения этапов
+
+    /**
+     * Переключиться на ЭТАП 2 (измерение жёсткости)
+     */
+    // УДАЛЕНО: switchToStage2() - больше не нужен двухэтапный процесс
+
     // Рассчитать и отобразить результат
-    calculateAndDisplayResult() {
+    /**
+     * Автоматический расчёт и отображение результата (после каждой записи)
+     */
+    calculateAndDisplayFinalResult() {
         if (this.state.measurements.length === 0) {
-            this.showHint('Сначала запишите хотя бы одно измерение!');
+            this.resetResultDisplay();
             return;
         }
 
@@ -1989,6 +2274,11 @@ class SpringExperiment {
         } else {
             this.showHint('Результат рассчитан. Для повышения точности добавьте ещё измерения.');
         }
+    }
+    
+    // Алиас для обратной совместимости
+    calculateAndDisplayResult() {
+        this.calculateAndDisplayFinalResult();
     }
 
     reset() {
@@ -2154,6 +2444,179 @@ class SpringExperiment {
         
         // Измерительная линейка
         this.drawRuler(ctx, anchor.x + 80, anchor.y, physicalLength);
+        
+        // 🆕 Рисуем свободные грузы
+        this.drawFreeWeights(ctx);
+        
+        // 🎯 Зона прилипания: если тащим груз, показываем куда можно прикрепить
+        const draggedWeight = this.state.freeWeights?.find(w => w.isDragging);
+        if (draggedWeight) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            
+            // Зелёный круг вокруг нижнего крючка пружины
+            const springBottomHookX = anchor.x;
+            const springBottomHookY = anchor.y + length;
+            ctx.beginPath();
+            ctx.arc(springBottomHookX, springBottomHookY, 60, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Полупрозрачная заливка
+            ctx.fillStyle = 'rgba(0, 255, 100, 0.1)';
+            ctx.fill();
+            
+            ctx.restore();
+        }
+    }
+    
+    drawFreeWeights(ctx) {
+        if (!this.state.freeWeights || this.state.freeWeights.length === 0) return;
+        
+        this.state.freeWeights.forEach(weight => {
+            const weightDef = this.getWeightById(weight.weightId);
+            if (!weightDef) return;
+            
+            const img = this.images.weights[weight.weightId] || this.images.weights[weightDef.id];
+            const targetSize = weightDef.targetSize ?? 72;
+            const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
+            const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
+            
+            ctx.save();
+            
+            // 🎯 Проверяем близость к другим грузам (для соединения)
+            let nearOtherWeight = false;
+            if (weight.isDragging) {
+                for (let other of this.state.freeWeights) {
+                    if (other === weight) continue;
+                    if (this.canStackWeights(other, weight)) {
+                        nearOtherWeight = true;
+                        break;
+                    }
+                }
+            }
+            
+            // Подсветка при перетаскивании
+            if (weight.isDragging) {
+                if (nearOtherWeight) {
+                    // Зелёное свечение = можно соединить!
+                    ctx.shadowColor = 'rgba(0, 255, 100, 0.9)';
+                    ctx.shadowBlur = 30;
+                } else {
+                    // Синее свечение = просто перетаскивание
+                    ctx.shadowColor = 'rgba(0, 150, 255, 0.8)';
+                    ctx.shadowBlur = 25;
+                }
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            } else {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 5;
+            }
+            
+            // Рисуем груз (используем ТОТ ЖЕ метод что и для подвешенных)
+            if (img) {
+                const scale = targetSize / Math.max(img.width, img.height);
+                ctx.translate(weight.x, weight.y + renderedHeight / 2);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            } else {
+                // Fallback: плейсхолдер
+                this.drawWeightPlaceholder(ctx, weight.x, weight.y + renderedHeight / 2, targetSize, renderedHeight, 0);
+            }
+            
+            ctx.restore();
+            
+            // 🔍 Рисуем крючки и зоны прилипания
+            if (weight.isDragging) {
+                ctx.save();
+                ctx.strokeStyle = 'lime';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                // Верхний крючок (над грузом)
+                const topHookY = weight.y - renderedHeight/2 - 12;
+                ctx.beginPath();
+                ctx.arc(weight.x, topHookY, 8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Нижний крючок (под грузом)
+                const bottomHookY = weight.y + renderedHeight/2 + 8;
+                ctx.beginPath();
+                ctx.arc(weight.x, bottomHookY, 8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            // 🎯 Рисуем зоны прилипания других грузов
+            if (!weight.isDragging) {
+                ctx.save();
+                
+                // Проверяем есть ли перетаскиваемый груз рядом
+                let showSnapZone = false;
+                for (let other of this.state.freeWeights) {
+                    if (!other.isDragging) continue;
+                    if (this.canStackWeights(weight, other)) {
+                        showSnapZone = true;
+                        break;
+                    }
+                }
+                
+                if (showSnapZone) {
+                    // Зелёный круг вокруг нижнего крючка = "можно прикрепить сюда"
+                    const bottomHookY = weight.y + renderedHeight/2 + 8;
+                    ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.arc(weight.x, bottomHookY, 30, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Заполнение
+                    ctx.fillStyle = 'rgba(0, 255, 100, 0.15)';
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+            
+            // 🔗 Рисуем прикреплённые грузы (стопку)
+            if (weight.stackedWeights && weight.stackedWeights.length > 0) {
+                let offsetY = renderedHeight;
+                
+                weight.stackedWeights.forEach(stackedWeight => {
+                    const stackedDef = this.getWeightById(stackedWeight.weightId || stackedWeight.id);
+                    if (!stackedDef) return;
+                    
+                    const stackImg = this.images.weights[stackedWeight.weightId] || this.images.weights[stackedDef.id];
+                    const stackTargetSize = stackedDef.targetSize ?? 72;
+                    const stackScale = stackTargetSize / (stackImg ? Math.max(stackImg.width, stackImg.height) : stackTargetSize);
+                    const stackHeight = stackImg ? stackImg.height * stackScale : stackTargetSize * 0.9;
+                    
+                    ctx.save();
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetX = 3;
+                    ctx.shadowOffsetY = 5;
+                    
+                    if (stackImg) {
+                        ctx.translate(weight.x, weight.y + offsetY + stackHeight / 2);
+                        ctx.scale(stackScale, stackScale);
+                        ctx.drawImage(stackImg, -stackImg.width / 2, -stackImg.height / 2);
+                    } else {
+                        this.drawWeightPlaceholder(ctx, weight.x, weight.y + offsetY + stackHeight / 2, stackTargetSize, stackHeight, 0);
+                    }
+                    
+                    ctx.restore();
+                    
+                    offsetY += stackHeight;
+                });
+            }
+        });
     }
 
     drawSpringPlaceholder(ctx) {
@@ -2175,6 +2638,9 @@ class SpringExperiment {
 
         ctx.setLineDash([]);
         ctx.restore();
+        
+        // 🆕 Рисуем свободные грузы (даже когда нет пружины)
+        this.drawFreeWeights(ctx);
     }
 
     drawEquipmentLabel(ctx, x, y) {
@@ -2456,6 +2922,31 @@ class SpringExperiment {
         const hookX = centerX;
         const gruzHookY = bottomHookY + 31; // Под кольцом крючка
         this.drawAttachedWeights(ctx, hookX, gruzHookY);
+        
+        // 🆕 Рисуем свободные грузы
+        this.drawFreeWeights(ctx);
+        
+        // 🎯 Зона прилипания: если тащим груз, показываем куда можно прикрепить
+        const draggedWeight = this.state.freeWeights?.find(w => w.isDragging);
+        if (draggedWeight) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 4]);
+            
+            // Зелёный круг вокруг нижнего крючка динамометра
+            const dynBottomHookX = centerX;
+            const dynBottomHookY = bottomHookY + 23;
+            ctx.beginPath();
+            ctx.arc(dynBottomHookX, dynBottomHookY, 60, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Полупрозрачная заливка
+            ctx.fillStyle = 'rgba(0, 255, 100, 0.1)';
+            ctx.fill();
+            
+            ctx.restore();
+        }
     }
 
     drawSpringCoils(ctx, anchor, length, coils, springRadius, wireRadius) {
@@ -2727,6 +3218,7 @@ class SpringExperiment {
         
         let isDragging = false;
         let dragOffset = { x: 0, y: 0 };
+        let draggedFreeWeight = null; // 🆕 Ссылка на перетаскиваемый свободный груз
         
         // Проверка клика на пружину (проверяем область вокруг центра пружины)
         const getAnchor = () => ({
@@ -2771,7 +3263,15 @@ class SpringExperiment {
             const y = e.clientY - rect.top;
             this.lastPointer = { x: e.clientX, y: e.clientY };
 
-            // Перемещаем динамометр ИЛИ пружину
+            // 🆕 Перемещаем свободный груз
+            if (isDragging === 'freeweight' && draggedFreeWeight) {
+                draggedFreeWeight.x = x - dragOffset.x;
+                draggedFreeWeight.y = y - dragOffset.y;
+                this.drawDynamic();
+                return;
+            }
+
+            // Перемещаем динамометр
             if (this.state.dynamometerAttached && isDragging === 'dynamometer') {
                 const newX = x - dragOffset.x;
                 const newY = y - dragOffset.y;
@@ -2801,8 +3301,105 @@ class SpringExperiment {
         const handlePointerUp = (e) => {
             if (!isDragging) return;
 
+            const rect = interactionSurface.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
             window.removeEventListener('mousemove', handlePointerMove);
             window.removeEventListener('mouseup', handlePointerUp);
+
+            // 🆕 Обработка отпускания свободного груза
+            if (isDragging === 'freeweight' && draggedFreeWeight) {
+                draggedFreeWeight.isDragging = false;
+                
+                // Вычисляем позицию ВЕРХНЕГО КРЮЧКА груза
+                const weightDef = this.getWeightById(draggedFreeWeight.weightId);
+                const img = weightDef ? (this.images.weights[draggedFreeWeight.weightId] || this.images.weights[weightDef.id]) : null;
+                const targetSize = weightDef?.targetSize ?? 72;
+                const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
+                const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
+                
+                // Верхний крючок груза (над грузом)
+                const weightTopHookX = draggedFreeWeight.x;
+                const weightTopHookY = draggedFreeWeight.y - renderedHeight/2 - 12;
+                
+                // Проверяем попадание на пружину
+                if (this.state.springAttached) {
+                    const anchor = getAnchor();
+                    const springLength = this.state.springLength || this.state.springNaturalLength;
+                    const springBottomHookX = anchor.x;
+                    const springBottomHookY = anchor.y + springLength;
+                    const distance = Math.hypot(weightTopHookX - springBottomHookX, weightTopHookY - springBottomHookY);
+                    
+                    console.log('[FREE-WEIGHTS] Check spring attach:', {
+                        weightHook: [weightTopHookX.toFixed(1), weightTopHookY.toFixed(1)],
+                        springHook: [springBottomHookX.toFixed(1), springBottomHookY.toFixed(1)],
+                        distance: distance.toFixed(1),
+                        threshold: 60
+                    });
+                    
+                    if (distance < 60) {
+                        console.log('[FREE-WEIGHTS] ✅ Attaching to spring');
+                        this.attachFreeWeightToSpring(draggedFreeWeight);
+                        draggedFreeWeight = null;
+                        isDragging = false;
+                        interactionSurface.style.cursor = 'default';
+                        return;
+                    }
+                }
+                
+                // Проверяем попадание на динамометр
+                if (this.state.dynamometerAttached) {
+                    const dynPos = this.state.dynamometerPosition;
+                    const dynBottomHookX = dynPos.x;
+                    // Высота корпуса (300) + нижний крючок (23)
+                    const dynBottomHookY = dynPos.y + 300 + 23;
+                    const distance = Math.hypot(weightTopHookX - dynBottomHookX, weightTopHookY - dynBottomHookY);
+                    
+                    console.log('[FREE-WEIGHTS] Check dynamometer attach:', {
+                        weightHook: [weightTopHookX.toFixed(1), weightTopHookY.toFixed(1)],
+                        dynHook: [dynBottomHookX.toFixed(1), dynBottomHookY.toFixed(1)],
+                        distance: distance.toFixed(1),
+                        threshold: 60
+                    });
+                    
+                    if (distance < 60) {
+                        console.log('[FREE-WEIGHTS] ✅ Attaching to dynamometer');
+                        this.attachFreeWeightToSpring(draggedFreeWeight);
+                        draggedFreeWeight = null;
+                        isDragging = false;
+                        interactionSurface.style.cursor = 'default';
+                        return;
+                    }
+                }
+                
+                // Проверяем соединение с другими грузами
+                console.log('[FREE-WEIGHTS] Checking stacking with', this.state.freeWeights.length, 'weights');
+                for (let otherWeight of this.state.freeWeights) {
+                    if (otherWeight === draggedFreeWeight) {
+                        console.log('[FREE-WEIGHTS] Skipping self');
+                        continue;
+                    }
+                    console.log('[FREE-WEIGHTS] Testing stack with weight:', otherWeight.id.substring(0, 12));
+                    if (this.canStackWeights(otherWeight, draggedFreeWeight)) {
+                        console.log('[FREE-WEIGHTS] ✅ STACKING WEIGHTS!');
+                        this.stackWeights(otherWeight, draggedFreeWeight);
+                        this.showToast(`✓ Грузы объединены! Общая масса: ${otherWeight.mass}г`);
+                        draggedFreeWeight = null;
+                        isDragging = false;
+                        interactionSurface.style.cursor = 'default';
+                        this.drawDynamic();
+                        return;
+                    }
+                }
+                console.log('[FREE-WEIGHTS] No stacking possible');
+                
+                draggedFreeWeight = null;
+                isDragging = false;
+                interactionSurface.style.cursor = 'default';
+                this.drawDynamic();
+                return;
+            }
 
             // Проверяем возврат в инвентарь (для обоих типов оборудования)
             if (equipmentContainer) {
@@ -2833,12 +3430,41 @@ class SpringExperiment {
             interactionSurface.style.cursor = 'default';
         };
 
+        // Проверка клика на свободные грузы
+        const findFreeWeightAt = (x, y) => {
+            if (!this.state.freeWeights || this.state.freeWeights.length === 0) return null;
+            for (let i = this.state.freeWeights.length - 1; i >= 0; i--) {
+                const w = this.state.freeWeights[i];
+                const halfWidth = w.width / 2;
+                if (x >= w.x - halfWidth && x <= w.x + halfWidth &&
+                    y >= w.y && y <= w.y + w.height) {
+                    return w;
+                }
+            }
+            return null;
+        };
+
         interactionSurface.addEventListener('mousedown', (e) => {
             const rect = interactionSurface.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
-            // Проверяем динамометр сначала
+            // 🆕 ПРИОРИТЕТ 1: Проверяем свободные грузы (они сверху)
+            const freeWeight = findFreeWeightAt(x, y);
+            if (freeWeight) {
+                isDragging = 'freeweight';
+                draggedFreeWeight = freeWeight; // 🔧 Сохраняем ссылку
+                dragOffset.x = x - freeWeight.x;
+                dragOffset.y = y - freeWeight.y;
+                freeWeight.isDragging = true;
+                interactionSurface.style.cursor = 'grabbing';
+                window.addEventListener('mousemove', handlePointerMove);
+                window.addEventListener('mouseup', handlePointerUp);
+                console.log('[FREE-WEIGHTS] Started dragging:', freeWeight.id);
+                return;
+            }
+            
+            // ПРИОРИТЕТ 2: Проверяем динамометр
             if (isClickOnDynamometer(x, y)) {
                 isDragging = 'dynamometer';
                 const pos = this.state.dynamometerPosition;
@@ -2850,7 +3476,7 @@ class SpringExperiment {
                 return;
             }
 
-            // Затем пружину
+            // ПРИОРИТЕТ 3: Затем пружину
             if (isClickOnSpring(x, y)) {
                 isDragging = 'spring';
                 const anchor = getAnchor();
@@ -2868,6 +3494,13 @@ class SpringExperiment {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
             
+            // 🆕 Проверяем свободные грузы первыми
+            const onFreeWeight = findFreeWeightAt(x, y);
+            if (onFreeWeight) {
+                interactionSurface.style.cursor = 'grab';
+                return;
+            }
+            
             const onDynamometer = isClickOnDynamometer(x, y);
             const onSpring = isClickOnSpring(x, y);
             
@@ -2875,6 +3508,198 @@ class SpringExperiment {
         });
         
         console.log('✅ Spring drag enabled');
+    }
+    
+    setupFreeWeightsDrag() {
+        // 🆕 Логика перетаскивания свободных грузов интегрирована в setupEquipmentDragListeners()
+        // Это сделано для избежания конфликтов обработчиков событий на canvas-ui
+        console.log('✅ Free weights drag enabled (integrated with equipment drag)');
+    }
+    
+    attachFreeWeightToSpring(freeWeight) {
+        console.log('[ATTACH-FREE] 🎯 Подвешивание свободного груза:', {
+            freeWeightId: freeWeight.id,
+            weightId: freeWeight.weightId,
+            mass: freeWeight.mass,
+            hasStack: freeWeight.stackedWeights?.length > 0,
+            stackSize: freeWeight.stackedWeights?.length || 0,
+            currentFreeWeights: this.state.freeWeights.length
+        });
+        
+        // Удаляем из свободных грузов
+        const index = this.state.freeWeights.indexOf(freeWeight);
+        if (index !== -1) {
+            this.state.freeWeights.splice(index, 1);
+            console.log('[ATTACH-FREE] ✅ Удалён из freeWeights, осталось:', this.state.freeWeights.length);
+        } else {
+            console.warn('[ATTACH-FREE] ⚠️ Груз не найден в freeWeights!');
+        }
+        
+        console.log('[ATTACH-FREE] 📊 State перед подвешиванием:', {
+            usedWeightIds: Array.from(this.state.usedWeightIds),
+            selectedWeights: Array.from(this.state.selectedWeights)
+        });
+        
+        // Подвешиваем ВЕРХНИЙ груз
+        const weight = this.getWeightById(freeWeight.weightId);
+        if (!weight) {
+            console.error('[ATTACH-FREE] ❌ Груз не найден в инвентаре:', freeWeight.weightId);
+            return;
+        }
+        
+        console.log('[ATTACH-FREE] Вызов attachWeight для:', weight.id);
+        this.attachWeight(weight);
+        
+        // 🆕 Если есть стопка - подвешиваем все грузы из неё
+        if (freeWeight.stackedWeights && freeWeight.stackedWeights.length > 0) {
+            console.log('[ATTACH-FREE] Подвешивание стопки из', freeWeight.stackedWeights.length, 'грузов');
+            
+            freeWeight.stackedWeights.forEach(stackedWeight => {
+                const stackedDef = this.getWeightById(stackedWeight.weightId);
+                if (stackedDef) {
+                    console.log('[ATTACH-FREE] Добавление груза из стопки:', stackedDef.id);
+                    this.addWeightToChain(stackedDef.id); // ✅ Используем центральную функцию
+                } else {
+                    console.warn('[ATTACH-FREE] ⚠️ Груз из стопки не найден:', stackedWeight.weightId);
+                }
+            });
+            
+            // Пересчитываем массу и обновляем пружину
+            const totalMass = this.state.attachedWeights.reduce((sum, item) => {
+                const def = this.getWeightById(item.id);
+                return sum + (def?.mass ?? 0);
+            }, 0);
+            
+            console.log('[ATTACH-FREE] Общая масса стопки:', totalMass, 'г');
+            this.state.currentWeight = totalMass;
+            
+            const massKg = totalMass / 1000;
+            const force = massKg * this.physics.gravity;
+            const elongationM = force / this.physics.springConstant;
+            const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
+            const targetLength = this.state.springNaturalLength + elongationPx;
+            
+            this.updateVisualScale(targetLength);
+            this.drawDynamic();
+        }
+        
+        this.showToast(`✓ Груз ${freeWeight.mass}г подвешен!`);
+    }
+    
+    removeFreeWeight(weightId) {
+        // Убираем свободный груз с canvas и возвращаем в инвентарь
+        console.log('[REMOVE-FREE] Удаление свободного груза:', weightId);
+        
+        // Ищем груз в freeWeights
+        const freeWeightIndex = this.state.freeWeights.findIndex(fw => fw.weightId === weightId);
+        
+        if (freeWeightIndex !== -1) {
+            const removedWeight = this.state.freeWeights[freeWeightIndex];
+            
+            // Удаляем из массива свободных
+            this.state.freeWeights.splice(freeWeightIndex, 1);
+            
+            // Если груз был в стопке, тоже возвращаем все грузы
+            if (removedWeight.stackedWeights && removedWeight.stackedWeights.length > 0) {
+                removedWeight.stackedWeights.forEach(sw => {
+                    this.state.usedWeightIds.delete(sw.weightId);
+                    console.log('[REMOVE-FREE] Возврат груза из стопки:', sw.weightId);
+                });
+            }
+            
+            console.log('[REMOVE-FREE] Груз удалён, осталось свободных:', this.state.freeWeights.length);
+        }
+        
+        // Убираем из usedWeightIds
+        this.state.usedWeightIds.delete(weightId);
+        this.state.selectedWeights.delete(weightId);
+        
+        // Обновляем UI
+        this.renderWeightsInventory();
+        this.drawDynamic();
+        this.showToast('✓ Груз возвращён в инвентарь');
+    }
+    
+    canStackWeights(weight1, weight2) {
+        // Проверяем, можно ли соединить грузы
+        // weight1 — нижний (на котором будет висеть weight2)
+        // weight2 — верхний (который подвешиваем)
+        
+        const weightDef1 = this.getWeightById(weight1.weightId);
+        const weightDef2 = this.getWeightById(weight2.weightId);
+        
+        if (!weightDef1 || !weightDef2) return false;
+        
+        // Рассчитываем РЕАЛЬНУЮ высоту рендеринга (как в drawFreeWeights)
+        const img1 = this.images.weights[weight1.weightId] || this.images.weights[weightDef1.id];
+        const img2 = this.images.weights[weight2.weightId] || this.images.weights[weightDef2.id];
+        
+        const targetSize1 = weightDef1.targetSize ?? 72;
+        const targetSize2 = weightDef2.targetSize ?? 72;
+        
+        const renderScale1 = targetSize1 / (img1 ? Math.max(img1.width, img1.height) : targetSize1);
+        const renderScale2 = targetSize2 / (img2 ? Math.max(img2.width, img2.height) : targetSize2);
+        
+        const renderedHeight1 = img1 ? img1.height * renderScale1 : targetSize1 * 0.9;
+        const renderedHeight2 = img2 ? img2.height * renderScale2 : targetSize2 * 0.9;
+        
+        // weight.y — это ЦЕНТР груза
+        // Нижний крючок weight1 находится на расстоянии renderedHeight1/2 + 8px ниже центра
+        const hook1Y = weight1.y + renderedHeight1/2 + 8;
+        // Верхний крючок weight2 находится на расстоянии renderedHeight2/2 + 12px выше центра
+        const hook2Y = weight2.y - renderedHeight2/2 - 12;
+        
+        const distanceX = Math.abs(weight1.x - weight2.x);
+        const distanceY = Math.abs(hook1Y - hook2Y);
+        
+        // Строгое условие: крючки должны быть ОЧЕНЬ близко
+        const canStack = distanceX < 30 && distanceY < 30;
+        
+        if (weight2.isDragging) {
+            console.log('[STACK-CHECK]', {
+                w1: weight1.id.substring(0, 12),
+                w2: weight2.id.substring(0, 12),
+                'w1.y': weight1.y.toFixed(1),
+                'w2.y': weight2.y.toFixed(1),
+                'h1': renderedHeight1.toFixed(1),
+                'h2': renderedHeight2.toFixed(1),
+                'hook1Y': hook1Y.toFixed(1),
+                'hook2Y': hook2Y.toFixed(1),
+                'dX': distanceX.toFixed(1),
+                'dY': distanceY.toFixed(1),
+                '✅': canStack ? 'CAN STACK!' : 'too far'
+            });
+        }
+        
+        return canStack;
+    }
+    
+    stackWeights(topWeight, bottomWeight) {
+        // Соединяем грузы в стопку
+        if (!topWeight.stackedWeights) {
+            topWeight.stackedWeights = [];
+        }
+        
+        // Удаляем нижний груз из freeWeights
+        const index = this.state.freeWeights.indexOf(bottomWeight);
+        if (index !== -1) {
+            this.state.freeWeights.splice(index, 1);
+        }
+        
+        // Добавляем к стопке
+        topWeight.stackedWeights.push(bottomWeight);
+        topWeight.mass += bottomWeight.mass;
+        
+        // Рекурсивно добавляем вложенные грузы
+        if (bottomWeight.stackedWeights) {
+            bottomWeight.stackedWeights.forEach(w => {
+                topWeight.stackedWeights.push(w);
+                topWeight.mass += w.mass;
+            });
+        }
+        
+        console.log('[STACK] Weights stacked:', topWeight.mass, 'г');
+        this.drawDynamic();
     }
 
     attachSpringToClamp() {
