@@ -311,7 +311,7 @@ body {
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
-    height: clamp(600px, 70vh, 800px);
+    height: clamp(1000px, 90vh, 1400px); /* Significantly increased for spring with multiple weights */
     background: linear-gradient(180deg, #1a1f3a 0%, #0f1429 100%);
     border-radius: 15px;
     overflow: hidden;
