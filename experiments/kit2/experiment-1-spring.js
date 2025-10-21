@@ -55,7 +55,10 @@ class SpringExperiment {
             // 🆕 Свободные грузы на столе
             freeWeights: [], // Грузы, размещённые на canvas, но не подвешенные
             // 🆕 Учёт использованных грузов
-            usedWeightIds: new Set() // 🔧 ID грузов, размещённых СВОБОДНО на canvas (НЕ подвешенных!)
+            usedWeightIds: new Set(), // 🔧 ID грузов, размещённых СВОБОДНО на canvas (НЕ подвешенных!)
+            // 🆕 Записанные значения для расчёта
+            recordedForce: null, // Записанное значение силы F
+            recordedElongation: null // Записанное значение удлинения Δl
         };
 
         this.springDragged = false;
@@ -241,6 +244,11 @@ class SpringExperiment {
 
             // Setup UI
             this.setupEventListeners();
+
+            // ✅ Инициализация состояния кнопок нового окна измерений
+            this.updateRecordForceButton();
+            this.updateRecordElongationButton();
+            this.updateCalculateStiffnessButton();
 
             // Setup interactions AFTER DOM elements exist
             this.setupInteractions();
@@ -523,28 +531,15 @@ class SpringExperiment {
                 item.classList.add('equipment-item--installed');
             }
 
-            const icon = document.createElement('div');
-            icon.className = 'equipment-icon';
-            icon.textContent = equipment.icon;
-
             const title = document.createElement('div');
             title.className = 'equipment-title';
             title.textContent = equipment.name;
-
-            const meta = document.createElement('div');
-            meta.className = 'equipment-meta';
-            if (isDynamometer) {
-                meta.textContent = `Жёсткость определите в ходе опыта
-В комплекте`;
-            } else {
-                meta.textContent = 'Жёсткость определите в ходе опыта';
-            }
 
             const status = document.createElement('div');
             status.className = 'equipment-status';
             status.textContent = isAttached ? 'На установке' : 'В комплекте';
 
-            item.append(icon, title, meta, status);
+            item.append(title, status);
 
             if (isAttached) {
                 const action = document.createElement('button');
@@ -908,31 +903,23 @@ class SpringExperiment {
 
             const label = document.createElement('div');
             label.className = 'weight-label';
-            label.textContent = weight.name;
-
-            const meta = document.createElement('div');
-            meta.className = 'weight-meta';
-            meta.textContent = weight.description ?? '';
+            label.textContent = `${weight.mass} г`;
 
             const status = document.createElement('div');
             status.className = 'weight-status';
             
             let statusText = 'В комплекте';
             if (isAttached) {
-                const chainInfo = positionInChain ? ` (${positionInChain}-й в цепочке)` : '';
-                if (this.state.dynamometerAttached) {
-                    statusText = `На динамометре${chainInfo}`;
-                } else {
-                    statusText = `На пружине${chainInfo}`;
-                }
+                const chainInfo = positionInChain ? ` (${positionInChain}-й)` : '';
+                statusText = this.state.dynamometerAttached ? `На динамометре${chainInfo}` : `На пружине${chainInfo}`;
             } else if (isPending) {
                 statusText = 'Подвешивается…';
             } else if (isUsedButNotAttached) {
-                statusText = 'На столе'; // 🆕 Груз свободный на canvas
+                statusText = 'На столе';
             }
             status.textContent = statusText;
 
-            item.append(figure, label, meta, status);
+            item.append(figure, label, status);
 
             // ✅ Кнопка "Снять" - ТОЛЬКО для последнего груза в цепочке!
             if (isAttached && isLastInChain) {
@@ -2065,18 +2052,36 @@ class SpringExperiment {
     }
 
     updateCurrentMeasurementDisplay(mass, force, elongationCm) {
+        // Старые элементы (удалены)
         const massEl = document.getElementById('current-mass');
-        const elongationEl = document.getElementById('current-elongation');
+        const oldElongationEl = document.getElementById('current-elongation');
 
+        // ✅ НОВЫЕ элементы для окна измерений
+        const currentForceEl = document.getElementById('current-force');
+        const currentElongationEl = document.getElementById('current-elongation');
+
+        // Обновляем старые элементы если они есть
         if (massEl) {
             massEl.textContent = Number.isFinite(mass) ? mass.toFixed(0) : '—';
         }
-
-        // Силу НЕ показываем автоматически - ученик должен снять с динамометра
-
-        if (elongationEl) {
-            elongationEl.textContent = Number.isFinite(elongationCm) ? elongationCm.toFixed(2) : '—';
+        if (oldElongationEl) {
+            oldElongationEl.textContent = Number.isFinite(elongationCm) ? elongationCm.toFixed(2) : '—';
         }
+
+        // ✅ Обновляем НОВЫЕ элементы (текущие показания F и Δl)
+        if (currentForceEl) {
+            currentForceEl.textContent = Number.isFinite(force) ? force.toFixed(2) : '—';
+        }
+
+        if (currentElongationEl) {
+            // Переводим см в метры для отображения
+            const elongationM = Number.isFinite(elongationCm) ? elongationCm / 100 : NaN;
+            currentElongationEl.textContent = Number.isFinite(elongationM) ? elongationM.toFixed(3) : '—';
+        }
+
+        // ✅ Обновляем состояние кнопок записи
+        this.updateRecordForceButton();
+        this.updateRecordElongationButton();
     }
 
     resetMeasurementDisplay() {
@@ -2134,7 +2139,9 @@ class SpringExperiment {
         const accuracyFill = accuracyContainer?.querySelector('.accuracy-fill');
         const accuracyLabel = accuracyContainer?.querySelector('.accuracy-label');
 
+        // ✅ Элементы удалены из HTML - функция отключена
         if (!valueElement || !accuracyContainer || !accuracyFill || !accuracyLabel) {
+            console.log('[updateResultDisplay] Элементы результата не найдены (удалены из HTML)');
             return;
         }
 
@@ -2170,7 +2177,9 @@ class SpringExperiment {
         const accuracyFill = accuracyContainer?.querySelector('.accuracy-fill');
         const accuracyLabel = accuracyContainer?.querySelector('.accuracy-label');
 
+        // ✅ Элементы удалены из HTML - функция отключена
         if (!valueElement || !accuracyFill || !accuracyLabel) {
+            console.log('[resetResultDisplay] Элементы результата не найдены (удалены из HTML)');
             return;
         }
 
@@ -2250,6 +2259,40 @@ class SpringExperiment {
 
         // УДАЛЕНО: switchModeButton - больше нет переключения этапов
 
+        // 🆕 NEW MEASUREMENT WINDOW HANDLERS
+        const btnRecordForce = document.getElementById('btn-record-force');
+        const btnRecordElongation = document.getElementById('btn-record-elongation');
+        const btnCalculateStiffness = document.getElementById('btn-calculate-stiffness');
+        const btnResetMeasurement = document.getElementById('btn-reset-measurement');
+        const manualForceInput = document.getElementById('manual-force-input');
+        const manualElongationInput = document.getElementById('manual-elongation-input');
+
+        btnRecordForce?.addEventListener('click', () => {
+            this.recordForceValue();
+        });
+
+        btnRecordElongation?.addEventListener('click', () => {
+            this.recordElongationValue();
+        });
+
+        btnCalculateStiffness?.addEventListener('click', () => {
+            this.calculateStiffnessFromRecorded();
+        });
+
+        btnResetMeasurement?.addEventListener('click', () => {
+            this.resetMeasurementWindow();
+        });
+
+        // Обновляем кнопку "Записать F" при вводе вручную
+        manualForceInput?.addEventListener('input', () => {
+            this.updateRecordForceButton();
+        });
+
+        // Обновляем кнопку "Записать Δl" при вводе вручную
+        manualElongationInput?.addEventListener('input', () => {
+            this.updateRecordElongationButton();
+        });
+
         // Force input modal handlers
         document.getElementById('close-force-modal')?.addEventListener('click', () => {
             this.closeForceInputModal();
@@ -2295,16 +2338,8 @@ class SpringExperiment {
     }
 
     showHint(message) {
-        const hintContainer = document.getElementById('hint-box');
-        const hintText = document.getElementById('hint-text');
-        if (!hintContainer || !hintText) return;
-
-        hintContainer.style.display = 'flex';
-        hintText.textContent = message;
-        hintContainer.classList.add('pulse');
-        setTimeout(() => {
-            hintContainer.classList.remove('pulse');
-        }, 2000);
+        // Подсказки отключены
+        return;
     }
 
     showError(message) {
@@ -2315,6 +2350,257 @@ class SpringExperiment {
         // TODO: добавить звуковые эффекты
         // const audio = new Audio(`/assets/sounds/${type}.mp3`);
         // audio.play().catch(() => {});
+    }
+
+    /**
+     * Завершить эксперимент и вернуться на главный экран
+     */
+    finishExperiment() {
+        // Проверяем, что расчёт выполнен
+        const resultContainer = document.getElementById('calculation-result');
+        if (!resultContainer || resultContainer.style.display === 'none') {
+            alert('❌ Сначала выполните расчёт жёсткости пружины!');
+            return;
+        }
+
+        // Подтверждение
+        const confirmed = confirm('✅ Эксперимент завершён!\n\nЖёсткость пружины определена.\nВернуться к списку комплектов?');
+        
+        if (confirmed) {
+            // Возврат на главный экран
+            window.location.href = '../../index.html';
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  НОВОЕ ОКНО ИЗМЕРЕНИЙ - ЗАПИСЬ ПЕРЕМЕННЫХ F и Δl
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Записать значение силы F (из текущих показаний или ручного ввода)
+     */
+    recordForceValue() {
+        const manualInput = document.getElementById('manual-force-input');
+        const currentForceEl = document.getElementById('current-force');
+        
+        let forceValue = null;
+
+        // Приоритет: ручной ввод > текущее значение
+        if (manualInput && manualInput.value.trim() !== '') {
+            // ✅ Поддержка запятой и точки
+            const inputValue = manualInput.value.trim().replace(',', '.');
+            forceValue = parseFloat(inputValue);
+            if (!Number.isFinite(forceValue) || forceValue <= 0) {
+                alert('❌ Введите корректное положительное значение силы!');
+                return;
+            }
+        } else if (currentForceEl) {
+            const currentText = currentForceEl.textContent;
+            if (currentText !== '—') {
+                forceValue = parseFloat(currentText);
+            }
+        }
+
+        if (!forceValue || !Number.isFinite(forceValue)) {
+            alert('❌ Нет значения силы для записи! Подвесьте груз или введите вручную.');
+            return;
+        }
+
+        // Записываем значение
+        this.state.recordedForce = forceValue;
+
+        // Отображаем записанное значение
+        const recordedForceDisplay = document.getElementById('recorded-force-display');
+        const recordedForceValue = document.getElementById('recorded-force-value');
+        if (recordedForceDisplay && recordedForceValue) {
+            recordedForceDisplay.style.display = 'flex';
+            recordedForceValue.textContent = forceValue.toFixed(2);
+        }
+
+        // Очищаем ручной ввод
+        if (manualInput) {
+            manualInput.value = '';
+        }
+
+        // Обновляем кнопку расчёта
+        this.updateCalculateStiffnessButton();
+
+        this.showHint(`✅ Сила F = ${forceValue.toFixed(2)} Н записана!`);
+    }
+
+    /**
+     * Записать значение удлинения Δl (из текущих показаний или ручного ввода)
+     */
+    recordElongationValue() {
+        const manualInput = document.getElementById('manual-elongation-input');
+        const currentElongationEl = document.getElementById('current-elongation');
+        
+        let elongationValue = null;
+
+        // Приоритет: ручной ввод > текущее значение
+        if (manualInput && manualInput.value.trim() !== '') {
+            // ✅ Поддержка запятой и точки
+            const inputValue = manualInput.value.trim().replace(',', '.');
+            elongationValue = parseFloat(inputValue);
+            if (!Number.isFinite(elongationValue) || elongationValue <= 0) {
+                alert('❌ Введите корректное положительное значение удлинения!');
+                return;
+            }
+        } else if (currentElongationEl) {
+            const currentText = currentElongationEl.textContent;
+            if (currentText !== '—') {
+                elongationValue = parseFloat(currentText);
+            }
+        }
+
+        if (!elongationValue || !Number.isFinite(elongationValue)) {
+            alert('❌ Нет значения удлинения для записи! Подвесьте груз или введите вручную.');
+            return;
+        }
+
+        // Записываем значение
+        this.state.recordedElongation = elongationValue;
+
+        // Отображаем записанное значение
+        const recordedElongationDisplay = document.getElementById('recorded-elongation-display');
+        const recordedElongationValue = document.getElementById('recorded-elongation-value');
+        if (recordedElongationDisplay && recordedElongationValue) {
+            recordedElongationDisplay.style.display = 'flex';
+            recordedElongationValue.textContent = elongationValue.toFixed(3);
+        }
+
+        // Очищаем ручной ввод
+        if (manualInput) {
+            manualInput.value = '';
+        }
+
+        // Обновляем кнопку расчёта
+        this.updateCalculateStiffnessButton();
+
+        this.showHint(`✅ Удлинение Δl = ${elongationValue.toFixed(3)} м записано!`);
+    }
+
+    /**
+     * Рассчитать жёсткость из записанных значений F и Δl
+     */
+    calculateStiffnessFromRecorded() {
+        const force = this.state.recordedForce;
+        const elongation = this.state.recordedElongation;
+
+        if (!force || !elongation) {
+            this.showHint('❌ Запишите оба значения (F и Δl) перед расчётом!');
+            return;
+        }
+
+        // Расчёт: k = F / Δl
+        const stiffness = force / elongation;
+
+        // Отображаем результат
+        const resultContainer = document.getElementById('calculation-result');
+        const resultCalculationText = document.getElementById('result-calculation-text');
+        const resultStiffnessValue = document.getElementById('result-stiffness-value');
+
+        if (resultContainer && resultCalculationText && resultStiffnessValue) {
+            resultContainer.style.display = 'block';
+            resultCalculationText.textContent = `k = ${force.toFixed(2)} / ${elongation.toFixed(3)} = ${stiffness.toFixed(1)} Н/м`;
+            resultStiffnessValue.textContent = stiffness.toFixed(1);
+        }
+
+        // Показываем результат
+        this.showHint(`🎉 Жёсткость пружины: k = ${stiffness.toFixed(1)} Н/м`);
+
+        // Разблокируем кнопку завершения
+        const completeBtn = document.getElementById('btn-complete');
+        if (completeBtn) {
+            completeBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Обновить состояние кнопки "Записать F"
+     */
+    updateRecordForceButton() {
+        const btn = document.getElementById('btn-record-force');
+        const manualInput = document.getElementById('manual-force-input');
+        const currentForceEl = document.getElementById('current-force');
+
+        if (!btn) return;
+
+        const hasManualValue = manualInput && manualInput.value.trim() !== '';
+        const hasCurrentValue = currentForceEl && currentForceEl.textContent !== '—';
+
+        btn.disabled = !hasManualValue && !hasCurrentValue;
+    }
+
+    /**
+     * Обновить состояние кнопки "Записать Δl"
+     */
+    updateRecordElongationButton() {
+        const btn = document.getElementById('btn-record-elongation');
+        const manualInput = document.getElementById('manual-elongation-input');
+        const currentElongationEl = document.getElementById('current-elongation');
+
+        if (!btn) return;
+
+        const hasManualValue = manualInput && manualInput.value.trim() !== '';
+        const hasCurrentValue = currentElongationEl && currentElongationEl.textContent !== '—';
+
+        btn.disabled = !hasManualValue && !hasCurrentValue;
+    }
+
+    /**
+     * Обновить состояние кнопки "Рассчитать жёсткость"
+     */
+    updateCalculateStiffnessButton() {
+        const btn = document.getElementById('btn-calculate-stiffness');
+        if (!btn) return;
+
+        const hasForce = this.state.recordedForce !== null;
+        const hasElongation = this.state.recordedElongation !== null;
+
+        btn.disabled = !hasForce || !hasElongation;
+    }
+
+    /**
+     * Сбросить все данные в окне измерений
+     */
+    resetMeasurementWindow() {
+        // Очищаем состояние
+        this.state.recordedForce = null;
+        this.state.recordedElongation = null;
+
+        // Очищаем поля ручного ввода
+        const manualForceInput = document.getElementById('manual-force-input');
+        const manualElongationInput = document.getElementById('manual-elongation-input');
+        if (manualForceInput) manualForceInput.value = '';
+        if (manualElongationInput) manualElongationInput.value = '';
+
+        // ✅ Очищаем текущие показания (верхняя часть окна)
+        const currentForceEl = document.getElementById('current-force');
+        const currentElongationEl = document.getElementById('current-elongation');
+        if (currentForceEl) currentForceEl.textContent = '—';
+        if (currentElongationEl) currentElongationEl.textContent = '—';
+
+        // Скрываем записанные значения
+        const recordedForceDisplay = document.getElementById('recorded-force-display');
+        const recordedElongationDisplay = document.getElementById('recorded-elongation-display');
+        if (recordedForceDisplay) recordedForceDisplay.style.display = 'none';
+        if (recordedElongationDisplay) recordedElongationDisplay.style.display = 'none';
+
+        // Скрываем результат
+        const resultContainer = document.getElementById('calculation-result');
+        if (resultContainer) resultContainer.style.display = 'none';
+
+        // ✅ Блокируем кнопку "Завершить опыт"
+        const completeBtn = document.getElementById('btn-complete');
+        if (completeBtn) completeBtn.disabled = true;
+
+        // Обновляем кнопки
+        this.updateRecordForceButton();
+        this.updateRecordElongationButton();
+        this.updateCalculateStiffnessButton();
+
+        this.showHint('🔄 Окно измерений очищено. Можете начать заново.');
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2493,7 +2779,11 @@ class SpringExperiment {
         const tableHeader = document.getElementById('table-header');
         const emptyMessage = document.getElementById('empty-message');
         
-        if (!tbody) return;
+        // ✅ Таблица удалена из HTML - функция отключена
+        if (!tbody) {
+            console.log('[renderMeasurementsTable] Таблица измерений не найдена (удалена из HTML)');
+            return;
+        }
 
         const measurements = this.state.measurements;
 
@@ -2584,7 +2874,8 @@ class SpringExperiment {
     updateRecordButton() {
         const btn = document.getElementById('btn-record-measurement');
         if (!btn) {
-            console.warn('[UPDATE-BTN] Кнопка btn-record-measurement не найдена!');
+            // ✅ Кнопка удалена из HTML - функция отключена
+            console.log('[updateRecordButton] Кнопка btn-record-measurement не найдена (удалена из HTML)');
             return;
         }
 
@@ -2604,7 +2895,11 @@ class SpringExperiment {
      */
     updateCalculateButton() {
         const btn = document.getElementById('btn-calculate');
-        if (!btn) return;
+        if (!btn) {
+            // ✅ Кнопка удалена из HTML - функция отключена
+            console.log('[updateCalculateButton] Кнопка btn-calculate не найдена (удалена из HTML)');
+            return;
+        }
 
         btn.disabled = this.state.measurements.length === 0;
     }

@@ -20,7 +20,7 @@
     <script src="../shared/canvas-utils.js" defer></script>
     <script src="../shared/realistic-renderer.js" defer></script>
     <script src="../shared/freeform-manager.js" type="module" defer></script>
-    <script src="experiment-1-spring.js?v=20251019-1745" type="module"></script>
+    <script src="experiment-1-spring.js?v=20251021-0551" type="module"></script>
 </head>
 <body>
     <!-- Header -->
@@ -67,14 +67,6 @@
                 </div>
 
             </div>
-
-            <!-- Instructions -->
-            <div class="instructions" id="instructions">
-                <div class="instruction-icon">💡</div>
-                <p class="instruction-text">
-                    Перетащите пружину из секции «Оборудование», затем подвесьте груз
-                </p>
-            </div>
         </section>
 
         <!-- Right Panel: Controls & Data -->
@@ -95,146 +87,101 @@
                 </div>
             </div>
 
-            <!-- Current Measurement -->
-            <div class="panel-section measurement-card" id="measurement-card">
-                <div class="card-header-stage">
-                    <span class="stage-badge" id="stage-badge">ЭТАП 1</span>
-                    <h3 id="stage-title">Измерение силы</h3>
-                </div>
-                
-                <div class="current-measurement-display">
-                    <!-- Масса груза -->
-                    <div class="measure-item">
-                        <span class="measure-label">Груз:</span>
-                        <span class="measure-value" id="current-mass">—</span>
-                        <span class="measure-unit">г</span>
-                    </div>
-                    
-                    <!-- ЭТАП 1: Сила динамометра -->
-                    <div class="measure-item highlight" id="force-measure-item">
-                        <span class="measure-label">Динамометр:</span>
-                        <span class="measure-value large" id="current-force-display">—</span>
-                        <span class="measure-unit">Н</span>
-                        <span class="measure-status" id="force-status"></span>
-                    </div>
-                    
-                    <!-- ЭТАП 2: Удлинение пружины -->
-                    <div class="measure-item" id="elongation-measure-item" style="display: none;">
-                        <span class="measure-label">Сила:</span>
-                        <span class="measure-value" id="force-from-stage1">—</span>
-                        <span class="measure-unit">Н</span>
-                        <span class="measure-source">← из Этапа 1</span>
-                    </div>
-                    
-                    <div class="measure-item highlight" id="elongation-row" style="display: none;">
-                        <span class="measure-label">Удлинение:</span>
-                        <span class="measure-value large" id="current-elongation">—</span>
-                        <span class="measure-unit">см</span>
-                    </div>
-                    
-                    <!-- ЭТАП 2: Расчёт жёсткости -->
-                    <div class="calculated-result" id="stiffness-calculation" style="display: none;">
-                        <span class="calc-formula">k = F / Δl =</span>
-                        <span class="calc-value" id="calculated-k-current">—</span>
-                        <span class="calc-unit">Н/м</span>
-                    </div>
-                </div>
-                
-                <!-- Подсказка -->
-                <div class="step-hint" id="step-hint">
-                    💡 Подвесьте груз на динамометр
-                </div>
-                
-                <!-- Кнопка записи (БЕЗ МОДАЛКИ!) -->
-                <button class="btn-primary btn-record-quick" id="btn-record-measurement" disabled>
-                    <span class="icon">📝</span> 
-                    <span id="btn-record-text">Записать</span>
-                </button>
-                
-                <!-- Кнопка переключения этапа -->
-                <button class="btn-secondary btn-switch-stage" id="btn-switch-mode" style="display: none;">
-                    <span class="icon">➡️</span> 
-                    <span id="btn-switch-text">Перейти к измерению жёсткости</span>
-                </button>
-                
-                <!-- Прогресс -->
-                <div class="progress-mini" id="progress-indicator" style="display: none;">
-                    <span class="progress-text" id="progress-text">Измерено: 0/3</span>
-                    <div class="progress-bar-mini">
-                        <div class="progress-fill-mini" id="progress-fill" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Measurements Table -->
+            <!-- Measurement Window -->
             <div class="panel-section">
-                <div class="table-header-flex">
-                    <h3 id="table-title">ЭТАП 1: Измерение силы</h3>
-                    <span class="table-count" id="table-count">0 измерений</span>
-                </div>
-                <div class="measurements-table-container">
-                    <table class="measurements-table" id="measurements-table">
-                        <thead id="table-header">
-                            <tr>
-                                <th>№</th>
-                                <th>Грузов</th>
-                                <th>Сила, Н</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="measurements-tbody">
-                            <tr class="empty-state">
-                                <td colspan="4" id="empty-message">Пока нет измерений</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Кнопка расчёта (только для Этапа 2) -->
-                <button class="btn-primary" id="btn-calculate" disabled style="display: none;">
-                    <span class="icon">🧮</span> Рассчитать жёсткость
-                </button>
-            </div>
-
-            <!-- Calculated Result -->
-            <div class="panel-section">
-                <h3>Результат</h3>
-                <div class="result-display">
-                    <div class="result-formula">
+                <h3>Измерения и расчёт</h3>
+                <div class="measurement-window">
+                    <!-- Formula -->
+                    <div class="formula-display">
                         k = F / Δl
                     </div>
-                    <div class="result-value">
-                        <span class="label">Жёсткость пружины:</span>
-                        <div class="value-large" id="calculated-k">—</div>
-                        <span class="unit">Н/м</span>
-                    </div>
-                    <div class="result-accuracy" id="accuracy-indicator">
-                        <div class="accuracy-bar">
-                            <div class="accuracy-fill" style="width: 0%"></div>
+
+                    <!-- Variable F (Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">F</div>
+                        <div class="var-input-group">
+                            <div class="var-current">
+                                <span class="var-current-label">Текущее:</span>
+                                <span class="var-current-value" id="current-force">—</span>
+                                <span class="var-unit">Н</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-force-input"
+                                placeholder="Или введите вручную"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-force">
+                                Записать F
+                            </button>
                         </div>
-                        <span class="accuracy-label">Точность: —</span>
+                    </div>
+
+                    <!-- Variable Δl (Elongation) -->
+                    <div class="variable-row">
+                        <div class="var-label">Δl</div>
+                        <div class="var-input-group">
+                            <div class="var-current">
+                                <span class="var-current-label">Текущее:</span>
+                                <span class="var-current-value" id="current-elongation">—</span>
+                                <span class="var-unit">м</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-elongation-input"
+                                placeholder="Или введите вручную"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-elongation">
+                                Записать Δl
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recorded Values -->
+                    <div class="recorded-values" id="recorded-values">
+                        <div class="recorded-item" id="recorded-force-display" style="display: none;">
+                            <span class="recorded-label">F =</span>
+                            <span class="recorded-value" id="recorded-force-value">—</span>
+                            <span class="recorded-unit">Н</span>
+                        </div>
+                        <div class="recorded-item" id="recorded-elongation-display" style="display: none;">
+                            <span class="recorded-label">Δl =</span>
+                            <span class="recorded-value" id="recorded-elongation-value">—</span>
+                            <span class="recorded-unit">м</span>
+                        </div>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <div class="action-buttons-group">
+                        <button class="btn-reset-measurement" id="btn-reset-measurement">
+                            🔄 Сбросить
+                        </button>
+                        <button class="btn-calculate-stiffness" id="btn-calculate-stiffness" disabled>
+                            Рассчитать жёсткость k
+                        </button>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="calculation-result" id="calculation-result" style="display: none;">
+                        <div class="result-formula">k = F / Δl</div>
+                        <div class="result-calculation" id="result-calculation-text"></div>
+                        <div class="result-final">
+                            <span class="result-label">k =</span>
+                            <span class="result-value" id="result-stiffness-value">—</span>
+                            <span class="result-unit">Н/м</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="panel-section">
-                <button class="btn-secondary" id="btn-reset">
-                    <span class="icon">🔄</span> Сбросить измерение
-                </button>
                 <button class="btn-success" id="btn-complete" disabled>
                     <span class="icon">✓</span> Завершить опыт
                 </button>
-            </div>
-
-            <!-- Hints -->
-            <div class="panel-section hint-box" id="hint-box" style="display: none;">
-                <div class="hint-icon">💡</div>
-                <div class="hint-content">
-                    <strong>Подсказка:</strong>
-                    <p id="hint-text"></p>
-                </div>
-                <button class="hint-close" onclick="document.getElementById('hint-box').style.display='none'">✕</button>
             </div>
         </aside>
     </main>
