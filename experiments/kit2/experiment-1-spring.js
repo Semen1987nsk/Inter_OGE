@@ -206,7 +206,58 @@ class SpringExperiment {
                 targetSize: 88,
                 hookGap: 28
             },
-            // Дополнительные грузы отключены по запросу заказчика
+            // 🔩 КОМПОНЕНТЫ НАБОРНОГО ГРУЗА (собирать на canvas)
+            {
+                id: 'composite_rod_10g',
+                mass: 10,
+                name: 'Штанга 10 г',
+                description: 'Основа наборного груза',
+                icon: '../../assets/equipment/composite-weights/rod-10g-side.svg',
+                hooksTop: true,
+                hooksBottom: true,
+                targetSize: 135, // 90 * 1.5
+                hookGap: 28,
+                isCompositeRod: true
+            },
+            {
+                id: 'composite_disk_10g',
+                mass: 10,
+                name: 'Диск 10 г',
+                description: 'Маленький диск для штанги',
+                icon: '../../assets/equipment/composite-weights/disk-10g-side.svg',
+                hooksTop: false,
+                hooksBottom: false,
+                targetSize: 90, // 60 * 1.5
+                hookGap: 0,
+                isCompositeDisk: true,
+                diskSize: 'small'
+            },
+            {
+                id: 'composite_disk_20g',
+                mass: 20,
+                name: 'Диск 20 г',
+                description: 'Средний диск для штанги',
+                icon: '../../assets/equipment/composite-weights/disk-20g-side.svg',
+                hooksTop: false,
+                hooksBottom: false,
+                targetSize: 112.5, // 75 * 1.5
+                hookGap: 0,
+                isCompositeDisk: true,
+                diskSize: 'medium'
+            },
+            {
+                id: 'composite_disk_50g',
+                mass: 50,
+                name: 'Диск 50 г',
+                description: 'Большой диск для штанги',
+                icon: '../../assets/equipment/composite-weights/disk-50g-side.svg',
+                hooksTop: false,
+                hooksBottom: false,
+                targetSize: 135, // 90 * 1.5
+                hookGap: 0,
+                isCompositeDisk: true,
+                diskSize: 'large'
+            }
         ];
 
         // Cache for tracking last pointer position during canvas drag
@@ -531,6 +582,25 @@ class SpringExperiment {
                 item.classList.add('equipment-item--installed');
             }
 
+            // 🎨 Визуальное изображение оборудования
+            const figure = document.createElement('div');
+            figure.className = 'equipment-figure';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 80;
+            canvas.height = 120;
+            canvas.className = 'equipment-preview';
+            
+            const ctx = canvas.getContext('2d');
+            if (isDynamometer) {
+                this.drawDynamometerPreview(ctx, equipment);
+            } else if (isSpring) {
+                this.drawSpringPreview(ctx, equipment);
+            }
+            
+            figure.appendChild(canvas);
+            item.appendChild(figure);
+
             const title = document.createElement('div');
             title.className = 'equipment-title';
             title.textContent = equipment.name;
@@ -569,6 +639,339 @@ class SpringExperiment {
         this.reinitDragSources?.();
     }
 
+    /**
+     * 🎨 Отрисовка миниатюры динамометра для инвентаря
+     */
+    drawDynamometerPreview(ctx, dynamometer) {
+        const canvas = ctx.canvas;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Размеры динамометра
+        const bodyWidth = 30;
+        const bodyHeight = 80;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        
+        // Корпус
+        const gradient = ctx.createLinearGradient(centerX - bodyWidth/2, centerY - bodyHeight/2, 
+                                                   centerX + bodyWidth/2, centerY - bodyHeight/2);
+        gradient.addColorStop(0, '#dcdcdc');
+        gradient.addColorStop(0.5, '#f0f0f0');
+        gradient.addColorStop(1, '#dcdcdc');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(centerX - bodyWidth/2, centerY - bodyHeight/2, bodyWidth, bodyHeight);
+        
+        // Рамка корпуса
+        ctx.strokeStyle = '#505050';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(centerX - bodyWidth/2, centerY - bodyHeight/2, bodyWidth, bodyHeight);
+        
+        // Верхний крючок
+        ctx.strokeStyle = '#969696';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - bodyHeight/2);
+        ctx.lineTo(centerX, centerY - bodyHeight/2 - 8);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - bodyHeight/2 - 12, 4, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Шкала (упрощенная)
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - bodyHeight/2 + 10);
+        ctx.lineTo(centerX, centerY + bodyHeight/2 - 15);
+        ctx.stroke();
+        
+        // Несколько делений
+        for (let i = 0; i <= 4; i++) {
+            const y = centerY - bodyHeight/2 + 10 + i * 13;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 4, y);
+            ctx.lineTo(centerX + 4, y);
+            ctx.stroke();
+        }
+        
+        // Название
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 7px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(dynamometer.maxForce + 'Н', centerX, centerY + bodyHeight/2 - 5);
+        
+        // Нижний крючок
+        ctx.strokeStyle = '#969696';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY + bodyHeight/2);
+        ctx.lineTo(centerX, centerY + bodyHeight/2 + 8);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(centerX, centerY + bodyHeight/2 + 12, 4, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
+    /**
+     * 🎨 Отрисовка миниатюры пружины для инвентаря
+     */
+    drawSpringPreview(ctx, spring) {
+        const canvas = ctx.canvas;
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        const centerX = width / 2;
+        const topY = 15;
+        const springHeight = 70;
+        const coils = 8;
+        const springRadius = 8;
+        
+        ctx.clearRect(0, 0, width, height);
+        ctx.save();
+        
+        // Верхнее крепление
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = '#888';
+        ctx.fillRect(centerX - 15, topY - 5, 30, 5);
+        ctx.strokeRect(centerX - 15, topY - 5, 30, 5);
+        
+        // Витки пружины (металлический цвет)
+        const gradient = ctx.createLinearGradient(centerX - springRadius, 0, centerX + springRadius, 0);
+        gradient.addColorStop(0, '#A0A0A0');
+        gradient.addColorStop(0.3, '#D0D0D0');
+        gradient.addColorStop(0.5, '#E8E8E8');
+        gradient.addColorStop(0.7, '#D0D0D0');
+        gradient.addColorStop(1, '#A0A0A0');
+        
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        const coilHeight = springHeight / coils;
+        
+        for (let i = 0; i < coils; i++) {
+            const y1 = topY + i * coilHeight;
+            const y2 = topY + (i + 0.5) * coilHeight;
+            const y3 = topY + (i + 1) * coilHeight;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, y1);
+            ctx.quadraticCurveTo(centerX + springRadius, y1 + coilHeight * 0.25, centerX + springRadius, y2);
+            ctx.quadraticCurveTo(centerX + springRadius, y2 + coilHeight * 0.25, centerX, y3);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, y1);
+            ctx.quadraticCurveTo(centerX - springRadius, y1 + coilHeight * 0.25, centerX - springRadius, y2);
+            ctx.quadraticCurveTo(centerX - springRadius, y2 + coilHeight * 0.25, centerX, y3);
+            ctx.stroke();
+        }
+        
+        // Нижний крючок
+        const bottomY = topY + springHeight;
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(centerX, bottomY);
+        ctx.lineTo(centerX, bottomY + 10);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(centerX, bottomY + 15, 4, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+
+    /**
+     * � Генерировать текст статуса для груза
+     */
+    getWeightStatusText(weightState) {
+        if (!weightState.found) return 'Неизвестно';
+        
+        const weight = weightState.weight;
+        
+        switch (weightState.state) {
+            case 'pending':
+                return 'Подвешивается…';
+                
+            case 'attached-last':
+            case 'attached-middle':
+                const equipmentName = this.state.dynamometerAttached ? 'динамометре' : 'пружине';
+                const chainInfo = weightState.positionInChain ? ` (${weightState.positionInChain}-й в цепочке)` : '';
+                return `На ${equipmentName}${chainInfo}`;
+                
+            case 'attached-composite-disk':
+                const parentRod = this.getWeightById(weightState.parentRodId);
+                const parentEquipmentName = this.state.dynamometerAttached ? 'динамометре' : 'пружине';
+                return `На штанге (${parentEquipmentName})`;
+                
+            case 'free-on-canvas':
+                if (weightState.freeWeight?.compositeDisks?.length > 0) {
+                    const disksCount = weightState.freeWeight.compositeDisks.length;
+                    const totalMass = weightState.freeWeight.mass;
+                    const diskWord = disksCount === 1 ? 'диск' : (disksCount > 4 ? 'дисков' : 'диска');
+                    return `На столе (${disksCount} ${diskWord}, ${totalMass}г)`;
+                } else if (weightState.freeWeight?.stackedWeights?.length > 0) {
+                    const stackCount = weightState.freeWeight.stackedWeights.length;
+                    const gruzWord = stackCount === 1 ? 'грузом' : 'грузами';
+                    return `На столе (сцеплен с ${stackCount} ${gruzWord})`;
+                } else {
+                    return 'На столе';
+                }
+                
+            case 'free-composite-disk':
+                const freeRod = this.getWeightById(weightState.freeRodId);
+                return `На штанге (стол)`;
+                
+            case 'free-in-stack':
+                return 'На столе (в стопке)';
+                
+            case 'available':
+            default:
+                return 'В комплекте';
+        }
+    }
+
+    /**
+     * �🔍 НОВАЯ ФУНКЦИЯ: Определить ТОЧНОЕ состояние груза
+     * Возвращает объект с полной информацией о грузе
+     */
+    getWeightState(weightId) {
+        const weight = this.getWeightById(weightId);
+        if (!weight) {
+            return { found: false };
+        }
+
+        // 1️⃣ ПРОВЕРЯЕМ: Груз подвешен напрямую?
+        const isDirectlyAttached = this.state.selectedWeights.has(weightId);
+        
+        // 2️⃣ ПРОВЕРЯЕМ: Груз в цепочке attachedWeights?
+        const attachedIndex = this.state.attachedWeights.findIndex(w => w.id === weightId);
+        const isInChain = attachedIndex !== -1;
+        const positionInChain = isInChain ? attachedIndex + 1 : null;
+        const isLastInChain = isInChain && attachedIndex === this.state.attachedWeights.length - 1;
+        
+        // 3️⃣ ПРОВЕРЯЕМ: Груз - часть ПОДВЕШЕННОГО наборного груза (диск на подвешенной штанге)?
+        let isPartOfAttachedComposite = false;
+        let parentRodId = null;
+        if (weight.isCompositeDisk && isInChain) {
+            // Ищем штангу, которая содержит этот диск
+            for (const attachedWeight of this.state.attachedWeights) {
+                if (attachedWeight.compositeDisks?.some(d => d.weightId === weightId)) {
+                    isPartOfAttachedComposite = true;
+                    parentRodId = attachedWeight.id;
+                    break;
+                }
+            }
+        }
+        
+        // 4️⃣ ПРОВЕРЯЕМ: Груз свободен на canvas?
+        const freeWeight = this.state.freeWeights?.find(fw => fw.weightId === weightId);
+        const isFreeOnCanvas = !!freeWeight && !isDirectlyAttached;
+        
+        // 5️⃣ ПРОВЕРЯЕМ: Груз - часть СВОБОДНОГО наборного груза (диск на свободной штанге)?
+        let isPartOfFreeComposite = false;
+        let freeRodId = null;
+        if (weight.isCompositeDisk && !isFreeOnCanvas) {
+            for (const fw of this.state.freeWeights || []) {
+                if (fw.compositeDisks?.some(d => d.weightId === weightId)) {
+                    isPartOfFreeComposite = true;
+                    freeRodId = fw.weightId;
+                    break;
+                }
+            }
+        }
+        
+        // 6️⃣ ПРОВЕРЯЕМ: Груз - часть стопки на canvas?
+        let isPartOfFreeStack = false;
+        let stackBottomWeightId = null;
+        if (!isFreeOnCanvas && !isPartOfFreeComposite) {
+            for (const fw of this.state.freeWeights || []) {
+                if (fw.stackedWeights?.some(sw => sw.weightId === weightId)) {
+                    isPartOfFreeStack = true;
+                    stackBottomWeightId = fw.weightId;
+                    break;
+                }
+            }
+        }
+        
+        // 7️⃣ ПРОВЕРЯЕМ: Груз pending (в процессе подвешивания)?
+        const isPending = this.pendingWeightIds.has(weightId);
+        
+        // 8️⃣ ОПРЕДЕЛЯЕМ ФИНАЛЬНОЕ СОСТОЯНИЕ
+        let state = 'available'; // в комплекте
+        let canRemove = false;
+        let removeAction = null;
+        let buttonText = null;
+        
+        if (isPending) {
+            state = 'pending';
+        } else if (isPartOfAttachedComposite) {
+            state = 'attached-composite-disk';
+            // Диск на подвешенной штанге - нельзя снять отдельно
+            canRemove = false;
+        } else if (isDirectlyAttached && isLastInChain) {
+            state = 'attached-last';
+            canRemove = true;
+            removeAction = 'detach';
+            buttonText = 'Снять';
+        } else if (isDirectlyAttached && !isLastInChain) {
+            state = 'attached-middle';
+            canRemove = false;
+        } else if (isPartOfFreeComposite) {
+            state = 'free-composite-disk';
+            canRemove = true;
+            removeAction = 'remove-disk';
+            buttonText = 'Убрать диск';
+        } else if (isPartOfFreeStack) {
+            state = 'free-in-stack';
+            canRemove = true;
+            removeAction = 'remove-from-stack';
+            buttonText = 'Убрать';
+        } else if (isFreeOnCanvas) {
+            state = 'free-on-canvas';
+            canRemove = true;
+            removeAction = 'remove-free';
+            buttonText = 'Убрать';
+        }
+        
+        return {
+            found: true,
+            weight,
+            state,
+            isPending,
+            isDirectlyAttached,
+            isInChain,
+            positionInChain,
+            isLastInChain,
+            isFreeOnCanvas,
+            freeWeight,
+            isPartOfAttachedComposite,
+            parentRodId,
+            isPartOfFreeComposite,
+            freeRodId,
+            isPartOfFreeStack,
+            stackBottomWeightId,
+            canRemove,
+            removeAction,
+            buttonText
+        };
+    }
+
     renderWeightsInventory() {
         const container = this.ui?.weightsContainer;
         if (!container) {
@@ -593,93 +996,34 @@ class SpringExperiment {
             return;
         }
 
-        console.log('[RENDER-WEIGHTS] 📋 Обновление состояния грузов (без пересоздания DOM):');
-        console.log('[RENDER-WEIGHTS] State:', {
-            usedWeightIds: Array.from(this.state.usedWeightIds),
+        console.log('[RENDER-WEIGHTS] 📋 Обновление состояния грузов (без пересоздания DOM)');
+        console.log('[RENDER-WEIGHTS] 🔍 DEBUG State:', {
             selectedWeights: Array.from(this.state.selectedWeights),
-            attachedWeights: this.state.attachedWeights?.map(w => w.id) || []
+            usedWeightIds: Array.from(this.state.usedWeightIds),
+            attachedWeights: this.state.attachedWeights.map(w => w.id),
+            existingItemsCount: existingItems.length
         });
 
-        // Обновляем только классы и статус существующих элементов
+        // ✅ НОВАЯ ЛОГИКА: Используем getWeightState для точного определения состояния
         existingItems.forEach((item) => {
             const weightId = item.dataset.weightId;
-            const weight = this.weightsInventory.find(w => w.id === weightId);
-            if (!weight) return;
-
-            // 🔍 ОПРЕДЕЛЕНИЕ СОСТОЯНИЯ ГРУЗА
-            const isPending = this.pendingWeightIds.has(weight.id);
-            const isInUsed = this.state.usedWeightIds.has(weight.id);
-            const isInSelected = this.state.selectedWeights.has(weight.id);
+            const weightState = this.getWeightState(weightId);
             
-            // 🔍 ПРОВЕРКА: Находится ли груз в стопке на canvas
-            let isInStack = false;
-            let stackInfo = null;
-            if (this.state.freeWeights) {
-                // Ищем груз как основной (нижний в стопке)
-                const asMainWeight = this.state.freeWeights.find(fw => fw.weightId === weight.id);
-                if (asMainWeight && asMainWeight.stackedWeights?.length > 0) {
-                    isInStack = true;
-                    stackInfo = { type: 'bottom', stackSize: asMainWeight.stackedWeights.length };
-                }
-                
-                // Ищем груз в stackedWeights (верхний в стопке)
-                for (const fw of this.state.freeWeights) {
-                    if (fw.stackedWeights?.length > 0) {
-                        const foundInStack = fw.stackedWeights.find(sw => sw.weightId === weight.id);
-                        if (foundInStack) {
-                            isInStack = true;
-                            stackInfo = { type: 'top', bottomWeight: fw.weightId };
-                            break;
-                        }
-                    }
-                }
+            if (!weightState.found) {
+                console.warn('[RENDER-WEIGHTS] Груз не найден:', weightId);
+                return;
             }
-            
-            // Свободный на canvas = в usedWeightIds НО НЕ в selectedWeights
-            const isFreeOnCanvas = isInUsed && !isInSelected;
-            
-            // Подвешен = в selectedWeights (и должен быть в attachedWeights)
-            const isAttached = isInSelected;
-            
-            const attachedArray = this.state.attachedWeights || [];
-            const lastIndex = attachedArray.length > 0 ? attachedArray.length - 1 : -1;
-            const lastWeightInChain = lastIndex >= 0 ? attachedArray[lastIndex] : null;
-            const isLastInChain = isAttached && lastWeightInChain?.id === weight.id;
-            
-            const positionInChain = isAttached ? 
-                attachedArray.findIndex(w => w.id === weight.id) + 1 : 
-                null;
 
-            // 🔍 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ
-            console.log(`  • ${weight.id}:`, {
-                inUsed: isInUsed,
-                inSelected: isInSelected,
-                isFree: isFreeOnCanvas,
-                isInStack: isInStack,
-                stackInfo: stackInfo,
-                isAttached: isAttached,
-                isLast: isLastInChain,
-                pos: positionInChain,
-                lastWeightId: lastWeightInChain?.id,
-                attachedCount: attachedArray.length
-            });
-
-            // 🎯 ОПРЕДЕЛЕНИЕ ФИНАЛЬНОГО СТАТУСА
-            let finalStatus;
-            if (isPending) {
-                finalStatus = 'pending';
-            } else if (isAttached) {
-                finalStatus = isLastInChain ? 'attached-last' : 'attached-middle';
-            } else if (isFreeOnCanvas) {
-                finalStatus = 'free-on-canvas';
-            } else {
-                finalStatus = 'available';
-            }
+            const weight = weightState.weight;
+            
+            console.log(`[RENDER-WEIGHTS] ${weight.id}: state="${weightState.state}", canRemove=${weightState.canRemove}, action="${weightState.removeAction}"`);
 
             // Обновляем dataset и классы
-            item.dataset.status = finalStatus;
+            item.dataset.status = weightState.state;
 
-            if (isAttached || isPending || isFreeOnCanvas) {
+            // Обновляем классы used/attached
+            if (weightState.isDirectlyAttached || weightState.isPending || weightState.isFreeOnCanvas || 
+                weightState.isPartOfFreeComposite || weightState.isPartOfFreeStack) {
                 item.classList.add('used');
                 item.classList.add('weight-item--attached');
             } else {
@@ -697,87 +1041,45 @@ class SpringExperiment {
                 hintDiv = null;
             }
             
-            if (isAttached && isLastInChain) {
-                // ✅ СОСТОЯНИЕ: Подвешен (последний) → Кнопка "Снять"
-                console.log(`[UI] 🔵 УСЛОВИЕ КНОПКИ "СНЯТЬ" ВЫПОЛНЕНО:`, {
-                    isAttached: isAttached,
-                    isLastInChain: isLastInChain,
-                    lastWeightId: lastWeightInChain?.id,
-                    currentWeightId: weight.id,
-                    match: lastWeightInChain?.id === weight.id,
-                    hasButton: !!actionBtn
-                });
-                
+            if (weightState.canRemove && weightState.buttonText) {
+                // ✅ ПОКАЗЫВАЕМ КНОПКУ
                 if (!actionBtn) {
-                    console.log(`[UI] 🔨 Создаём НОВУЮ кнопку "Снять" для ${weight.id}`);
-                    actionBtn = document.createElement('button');
-                    actionBtn.type = 'button';
-                    actionBtn.className = 'weight-action';
-                    actionBtn.addEventListener('click', (evt) => {
-                        evt.preventDefault();
-                        evt.stopPropagation();
-                        console.log('[UI] 🔴 Кнопка "Снять" нажата:', weight.id);
-                        this.detachWeight(weight.id);
-                    });
-                    item.appendChild(actionBtn);
-                } else {
-                    console.log(`[UI] ♻️ Переиспользуем существующую кнопку для ${weight.id}`);
-                    // Обновляем обработчик события на случай если weightId изменился
-                    const newBtn = actionBtn.cloneNode(true);
-                    actionBtn.parentNode.replaceChild(newBtn, actionBtn);
-                    actionBtn = newBtn;
-                    actionBtn.addEventListener('click', (evt) => {
-                        evt.preventDefault();
-                        evt.stopPropagation();
-                        console.log('[UI] 🔴 Кнопка "Снять" нажата:', weight.id);
-                        this.detachWeight(weight.id);
-                    });
-                }
-                
-                actionBtn.textContent = 'Снять';
-                actionBtn.style.display = 'block';
-                actionBtn.disabled = false;
-                console.log(`[UI] ✅ Кнопка "Снять" ГОТОВА для ${weight.id}`);
-                
-            } else if (isFreeOnCanvas) {
-                // ✅ СОСТОЯНИЕ: Свободный на canvas → Кнопка "Убрать"
-                console.log(`[UI] 🟢 УСЛОВИЕ КНОПКИ "УБРАТЬ" ВЫПОЛНЕНО:`, {
-                    isFreeOnCanvas: isFreeOnCanvas,
-                    isInUsed: isInUsed,
-                    isInSelected: isInSelected,
-                    currentWeightId: weight.id,
-                    hasButton: !!actionBtn
-                });
-                
-                if (!actionBtn) {
-                    console.log(`[UI] 🔨 Создаём НОВУЮ кнопку "Убрать" для ${weight.id}`);
                     actionBtn = document.createElement('button');
                     actionBtn.type = 'button';
                     actionBtn.className = 'weight-action';
                     item.appendChild(actionBtn);
                 } else {
-                    console.log(`[UI] ♻️ Переиспользуем существующую кнопку "Убрать" для ${weight.id}`);
-                    // Обновляем обработчик события - клонируем кнопку и заменяем
+                    // Клонируем для обновления обработчика
                     const newBtn = actionBtn.cloneNode(true);
                     actionBtn.parentNode.replaceChild(newBtn, actionBtn);
                     actionBtn = newBtn;
                 }
                 
-                // Всегда устанавливаем свежий обработчик
+                // Устанавливаем обработчик в зависимости от действия
                 actionBtn.addEventListener('click', (evt) => {
                     evt.preventDefault();
                     evt.stopPropagation();
-                    console.log('[UI] 🗑️ Кнопка "Убрать" нажата:', weight.id);
-                    this.removeFreeWeight(weight.id);
+                    
+                    switch (weightState.removeAction) {
+                        case 'detach':
+                            console.log('[UI] 🔴 Снять с оборудования:', weight.id);
+                            this.detachWeight(weight.id);
+                            break;
+                        case 'remove-free':
+                        case 'remove-disk':
+                        case 'remove-from-stack':
+                            console.log('[UI] 🗑️ Убрать с canvas:', weight.id, 'action:', weightState.removeAction);
+                            this.removeFreeWeight(weight.id);
+                            break;
+                    }
                 });
                 
-                actionBtn.textContent = 'Убрать';
+                actionBtn.textContent = weightState.buttonText;
                 actionBtn.style.display = 'block';
                 actionBtn.disabled = false;
-                console.log(`[UI] ✅ Кнопка "Убрать" ГОТОВА для ${weight.id}`);
                 
-            } else if (!isAttached && !isPending && !isFreeOnCanvas) {
-                // ✅ СОСТОЯНИЕ: В комплекте → Подсказка "Перетащите"
+            } else if (weightState.state === 'available') {
+                // ✅ ПОДСКАЗКА для доступных грузов
                 if (actionBtn) {
                     actionBtn.style.display = 'none';
                 }
@@ -786,49 +1088,18 @@ class SpringExperiment {
                 hintDiv.className = 'weight-hint';
                 hintDiv.textContent = 'Перетащите на установку';
                 item.appendChild(hintDiv);
-                console.log(`[UI] 💡 Подсказка для ${weight.id}`);
                 
             } else {
-                // ✅ СОСТОЯНИЕ: Подвешен (не последний) или pending → Нет кнопки
+                // ✅ СКРЫВАЕМ КНОПКУ (груз в середине цепочки, pending, или часть подвешенного композита)
                 if (actionBtn) {
                     actionBtn.style.display = 'none';
                 }
-                console.log(`[UI] ⚪ Нет кнопки для ${weight.id}`, {
-                    reason: 'средний в цепочке или pending',
-                    isAttached: isAttached,
-                    isLastInChain: isLastInChain,
-                    isPending: isPending,
-                    isFreeOnCanvas: isFreeOnCanvas,
-                    lastWeightInChain: lastWeightInChain?.id
-                });
             }
 
             // Обновляем статус текст
             const status = item.querySelector('.weight-status');
             if (status) {
-                let statusText = 'В комплекте';
-                if (isAttached) {
-                    const chainInfo = positionInChain ? ` (${positionInChain}-й в цепочке)` : '';
-                    if (this.state.dynamometerAttached) {
-                        statusText = `На динамометре${chainInfo}`;
-                    } else {
-                        statusText = `На пружине${chainInfo}`;
-                    }
-                } else if (isPending) {
-                    statusText = 'Подвешивается…';
-                } else if (isFreeOnCanvas) {
-                    // 🔍 Показываем информацию о стопке
-                    if (isInStack && stackInfo) {
-                        if (stackInfo.type === 'bottom') {
-                            statusText = `На столе (сцеплен с ${stackInfo.stackSize} грузом${stackInfo.stackSize > 1 ? 'ами' : ''})`;
-                        } else if (stackInfo.type === 'top') {
-                            statusText = 'На столе (в стопке)';
-                        }
-                    } else {
-                        statusText = 'На столе';
-                    }
-                }
-                status.textContent = statusText;
+                status.textContent = this.getWeightStatusText(weightState);
             }
         });
         
@@ -841,36 +1112,18 @@ class SpringExperiment {
 
         container.innerHTML = '';
 
-        console.log('[RENDER-WEIGHTS] 📋 Создание инвентаря грузов с нуля:');
+        console.log('[RENDER-WEIGHTS] 📋 Создание инвентаря грузов с нуля');
 
         this.weightsInventory.forEach((weight) => {
-            const isPending = this.pendingWeightIds.has(weight.id);
-            const isAttached = this.state.selectedWeights.has(weight.id);
-            // 🆕 Груз "использован" = в usedWeightIds НО не подвешен (свободный на canvas)
-            const isUsedButNotAttached = this.state.usedWeightIds.has(weight.id) && !isAttached;
-            // ✅ Проверяем, является ли груз ПОСЛЕДНИМ в цепочке (только его можно снять)
-            const attachedArray = this.state.attachedWeights;
-            const lastIndex = attachedArray?.length > 0 ? attachedArray.length - 1 : -1;
-            const lastWeightInChain = lastIndex >= 0 ? attachedArray[lastIndex] : null;
-            const isLastInChain = lastWeightInChain?.id === weight.id;
+            // ✅ ИСПОЛЬЗУЕМ НОВУЮ ФУНКЦИЮ для определения состояния
+            const weightState = this.getWeightState(weight.id);
             
-
-            
-            // 🆕 Находим позицию груза в цепочке (1, 2, 3...)
-            const positionInChain = isAttached ? 
-                this.state.attachedWeights.findIndex(w => w.id === weight.id) + 1 : 
-                null;
-
-            // 🔍 Логируем состояние каждого груза
-            console.log(`  • ${weight.id}: isAttached=${isAttached}, isLastInChain=${isLastInChain}, pos=${positionInChain}`);
-
-            // 🔍 DEBUG - только для проблемных случаев
-            if (isAttached && !isLastInChain && positionInChain === null) {
-                console.warn(`[RENDER-WEIGHT] ⚠️ Груз подвешен но не найден в цепочке:`, {
-                    weight_id: weight.id,
-                    attachedWeights: this.state.attachedWeights.map(w => w.id)
-                });
+            if (!weightState.found) {
+                console.error('[RENDER-WEIGHTS] Груз не найден:', weight.id);
+                return;
             }
+
+            console.log(`[CREATE-INVENTORY] ${weight.id}: state="${weightState.state}", canRemove=${weightState.canRemove}`);
 
             const item = document.createElement('div');
             item.className = 'weight-item';
@@ -879,9 +1132,10 @@ class SpringExperiment {
             item.dataset.weightId = weight.id;
             item.dataset.hooksTop = weight.hooksTop ? 'true' : 'false';
             item.dataset.hooksBottom = weight.hooksBottom ? 'true' : 'false';
-            item.dataset.status = isAttached ? 'attached' : isPending ? 'pending' : isUsedButNotAttached ? 'used' : 'available';
+            item.dataset.status = weightState.state;
 
-            if (isAttached || isPending || isUsedButNotAttached) {
+            if (weightState.isDirectlyAttached || weightState.isPending || weightState.isFreeOnCanvas ||
+                weightState.isPartOfFreeComposite || weightState.isPartOfFreeStack) {
                 item.classList.add('used');
                 item.classList.add('weight-item--attached');
             }
@@ -907,70 +1161,46 @@ class SpringExperiment {
 
             const status = document.createElement('div');
             status.className = 'weight-status';
-            
-            let statusText = 'В комплекте';
-            if (isAttached) {
-                const chainInfo = positionInChain ? ` (${positionInChain}-й)` : '';
-                statusText = this.state.dynamometerAttached ? `На динамометре${chainInfo}` : `На пружине${chainInfo}`;
-            } else if (isPending) {
-                statusText = 'Подвешивается…';
-            } else if (isUsedButNotAttached) {
-                statusText = 'На столе';
-            }
-            status.textContent = statusText;
+            status.textContent = this.getWeightStatusText(weightState);
 
             item.append(figure, label, status);
 
-            // ✅ Кнопка "Снять" - ТОЛЬКО для последнего груза в цепочке!
-            if (isAttached && isLastInChain) {
+            // ✅ КНОПКА или ПОДСКАЗКА в зависимости от состояния
+            if (weightState.canRemove && weightState.buttonText) {
                 const action = document.createElement('button');
                 action.type = 'button';
                 action.className = 'weight-action';
-                action.textContent = 'Снять';
+                action.textContent = weightState.buttonText;
                 action.addEventListener('click', (evt) => {
                     evt.preventDefault();
                     evt.stopPropagation();
-                    console.log('[UI] 🔴 Кнопка "Снять" нажата:', {
-                        weightId: weight.id,
-                        isLastInChain,
-                        attachedWeights: this.state.attachedWeights.map(w => w.id)
-                    });
-                    this.detachWeight(weight.id);
+                    
+                    switch (weightState.removeAction) {
+                        case 'detach':
+                            console.log('[UI] 🔴 Снять с оборудования:', weight.id);
+                            this.detachWeight(weight.id);
+                            break;
+                        case 'remove-free':
+                        case 'remove-disk':
+                        case 'remove-from-stack':
+                            console.log('[UI] �️ Убрать с canvas:', weight.id);
+                            this.removeFreeWeight(weight.id);
+                            break;
+                    }
                 });
                 item.appendChild(action);
-                console.log('[UI] ✅ Кнопка "Снять" добавлена для:', weight.id, '(последний в цепочке)');
-            } else if (isAttached && !isLastInChain) {
-                // 🆕 Груз подвешен, но НЕ последний - показываем массу
+                console.log('[CREATE-INVENTORY] ✅ Кнопка добавлена:', weightState.buttonText, 'для', weight.id);
+                
+            } else if (weightState.state === 'attached-middle') {
+                // Груз подвешен, но НЕ последний - показываем массу
                 const massInfo = document.createElement('div');
                 massInfo.className = 'weight-mass-info';
                 massInfo.textContent = `${weight.mass} г`;
                 item.appendChild(massInfo);
-                console.log('[UI] 📊 Груз подвешен (НЕ последний):', weight.id);
-            } else if (isAttached) {
-                // 🔍 DEBUG: груз подвешен но ни то ни другое условие не сработало
-                console.error('[UI] ❌ Груз подвешен но кнопка НЕ создана!', {
-                    weightId: weight.id,
-                    isAttached,
-                    isLastInChain,
-                    lastWeightInChain,
-                    attachedWeights: this.state.attachedWeights
-                });
-            } else if (isUsedButNotAttached) {
-                // 🆕 Груз на canvas (свободный) - можно убрать
-                const action = document.createElement('button');
-                action.type = 'button';
-                action.className = 'weight-action';
-                action.textContent = 'Убрать';
-                action.addEventListener('click', (evt) => {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    console.log('[UI] 🔴 Кнопка "Убрать" нажата для груза:', weight.id);
-                    console.log('[UI] Вызов removeFreeWeight...');
-                    this.removeFreeWeight(weight.id);
-                });
-                item.appendChild(action);
-                console.log('[UI] ✅ Добавлена кнопка "Убрать" для груза:', weight.id);
-            } else if (!isPending) {
+                console.log('[CREATE-INVENTORY] 📊 Груз в середине цепочки:', weight.id);
+                
+            } else if (weightState.state === 'available') {
+                // Груз доступен - подсказка
                 const hint = document.createElement('div');
                 hint.className = 'weight-hint';
                 hint.textContent = 'Перетащите на установку';
@@ -1235,6 +1465,14 @@ class SpringExperiment {
         // Очищаем подвешенные грузы
         this.state.attachedWeights.forEach(weight => {
             this.state.selectedWeights.delete(weight.id);
+            
+            // ✅ КРИТИЧНО: Очищаем диски на подвешенной штанге
+            if (weight.compositeDisks && weight.compositeDisks.length > 0) {
+                weight.compositeDisks.forEach(disk => {
+                    this.state.selectedWeights.delete(disk.weightId);
+                    console.log('[CLEAR-WEIGHTS] ✅ Диск удалён из selectedWeights:', disk.weightId);
+                });
+            }
         });
         this.state.attachedWeights = [];
 
@@ -1242,6 +1480,22 @@ class SpringExperiment {
         if (this.state.freeWeights && this.state.freeWeights.length > 0) {
             this.state.freeWeights.forEach(fw => {
                 this.state.usedWeightIds.delete(fw.weightId);
+                
+                // ✅ КРИТИЧНО: Очищаем диски на свободной штанге
+                if (fw.compositeDisks && fw.compositeDisks.length > 0) {
+                    fw.compositeDisks.forEach(disk => {
+                        this.state.usedWeightIds.delete(disk.weightId);
+                        console.log('[CLEAR-WEIGHTS] ✅ Диск удалён из usedWeightIds:', disk.weightId);
+                    });
+                }
+                
+                // ✅ КРИТИЧНО: Очищаем стопку обычных грузов
+                if (fw.stackedWeights && fw.stackedWeights.length > 0) {
+                    fw.stackedWeights.forEach(sw => {
+                        this.state.usedWeightIds.delete(sw.weightId);
+                        console.log('[CLEAR-WEIGHTS] ✅ Груз из стопки удалён:', sw.weightId);
+                    });
+                }
             });
             this.state.freeWeights = [];
         }
@@ -1291,7 +1545,18 @@ class SpringExperiment {
         }
 
         console.log('[DETACH-WEIGHT] ✅ Снимаем груз:', weightId);
-        this.state.attachedWeights.pop();
+        const removedWeight = this.state.attachedWeights.pop();
+        
+        // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА: Если это штанга с дисками - возвращаем ВСЕ диски!
+        if (removedWeight.compositeDisks && removedWeight.compositeDisks.length > 0) {
+            console.log('[DETACH-WEIGHT] 🔩 Возврат наборного груза: штанга +', removedWeight.compositeDisks.length, 'дисков');
+            removedWeight.compositeDisks.forEach(disk => {
+                this.state.usedWeightIds.delete(disk.weightId);
+                this.state.selectedWeights.delete(disk.weightId);
+                console.log('[DETACH-WEIGHT]   └─ Возврат диска:', disk.weightId, `(${disk.mass}г, ${disk.diskSize})`);
+            });
+        }
+        
         this.state.selectedWeights.delete(weightId);
         this.pendingWeightIds.delete(weightId);
         this.state.usedWeightIds.delete(weightId); // 🆕 Возвращаем груз в доступные
@@ -1323,7 +1588,15 @@ class SpringExperiment {
             console.log('[DETACH-WEIGHT] После снятия остались грузы, перерасчёт параметров');
             const totalMass = this.state.attachedWeights.reduce((sum, item) => {
                 const def = this.getWeightById(item.id);
-                return sum + (def?.mass ?? 0);
+                let itemMass = def?.mass ?? 0;
+                
+                // Если у элемента есть compositeDisks (штанга с дисками), добавляем массу дисков
+                if (item.compositeDisks && item.compositeDisks.length > 0) {
+                    const disksMass = item.compositeDisks.reduce((dsum, disk) => dsum + disk.mass, 0);
+                    itemMass += disksMass;
+                }
+                
+                return sum + itemMass;
             }, 0);
 
             this.state.weightAttached = true;
@@ -1706,6 +1979,15 @@ class SpringExperiment {
             
             // 🔧 FIX: Увеличен радиус с 80 до 100 для лучшего захвата
             if (distanceToSpring < 100) {
+                // 🚫 ЗАПРЕТ: Нельзя подвешивать диски!
+                if (weight.isCompositeDisk) {
+                    console.log('[ATTACH-WEIGHT] ❌ ЗАПРЕЩЕНО: Диски нельзя подвешивать!');
+                    this.showToast('⚠️ Диски нельзя подвешивать отдельно! Надевайте диски на штангу.');
+                    element.classList.remove('used');
+                    this.resetDraggablePosition(element, false);
+                    return;
+                }
+                
                 shouldAttachDirectly = true;
                 attachmentTarget = 'spring';
             }
@@ -1729,6 +2011,15 @@ class SpringExperiment {
             
             // 🔧 FIX: Увеличен радиус с 80 до 100 для лучшего захвата
             if (distanceToDynamometer < 100) {
+                // 🚫 ЗАПРЕТ: Нельзя подвешивать диски!
+                if (weight.isCompositeDisk) {
+                    console.log('[ATTACH-WEIGHT] ❌ ЗАПРЕЩЕНО: Диски нельзя подвешивать!');
+                    this.showToast('⚠️ Диски нельзя подвешивать отдельно! Надевайте диски на штангу.');
+                    element.classList.remove('used');
+                    this.resetDraggablePosition(element, false);
+                    return;
+                }
+                
                 shouldAttachDirectly = true;
                 attachmentTarget = 'dynamometer';
             }
@@ -1737,6 +2028,14 @@ class SpringExperiment {
         if (shouldAttachDirectly) {
             // 🎯 СЦЕНАРИЙ 1: Упал на пружину/динамометр → подвешиваем сразу
             console.log(`[ATTACH-WEIGHT] Direct drop on ${attachmentTarget}`);
+            
+            // ✅ КРИТИЧНО: Если это штанга, инициализируем пустой массив дисков
+            // Без этого диски на штанге не будут распознаваться!
+            if (weight.id === 'rod' && !weight.compositeDisks) {
+                weight.compositeDisks = [];
+                console.log('[ATTACH-WEIGHT] ✅ Инициализирован compositeDisks для штанги');
+            }
+            
             element.classList.add('used');
             this.resetDraggablePosition(element, false);
             // 🔧 FIX: Убираем await чтобы не блокировать drag других грузов во время анимации
@@ -1765,6 +2064,12 @@ class SpringExperiment {
             isDragging: false,
             isAttached: false
         };
+        
+        // ✅ КРИТИЧНО: Если это штанга, инициализируем пустой массив дисков
+        if (weight.id === 'rod') {
+            freeWeight.compositeDisks = [];
+            console.log('[ATTACH-WEIGHT] ✅ Инициализирован compositeDisks для свободной штанги');
+        }
         
         this.state.freeWeights.push(freeWeight);
         // ❌ НЕ добавляем в selectedWeights! Это только для подвешенных грузов!
@@ -1808,8 +2113,26 @@ class SpringExperiment {
             this.state.attachedWeights = [];
         }
         
+        // Получаем полный объект груза для проверки compositeDisks
+        const weightDef = this.getWeightById(weightId);
+        
         // ✅ ЕДИНАЯ ТОЧКА добавления
-        this.state.attachedWeights.push({ id: weightId });
+        const chainEntry = { id: weightId };
+        
+        // ✅ КРИТИЧНО: Копируем compositeDisks если это штанга
+        if (weightDef && weightDef.compositeDisks && weightDef.compositeDisks.length > 0) {
+            chainEntry.compositeDisks = [...weightDef.compositeDisks];
+            console.log('[ADD-TO-CHAIN] ✅ Скопированы диски в цепочку:', chainEntry.compositeDisks.map(d => d.weightId));
+            
+            // ✅ КРИТИЧНО: Добавляем каждый диск в selectedWeights
+            weightDef.compositeDisks.forEach(disk => {
+                this.state.selectedWeights.add(disk.weightId);
+                this.state.usedWeightIds.delete(disk.weightId);
+                console.log('[ADD-TO-CHAIN] ✅ Диск добавлен в selectedWeights:', disk.weightId);
+            });
+        }
+        
+        this.state.attachedWeights.push(chainEntry);
         this.state.selectedWeights.add(weightId);
         
         // ❌ УДАЛЯЕМ из usedWeightIds - груз теперь "подвешен", а не "использован на canvas"
@@ -1826,7 +2149,14 @@ class SpringExperiment {
     async attachWeight(weight) {
         console.log('[ATTACH-WEIGHT] attachWeight вызван', weight?.id);
         
-        // 🔧 FIX: Если анимация уже идёт, добавляем в очередь
+        // � ЗАПРЕТ: Нельзя подвешивать отдельные диски!
+        if (weight.isCompositeDisk) {
+            console.log('[ATTACH-WEIGHT] ❌ ЗАПРЕЩЕНО: Диски нельзя подвешивать отдельно!');
+            this.showToast('⚠️ Диски нельзя подвешивать отдельно! Надевайте диски на штангу.');
+            return;
+        }
+        
+        // �🔧 FIX: Если анимация уже идёт, добавляем в очередь
         if (this.state.isAnimating) {
             console.log('[ATTACH-WEIGHT] ⏳ Анимация уже идёт, груз будет подвешен после завершения текущей анимации');
             // Ждём завершения текущей анимации
@@ -1845,6 +2175,17 @@ class SpringExperiment {
         // ✅ Используем центральную функцию
         this.addWeightToChain(weight.id);
         this.state.currentWeightId = weight.id;
+        
+        // ✅ КРИТИЧНО: Обновляем UI СРАЗУ после добавления в цепочку
+        // Это нужно чтобы при быстром клике на несколько грузов они не дублировались
+        this.renderWeightsInventory();
+        
+        // ✅ ДОПОЛНИТЕЛЬНО: Повторное обновление через минимальную задержку
+        // Это гарантирует что DOM успел обновиться
+        setTimeout(() => {
+            console.log('[ATTACH-WEIGHT] 🔄 Повторное обновление UI через 50ms');
+            this.renderWeightsInventory();
+        }, 50);
         
         console.log('[ATTACH-WEIGHT] 🔍 ПРОВЕРКА после addWeightToChain:', {
             weightId: weight.id,
@@ -3162,6 +3503,7 @@ class SpringExperiment {
             if (!weightDef) return;
             
             const img = this.images.weights[weight.weightId] || this.images.weights[weightDef.id];
+            // ✅ Используем тот же масштаб что и для подвешенных грузов
             const targetSize = weightDef.targetSize ?? 72;
             const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
             const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
@@ -3203,12 +3545,13 @@ class SpringExperiment {
             // Рисуем груз (используем ТОТ ЖЕ метод что и для подвешенных)
             if (img) {
                 const scale = targetSize / Math.max(img.width, img.height);
-                ctx.translate(weight.x, weight.y + renderedHeight / 2);
+                // weight.y is CENTER of the image; drawImage expects center when translated here
+                ctx.translate(weight.x, weight.y);
                 ctx.scale(scale, scale);
                 ctx.drawImage(img, -img.width / 2, -img.height / 2);
             } else {
-                // Fallback: плейсхолдер
-                this.drawWeightPlaceholder(ctx, weight.x, weight.y + renderedHeight / 2, targetSize, renderedHeight, 0);
+                // Fallback: плейсхолдер. Use weight.y as center
+                this.drawWeightPlaceholder(ctx, weight.x, weight.y, targetSize, renderedHeight, 0);
             }
             
             ctx.restore();
@@ -3267,37 +3610,126 @@ class SpringExperiment {
                 ctx.restore();
             }
             
+            // � Рисуем ДИСКИ на ШТАНГЕ (наборный груз)
+            // Render composite disks on rod
+            if (weight.compositeDisks && weight.compositeDisks.length > 0) {
+                ctx.save();
+                
+                // Support ring position in SVG: y=264 out of height=320 = 82.5% from top
+                // weight.y is CENTER of rod, renderedHeight is FULL height
+                // Support ring is at: top + height * 0.825 = (center - height/2) + height * 0.825
+                // = center + height * (0.825 - 0.5) = center + height * 0.325
+                const rodSupportRingY = weight.y + renderedHeight * 0.325;
+                let diskStackHeight = 0;
+                
+                console.log('[COMPOSITE] Drawing', weight.compositeDisks.length, 'disks on rod');
+                console.log('[COMPOSITE] Rod center Y:', weight.y.toFixed(0), 'height:', renderedHeight.toFixed(0), 'Support ring Y:', rodSupportRingY.toFixed(0));
+                
+                // Track where the BOTTOM of the next disk should be placed
+                let currentBottomY = rodSupportRingY; // Start at support ring
+                
+                // Draw disks from bottom to top (already sorted large to small)
+                weight.compositeDisks.forEach((disk, index) => {
+                    const diskDef = this.getWeightById(disk.weightId);
+                    if (!diskDef) return;
+                    
+                    const diskImg = this.images.weights[disk.weightId] || this.images.weights[diskDef.id];
+                    // ✅ Используем тот же масштаб что и для подвешенных дисков
+                    const diskTargetSize = diskDef.targetSize ?? 50;
+                    const diskScale = diskTargetSize / (diskImg ? Math.max(diskImg.width, diskImg.height) : diskTargetSize);
+                    
+                    // КРИТИЧЕСКИ ВАЖНО: используем РЕАЛЬНУЮ толщину диска из SVG!
+                    // В SVG дисков реальная толщина ~17% от высоты изображения
+                    // (10г: 12/72=16.7%, 20г: 14/80=17.5%, 50г: 18/110=16.4%)
+                    const diskHeight = diskImg ? diskImg.height * diskScale * 0.17 : diskTargetSize * 0.2;
+                    
+                    // Disk center is half-height above where its bottom should be
+                    const diskY = currentBottomY - diskHeight / 2;
+                    
+                    console.log('[COMPOSITE] Disk', index, '('+diskDef.diskSize+'):', 
+                        'Y='+diskY.toFixed(0), 'thickness='+diskHeight.toFixed(1), 'bottomY='+currentBottomY.toFixed(0));
+                    
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetX = 3;
+                    ctx.shadowOffsetY = 4;
+                    
+                    if (diskImg) {
+                        ctx.save();
+                        ctx.translate(weight.x, diskY);
+                        ctx.scale(diskScale, diskScale);
+                        ctx.drawImage(diskImg, -diskImg.width / 2, -diskImg.height / 2);
+                        ctx.restore();
+                    } else {
+                        // Disk placeholder
+                        ctx.fillStyle = '#888';
+                        ctx.fillRect(weight.x - diskTargetSize/2, diskY - diskHeight/2, diskTargetSize, diskHeight);
+                    }
+                    
+                    // Next disk's bottom is at current disk's top (ПЛОТНОЕ ПРИЛЕГАНИЕ)
+                    currentBottomY = diskY - diskHeight / 2;
+                });
+                
+                ctx.restore();
+            }
+            
             // 🔗 Рисуем прикреплённые грузы (стопку)
             if (weight.stackedWeights && weight.stackedWeights.length > 0) {
-                let offsetY = renderedHeight;
+                ctx.save();
                 
-                weight.stackedWeights.forEach(stackedWeight => {
+                // Начинаем отрисовку снизу основного груза
+                // weight.y - центр основного груза
+                const hookGap = 22; // Зазор для "крючка" между грузами
+                let currentTopY = weight.y + renderedHeight / 2 + hookGap;
+                
+                weight.stackedWeights.forEach((stackedWeight, stackIndex) => {
                     const stackedDef = this.getWeightById(stackedWeight.weightId || stackedWeight.id);
                     if (!stackedDef) return;
                     
                     const stackImg = this.images.weights[stackedWeight.weightId] || this.images.weights[stackedDef.id];
+                    // ✅ Используем тот же масштаб что и для подвешенных грузов
                     const stackTargetSize = stackedDef.targetSize ?? 72;
                     const stackScale = stackTargetSize / (stackImg ? Math.max(stackImg.width, stackImg.height) : stackTargetSize);
                     const stackHeight = stackImg ? stackImg.height * stackScale : stackTargetSize * 0.9;
                     
-                    ctx.save();
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                    ctx.shadowBlur = 8;
-                    ctx.shadowOffsetX = 3;
-                    ctx.shadowOffsetY = 5;
+                    // Рисуем соединительный крючок (как у подвешенных)
+                    ctx.strokeStyle = 'rgba(180, 180, 180, 0.7)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(weight.x, currentTopY - hookGap);
+                    ctx.lineTo(weight.x, currentTopY);
+                    ctx.stroke();
                     
+                    // Центр следующего груза
+                    const stackCenterY = currentTopY + stackHeight / 2;
+                    
+                    // Рисуем груз
                     if (stackImg) {
-                        ctx.translate(weight.x, weight.y + offsetY + stackHeight / 2);
+                        ctx.save();
+                        ctx.translate(weight.x, stackCenterY);
                         ctx.scale(stackScale, stackScale);
+                        
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowOffsetX = 3;
+                        ctx.shadowOffsetY = 5;
+                        
                         ctx.drawImage(stackImg, -stackImg.width / 2, -stackImg.height / 2);
+                        ctx.restore();
                     } else {
-                        this.drawWeightPlaceholder(ctx, weight.x, weight.y + offsetY + stackHeight / 2, stackTargetSize, stackHeight, 0);
+                        // Fallback
+                        ctx.fillStyle = '#888';
+                        ctx.fillRect(weight.x - stackTargetSize/2, stackCenterY - stackHeight/2, stackTargetSize, stackHeight);
                     }
                     
-                    ctx.restore();
+                    console.log('[STACK] Груз', stackIndex, ':', 
+                        'centerY='+stackCenterY.toFixed(0), 'height='+stackHeight.toFixed(0));
                     
-                    offsetY += stackHeight;
+                    // Следующий груз начинается ниже текущего + зазор для крючка
+                    currentTopY = stackCenterY + stackHeight / 2 + hookGap;
                 });
+                
+                ctx.restore();
             }
         });
     }
@@ -3861,6 +4293,48 @@ class SpringExperiment {
                 this.drawWeightPlaceholder(ctx, hookX, centerY, targetSize, renderedHeight, rotation);
             }
 
+            // 🔩 Если это штанга с дисками, рисуем диски на ней
+            if (item.compositeDisks && item.compositeDisks.length > 0) {
+                ctx.save();
+                
+                // Позиция опорного кольца на штанге (82.5% от верха = 32.5% от центра вниз)
+                const rodSupportRingY = centerY + renderedHeight * 0.325;
+                let currentBottomY = rodSupportRingY;
+                
+                // Рисуем диски снизу вверх (уже отсортированы)
+                item.compositeDisks.forEach((disk, diskIndex) => {
+                    const diskDef = this.getWeightById(disk.weightId);
+                    if (!diskDef) return;
+                    
+                    const diskImg = this.images.weights[disk.weightId] || this.images.weights[diskDef.id];
+                    // ✅ Используем базовый размер дисков без увеличения
+                    const diskTargetSize = diskDef.targetSize ?? 50;
+                    const diskScale = diskTargetSize / (diskImg ? Math.max(diskImg.width, diskImg.height) : diskTargetSize);
+                    const diskHeight = diskImg ? diskImg.height * diskScale * 0.17 : diskTargetSize * 0.2;
+                    
+                    const diskY = currentBottomY - diskHeight / 2;
+                    
+                    if (diskImg) {
+                        ctx.save();
+                        ctx.translate(hookX, diskY);
+                        ctx.rotate(rotation); // Диски качаются вместе со штангой
+                        ctx.scale(diskScale, diskScale);
+                        
+                        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                        ctx.shadowBlur = 8;
+                        ctx.shadowOffsetX = 3;
+                        ctx.shadowOffsetY = 4;
+                        
+                        ctx.drawImage(diskImg, -diskImg.width / 2, -diskImg.height / 2);
+                        ctx.restore();
+                    }
+                    
+                    currentBottomY = diskY - diskHeight / 2;
+                });
+                
+                ctx.restore();
+            }
+
             currentY = centerY + renderedHeight / 2;
         });
     }
@@ -4027,6 +4501,18 @@ class SpringExperiment {
                     
                     // 🔧 FIX: Увеличен радиус с 60 до 100 для консистентности
                     if (distance < 100) {
+                        // 🚫 ЗАПРЕТ: Нельзя подвешивать отдельные диски!
+                        const draggedDef = this.getWeightById(draggedFreeWeight.weightId);
+                        if (draggedDef?.isCompositeDisk) {
+                            console.log('[FREE-WEIGHTS] ❌ ЗАПРЕЩЕНО: Диски нельзя подвешивать напрямую! Только на штанге.');
+                            this.showToast('⚠️ Диски нельзя подвешивать отдельно! Надевайте диски на штангу.');
+                            draggedFreeWeight = null;
+                            isDragging = false;
+                            interactionSurface.style.cursor = 'default';
+                            return;
+                        }
+                        
+                        // ✅ РАЗРЕШЕНО: Штангу с дисками можно подвешивать!
                         console.log('[FREE-WEIGHTS] ✅ Attaching to spring');
                         this.attachFreeWeightToSpring(draggedFreeWeight);
                         draggedFreeWeight = null;
@@ -4053,6 +4539,18 @@ class SpringExperiment {
                     
                     // 🔧 FIX: Увеличен радиус с 60 до 100 для консистентности
                     if (distance < 100) {
+                        // 🚫 ЗАПРЕТ: Нельзя подвешивать отдельные диски!
+                        const draggedDef = this.getWeightById(draggedFreeWeight.weightId);
+                        if (draggedDef?.isCompositeDisk) {
+                            console.log('[FREE-WEIGHTS] ❌ ЗАПРЕЩЕНО: Диски нельзя подвешивать напрямую! Только на штанге.');
+                            this.showToast('⚠️ Диски нельзя подвешивать отдельно! Надевайте диски на штангу.');
+                            draggedFreeWeight = null;
+                            isDragging = false;
+                            interactionSurface.style.cursor = 'default';
+                            return;
+                        }
+                        
+                        // ✅ РАЗРЕШЕНО: Штангу с дисками можно подвешивать!
                         console.log('[FREE-WEIGHTS] ✅ Attaching to dynamometer');
                         this.attachFreeWeightToSpring(draggedFreeWeight);
                         draggedFreeWeight = null;
@@ -4063,13 +4561,32 @@ class SpringExperiment {
                 }
                 
                 // Проверяем соединение с другими грузами
+                console.log('[FREE-WEIGHTS] ========== STACKING CHECK START ==========');
+                console.log('[FREE-WEIGHTS] Dragged weight:', {
+                    id: draggedFreeWeight.id.substring(0, 20),
+                    type: draggedFreeWeight.type,
+                    x: draggedFreeWeight.x.toFixed(1),
+                    y: draggedFreeWeight.y.toFixed(1),
+                    mass: draggedFreeWeight.mass,
+                    isCompositeRod: this.weightsInventory.find(w => w.id === draggedFreeWeight.type)?.isCompositeRod,
+                    isCompositeDisk: this.weightsInventory.find(w => w.id === draggedFreeWeight.type)?.isCompositeDisk
+                });
                 console.log('[FREE-WEIGHTS] Checking stacking with', this.state.freeWeights.length, 'weights');
                 for (let otherWeight of this.state.freeWeights) {
                     if (otherWeight === draggedFreeWeight) {
                         console.log('[FREE-WEIGHTS] Skipping self');
                         continue;
                     }
-                    console.log('[FREE-WEIGHTS] Testing stack with weight:', otherWeight.id.substring(0, 12));
+                    const otherDef = this.weightsInventory.find(w => w.id === otherWeight.type);
+                    console.log('[FREE-WEIGHTS] Testing stack with:', {
+                        id: otherWeight.id.substring(0, 20),
+                        type: otherWeight.type,
+                        x: otherWeight.x.toFixed(1),
+                        y: otherWeight.y.toFixed(1),
+                        mass: otherWeight.mass,
+                        isCompositeRod: otherDef?.isCompositeRod,
+                        isCompositeDisk: otherDef?.isCompositeDisk
+                    });
                     if (this.canStackWeights(otherWeight, draggedFreeWeight)) {
                         console.log('[FREE-WEIGHTS] ✅ STACKING WEIGHTS!');
                         this.stackWeights(otherWeight, draggedFreeWeight);
@@ -4081,6 +4598,25 @@ class SpringExperiment {
                         return;
                     }
                 }
+                
+                // 🚫 Проверяем, не пытается ли пользователь надеть диск на подвешенную штангу
+                const draggedDef = this.weightsInventory.find(w => w.id === draggedFreeWeight.type);
+                if (draggedDef?.isCompositeDisk) {
+                    // Проверяем, есть ли рядом подвешенная штанга
+                    for (let otherWeight of this.state.freeWeights) {
+                        const otherDef = this.weightsInventory.find(w => w.id === otherWeight.type);
+                        if (otherDef?.isCompositeRod && this.state.selectedWeights?.has(otherWeight.weightId)) {
+                            // Проверяем близость
+                            const distanceX = Math.abs(otherWeight.x - draggedFreeWeight.x);
+                            const distanceY = Math.abs(otherWeight.y - draggedFreeWeight.y);
+                            if (distanceX < 80 && distanceY < 150) {
+                                this.showToast('⚠️ Нельзя надеть диск на подвешенную штангу! Сначала снимите штангу.');
+                                break;
+                            }
+                        }
+                    }
+                }
+                
                 console.log('[FREE-WEIGHTS] No stacking possible');
                 
                 draggedFreeWeight = null;
@@ -4124,9 +4660,21 @@ class SpringExperiment {
             if (!this.state.freeWeights || this.state.freeWeights.length === 0) return null;
             for (let i = this.state.freeWeights.length - 1; i >= 0; i--) {
                 const w = this.state.freeWeights[i];
-                const halfWidth = w.width / 2;
+                const weightDef = this.getWeightById(w.weightId);
+                if (!weightDef) continue;
+                
+                // Вычисляем РЕАЛЬНУЮ высоту груза (как в drawFreeWeights)
+                const img = this.images.weights[w.weightId] || this.images.weights[weightDef.id];
+                const targetSize = weightDef.targetSize ?? 72;
+                const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
+                const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
+                
+                const halfWidth = targetSize / 2;
+                const halfHeight = renderedHeight / 2;
+                
+                // ✅ КРИТИЧНО: w.y это ЦЕНТР груза, а не верх!
                 if (x >= w.x - halfWidth && x <= w.x + halfWidth &&
-                    y >= w.y && y <= w.y + w.height) {
+                    y >= w.y - halfHeight && y <= w.y + halfHeight) {
                     return w;
                 }
             }
@@ -4239,10 +4787,10 @@ class SpringExperiment {
         console.log('[ATTACH-FREE] Вызов attachWeight для:', weight.id);
         this.attachWeight(weight);
         
-        // 🆕 Если есть стопка - подвешиваем все грузы из неё
+        // 🆕 Если есть стопка (обычные 100г грузы) - подвешиваем все грузы из неё
         if (freeWeight.stackedWeights && freeWeight.stackedWeights.length > 0) {
             console.log('[ATTACH-FREE] Подвешивание стопки из', freeWeight.stackedWeights.length, 'грузов');
-            
+
             freeWeight.stackedWeights.forEach(stackedWeight => {
                 const stackedDef = this.getWeightById(stackedWeight.weightId);
                 if (stackedDef) {
@@ -4252,22 +4800,54 @@ class SpringExperiment {
                     console.warn('[ATTACH-FREE] ⚠️ Груз из стопки не найден:', stackedWeight.weightId);
                 }
             });
-            
-            // Пересчитываем массу и обновляем пружину
+        }
+
+        // 🆕 Если это комплектная штанга с набранными дисками, сохраняем информацию о дисках в объекте штанги
+        if (freeWeight.compositeDisks && freeWeight.compositeDisks.length > 0) {
+            console.log('[ATTACH-FREE] Подвешивание штанги с', freeWeight.compositeDisks.length, 'наборными дисками');
+
+            // Находим штангу в attachedWeights и добавляем ей информацию о дисках
+            const rodInChain = this.state.attachedWeights.find(w => w.id === weight.id);
+            if (rodInChain) {
+                // Копируем диски в объект штанги в цепочке
+                rodInChain.compositeDisks = [...freeWeight.compositeDisks];
+                console.log('[ATTACH-FREE] Диски сохранены в объекте штанги в цепочке:', rodInChain.compositeDisks.length);
+                
+                // ✅ КРИТИЧНО: Добавляем диски в selectedWeights и убираем из usedWeightIds
+                // Без этого диски не определяются как "подвешенные"!
+                freeWeight.compositeDisks.forEach(disk => {
+                    this.state.selectedWeights.add(disk.weightId);
+                    this.state.usedWeightIds.delete(disk.weightId);
+                    console.log('[ATTACH-FREE] ✅ Диск добавлен в selectedWeights:', disk.weightId);
+                });
+            }
+        }
+
+        // Если были либо stackedWeights либо compositeDisks, пересчитываем массу (включая диски) и обновляем визуальную длину пружины
+        if ((freeWeight.stackedWeights && freeWeight.stackedWeights.length > 0) || (freeWeight.compositeDisks && freeWeight.compositeDisks.length > 0)) {
             const totalMass = this.state.attachedWeights.reduce((sum, item) => {
                 const def = this.getWeightById(item.id);
-                return sum + (def?.mass ?? 0);
+                let itemMass = def?.mass ?? 0;
+                
+                // Если у элемента есть compositeDisks (штанга с дисками), добавляем массу дисков
+                if (item.compositeDisks && item.compositeDisks.length > 0) {
+                    const disksMass = item.compositeDisks.reduce((dsum, disk) => dsum + disk.mass, 0);
+                    itemMass += disksMass;
+                    console.log('[ATTACH-FREE] Штанга', item.id, 'базовая масса:', def?.mass, 'г, диски:', disksMass, 'г');
+                }
+                
+                return sum + itemMass;
             }, 0);
-            
-            console.log('[ATTACH-FREE] Общая масса стопки:', totalMass, 'г');
+
+            console.log('[ATTACH-FREE] Общая масса после подвешивания:', totalMass, 'г');
             this.state.currentWeight = totalMass;
-            
+
             const massKg = totalMass / 1000;
             const force = massKg * this.physics.gravity;
             const elongationM = force / this.physics.springConstant;
             const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
             const targetLength = this.state.springNaturalLength + elongationPx;
-            
+
             this.updateVisualScale(targetLength);
             this.drawDynamic();
         }
@@ -4282,7 +4862,9 @@ class SpringExperiment {
             id: fw.id,
             weightId: fw.weightId,
             hasStack: !!fw.stackedWeights,
-            stackSize: fw.stackedWeights?.length || 0
+            stackSize: fw.stackedWeights?.length || 0,
+            hasCompositeDisks: !!fw.compositeDisks,
+            disksCount: fw.compositeDisks?.length || 0
         })));
         
         // 🔍 СЦЕНАРИЙ 1: Ищем груз в freeWeights напрямую (нижний груз в стопке или одиночный)
@@ -4295,7 +4877,16 @@ class SpringExperiment {
             // Удаляем из массива свободных
             this.state.freeWeights.splice(freeWeightIndex, 1);
             
-            // Если у груза была стопка сверху, возвращаем ВСЕ грузы из стопки
+            // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА: Если это штанга с дисками - возвращаем ВСЕ диски!
+            if (removedWeight.compositeDisks && removedWeight.compositeDisks.length > 0) {
+                console.log('[REMOVE-FREE] 🔩 Возврат наборного груза: штанга +', removedWeight.compositeDisks.length, 'дисков');
+                removedWeight.compositeDisks.forEach(disk => {
+                    this.state.usedWeightIds.delete(disk.weightId);
+                    console.log('[REMOVE-FREE]   └─ Возврат диска:', disk.weightId, `(${disk.mass}г, ${disk.diskSize})`);
+                });
+            }
+            
+            // Если у груза была стопка сверху (100г грузы), возвращаем ВСЕ грузы из стопки
             if (removedWeight.stackedWeights && removedWeight.stackedWeights.length > 0) {
                 console.log('[REMOVE-FREE] 📚 Возврат стопки из', removedWeight.stackedWeights.length, 'грузов');
                 removedWeight.stackedWeights.forEach(sw => {
@@ -4317,8 +4908,38 @@ class SpringExperiment {
             return;
         }
         
-        // 🔍 СЦЕНАРИЙ 2: Ищем груз в stackedWeights (верхний груз в стопке)
-        console.log('[REMOVE-FREE] Груз не найден напрямую, ищем в стопках...');
+        // 🔍 СЦЕНАРИЙ 2: Ищем диск в compositeDisks (диск на штанге)
+        console.log('[REMOVE-FREE] Груз не найден напрямую, ищем в compositeDisks (диски на штанге)...');
+        for (let i = 0; i < this.state.freeWeights.length; i++) {
+            const freeWeight = this.state.freeWeights[i];
+            if (freeWeight.compositeDisks && freeWeight.compositeDisks.length > 0) {
+                const diskIndex = freeWeight.compositeDisks.findIndex(d => d.weightId === weightId);
+                if (diskIndex !== -1) {
+                    console.log('[REMOVE-FREE] ✅ Найден диск на штанге', freeWeight.weightId, 'на позиции', diskIndex);
+                    
+                    // Удаляем диск из массива
+                    const removedDisk = freeWeight.compositeDisks.splice(diskIndex, 1)[0];
+                    
+                    // Уменьшаем массу штанги
+                    freeWeight.mass -= removedDisk.mass;
+                    
+                    // Возвращаем диск в инвентарь
+                    this.state.usedWeightIds.delete(removedDisk.weightId);
+                    this.state.selectedWeights.delete(removedDisk.weightId);
+                    
+                    console.log('[REMOVE-FREE] ✅ Диск удалён, осталось на штанге:', freeWeight.compositeDisks.length, 'дисков, масса штанги:', freeWeight.mass, 'г');
+                    
+                    // Обновляем UI
+                    this.renderWeightsInventory();
+                    this.drawDynamic();
+                    this.showToast(`✓ Диск ${removedDisk.mass}г возвращён в инвентарь`);
+                    return;
+                }
+            }
+        }
+        
+        // 🔍 СЦЕНАРИЙ 3: Ищем груз в stackedWeights (верхний груз в стопке 100г)
+        console.log('[REMOVE-FREE] Ищем в stackedWeights (обычные грузы в стопке)...');
         for (let i = 0; i < this.state.freeWeights.length; i++) {
             const freeWeight = this.state.freeWeights[i];
             if (freeWeight.stackedWeights && freeWeight.stackedWeights.length > 0) {
@@ -4344,8 +4965,8 @@ class SpringExperiment {
             }
         }
         
-        // 🔍 СЦЕНАРИЙ 3: Груз вообще не найден
-        console.warn('[REMOVE-FREE] ⚠️ Груз не найден ни в freeWeights, ни в stackedWeights!', weightId);
+        // 🔍 СЦЕНАРИЙ 4: Груз вообще не найден
+        console.warn('[REMOVE-FREE] ⚠️ Груз не найден ни в freeWeights, ни в compositeDisks, ни в stackedWeights!', weightId);
         console.warn('[REMOVE-FREE] Очищаем usedWeightIds на всякий случай...');
         this.state.usedWeightIds.delete(weightId);
         this.state.selectedWeights.delete(weightId);
@@ -4362,6 +4983,87 @@ class SpringExperiment {
         const weightDef2 = this.getWeightById(weight2.weightId);
         
         if (!weightDef1 || !weightDef2) return false;
+        
+        // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ НАБОРНОГО ГРУЗА
+        // Диски надеваются на штангу снизу, ложатся на опорное кольцо и друг на друга
+        const isRod1 = weightDef1.isCompositeRod;
+        const isRod2 = weightDef2.isCompositeRod;
+        const isDisk1 = weightDef1.isCompositeDisk;
+        const isDisk2 = weightDef2.isCompositeDisk;
+        
+        // Случай 1: Добавляем диск К ШТАНГЕ (диск надевается на штангу)
+        if (isRod1 && isDisk2) {
+            // 🚫 ЗАПРЕТ: Нельзя надевать диски на подвешенную штангу!
+            // Проверяем, не висит ли штанга на пружине/динамометре
+            const isRodAttached = this.state.selectedWeights?.has(weight1.weightId);
+            if (isRodAttached) {
+                console.log('[CAN-STACK] ❌ ЗАПРЕЩЕНО: Штанга уже подвешена! Нельзя надеть диск на висящую штангу.');
+                return false;
+            }
+            
+            // Вычисляем РЕАЛЬНУЮ высоту штанги с учетом текущего масштаба
+            const imgRod = this.images.weights[weight1.weightId] || this.images.weights[weightDef1.id];
+            // ✅ Используем базовый размер без увеличения
+            const targetSizeRod = weightDef1.targetSize ?? 72;
+            const renderScaleRod = targetSizeRod / (imgRod ? Math.max(imgRod.width, imgRod.height) : targetSizeRod);
+            const renderedHeightRod = imgRod ? imgRod.height * renderScaleRod : targetSizeRod * 0.9;
+            
+            // Опорное кольцо на 82.5% высоты от верха (y=264/320 в SVG)
+            // weight1.y - центр штанги
+            // Support ring = top + height * 0.825 = (center - height/2) + height * 0.825
+            // = center + height * 0.325
+            const rodSupportRingY = weight1.y + renderedHeightRod * 0.325;
+            const diskY = weight2.y;
+            const distanceX = Math.abs(weight1.x - weight2.x);
+            const distanceY = Math.abs(rodSupportRingY - diskY);
+            
+            console.log('[CAN-STACK] Rod+Disk check:', {
+                rodCenter: weight1.y.toFixed(0),
+                rodHeight: renderedHeightRod.toFixed(0),
+                supportRingY: rodSupportRingY.toFixed(0),
+                diskY: diskY.toFixed(0),
+                dX: distanceX.toFixed(0),
+                dY: distanceY.toFixed(0),
+                canConnect: (distanceX < 60 && distanceY < 100)
+            });
+            
+            return distanceX < 60 && distanceY < 100;
+        }
+        
+        // Случай 2: Добавляем диск К УЖЕ НАДЕТЫМ ДИСКАМ (диск на диск)
+        if (isDisk1 && isDisk2) {
+            // 🚫 ЗАПРЕТ: Проверяем, не на подвешенной ли штанге эти диски
+            // Ищем штангу, на которой находится disk1
+            const rodWithDisk = this.state.freeWeights?.find(fw => {
+                const def = this.getWeightById(fw.weightId);
+                return def?.isCompositeRod && fw.compositeDisks?.some(d => d.weightId === weight1.weightId);
+            });
+            
+            if (rodWithDisk) {
+                const isRodAttached = this.state.selectedWeights?.has(rodWithDisk.weightId);
+                if (isRodAttached) {
+                    console.log('[CAN-STACK] ❌ ЗАПРЕЩЕНО: Диски на подвешенной штанге! Нельзя добавлять диски к висящей штанге.');
+                    return false;
+                }
+            }
+            
+            // Диски должны быть близко по X (тот же стержень) и по Y (один на другом)
+            const distanceX = Math.abs(weight1.x - weight2.x);
+            const distanceY = Math.abs(weight1.y - weight2.y);
+            
+            console.log('[CAN-STACK] Disk+Disk check:', {
+                disk1Y: weight1.y.toFixed(0),
+                disk2Y: weight2.y.toFixed(0),
+                dX: distanceX.toFixed(0),
+                dY: distanceY.toFixed(0),
+                canConnect: (distanceX < 60 && distanceY < 80)
+            });
+            
+            // Диски накладываются друг на друга, допуск больше с учетом масштаба 1.8x
+            return distanceX < 60 && distanceY < 80;
+        }
+        
+        // Случай 3: Обычные грузы 100г (старая логика)
         
         // Рассчитываем РЕАЛЬНУЮ высоту рендеринга (как в drawFreeWeights)
         const img1 = this.images.weights[weight1.weightId] || this.images.weights[weightDef1.id];
@@ -4407,31 +5109,85 @@ class SpringExperiment {
         return canStack;
     }
     
-    stackWeights(topWeight, bottomWeight) {
+    stackWeights(baseWeight, addedWeight) {
         // Соединяем грузы в стопку
-        if (!topWeight.stackedWeights) {
-            topWeight.stackedWeights = [];
+        // baseWeight - штанга или груз с дисками
+        // addedWeight - диск или груз который добавляем
+        
+        const baseDef = this.getWeightById(baseWeight.weightId);
+        const addedDef = this.getWeightById(addedWeight.weightId);
+        
+        // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ НАБОРНОГО ГРУЗА
+        if (baseDef.isCompositeRod || baseDef.isCompositeDisk) {
+            // Инициализируем массив дисков если нужно
+            if (!baseWeight.compositeDisks) {
+                baseWeight.compositeDisks = [];
+            }
+            
+            // Удаляем добавляемый диск из freeWeights
+            const index = this.state.freeWeights.indexOf(addedWeight);
+            if (index !== -1) {
+                this.state.freeWeights.splice(index, 1);
+            }
+            
+            // Добавляем диск в массив
+            baseWeight.compositeDisks.push({
+                weightId: addedWeight.weightId,
+                mass: addedWeight.mass,
+                diskSize: addedDef.diskSize
+            });
+            
+            // Увеличиваем общую массу
+            baseWeight.mass += addedWeight.mass;
+            
+            // ✅ КРИТИЧНО: Помечаем диск как использованный (на canvas)
+            // Без этого диск будет показываться как "В комплекте"!
+            this.state.usedWeightIds.add(addedWeight.weightId);
+            
+            console.log('[COMPOSITE] ✅ Диск помечен как использованный:', addedWeight.weightId);
+            
+            // Сортируем диски от большого к малому (снизу вверх)
+            baseWeight.compositeDisks.sort((a, b) => {
+                const sizeOrder = { large: 3, medium: 2, small: 1 };
+                return (sizeOrder[b.diskSize] || 0) - (sizeOrder[a.diskSize] || 0);
+            });
+            
+            console.log('[COMPOSITE] Диск добавлен на штангу:', {
+                totalMass: baseWeight.mass,
+                disks: baseWeight.compositeDisks.length,
+                diskSizes: baseWeight.compositeDisks.map(d => d.diskSize)
+            });
+            
+            // ✅ Обновляем инвентарь чтобы кнопки обновились
+            this.renderWeightsInventory();
+            this.drawDynamic();
+            return;
+        }
+        
+        // 🔩 СТАНДАРТНАЯ ЛОГИКА ДЛЯ ОБЫЧНЫХ ГРУЗОВ 100г
+        if (!baseWeight.stackedWeights) {
+            baseWeight.stackedWeights = [];
         }
         
         // Удаляем нижний груз из freeWeights
-        const index = this.state.freeWeights.indexOf(bottomWeight);
+        const index = this.state.freeWeights.indexOf(addedWeight);
         if (index !== -1) {
             this.state.freeWeights.splice(index, 1);
         }
         
         // Добавляем к стопке
-        topWeight.stackedWeights.push(bottomWeight);
-        topWeight.mass += bottomWeight.mass;
+        baseWeight.stackedWeights.push(addedWeight);
+        baseWeight.mass += addedWeight.mass;
         
         // Рекурсивно добавляем вложенные грузы
-        if (bottomWeight.stackedWeights) {
-            bottomWeight.stackedWeights.forEach(w => {
-                topWeight.stackedWeights.push(w);
-                topWeight.mass += w.mass;
+        if (addedWeight.stackedWeights) {
+            addedWeight.stackedWeights.forEach(w => {
+                baseWeight.stackedWeights.push(w);
+                baseWeight.mass += w.mass;
             });
         }
         
-        console.log('[STACK] Weights stacked:', topWeight.mass, 'г');
+        console.log('[STACK] Weights stacked:', baseWeight.mass, 'г');
         this.drawDynamic();
     }
 
@@ -4567,3 +5323,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.experiment = new SpringExperiment();
     console.log('🚀 Spring Experiment loaded!');
 });
+// Force reload: 1761043020
