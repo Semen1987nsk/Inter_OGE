@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Touch Test - Проверка касаний</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0f1429;
+            color: #0f0;
+            padding: 20px;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #0ff;
+        }
+        
+        .test-area {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #1a1f3a, #2a2f4a);
+            border: 3px solid #0f0;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+            cursor: grab;
+        }
+        
+        .test-area.dragging {
+            cursor: grabbing;
+        }
+        
+        .draggable-item {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+            transition: box-shadow 0.2s;
+        }
+        
+        .draggable-item.dragging {
+            cursor: grabbing;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+            z-index: 1000;
+        }
+        
+        .log-area {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0f0;
+            padding-left: 10px;
+        }
+        
+        .log-entry.error {
+            color: #f00;
+            border-left-color: #f00;
+        }
+        
+        .log-entry.success {
+            color: #0f0;
+            border-left-color: #0f0;
+        }
+        
+        .log-entry.warning {
+            color: #ff0;
+            border-left-color: #ff0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(0, 102, 204, 0.2);
+            border: 2px solid #0066cc;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            color: #0ff;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #0099ff;
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Touch Diagnostics Test</h1>
+        <p>Проверка обработки касаний на интерактивной панели</p>
+    </div>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-label">Touch Starts</div>
+            <div class="stat-value" id="stat-touchstart">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Touch Moves</div>
+            <div class="stat-value" id="stat-touchmove">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Touch Ends</div>
+            <div class="stat-value" id="stat-touchend">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Touch Cancels ⚠️</div>
+            <div class="stat-value" id="stat-touchcancel" style="color: #f00;">0</div>
+        </div>
+    </div>
+    
+    <div class="test-area" id="testArea">
+        <div class="draggable-item" id="item1" style="left: 50px; top: 50px;">
+            ГРУЗ 1
+        </div>
+        <div class="draggable-item" id="item2" style="left: 200px; top: 50px;">
+            ГРУЗ 2
+        </div>
+        <div class="draggable-item" id="item3" style="left: 350px; top: 50px;">
+            ГРУЗ 3
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="clearLog()">Очистить лог</button>
+        <button onclick="resetStats()">Сбросить статистику</button>
+        <button onclick="testTouch()">Тест касания</button>
+        <button onclick="location.reload()">Перезагрузить</button>
+    </div>
+    
+    <div class="log-area" id="logArea">
+        <div class="log-entry success">✅ Система готова. Попробуйте перетащить грузы.</div>
+    </div>
+    
+    <script>
+        // Статистика
+        const stats = {
+            touchstart: 0,
+            touchmove: 0,
+            touchend: 0,
+            touchcancel: 0
+        };
+        
+        let draggedItem = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        // Логирование
+        function log(message, type = 'success') {
+            const logArea = document.getElementById('logArea');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString('ru-RU', { 
+                hour12: false, 
+                fractionalSecondDigits: 3 
+            });
+            entry.textContent = `[${time}] ${message}`;
+            logArea.insertBefore(entry, logArea.firstChild);
+            
+            // Ограничиваем количество записей
+            if (logArea.children.length > 50) {
+                logArea.removeChild(logArea.lastChild);
+            }
+        }
+        
+        // Обновление статистики
+        function updateStats(type) {
+            stats[type]++;
+            document.getElementById(`stat-${type}`).textContent = stats[type];
+        }
+        
+        // Универсальная функция получения координат
+        function getCoords(e) {
+            if (e.touches && e.touches.length > 0) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+        
+        // Обработчики для грузов
+        document.querySelectorAll('.draggable-item').forEach(item => {
+            // Touch events
+            item.addEventListener('touchstart', handleStart, { passive: false });
+            // Mouse events (для десктопа)
+            item.addEventListener('mousedown', handleStart);
+        });
+        
+        function handleStart(e) {
+            e.preventDefault();
+            
+            const eventType = e.type;
+            log(`${eventType} на ${e.target.id}`, 'success');
+            
+            if (eventType === 'touchstart') {
+                updateStats('touchstart');
+            }
+            
+            draggedItem = e.target;
+            draggedItem.classList.add('dragging');
+            
+            const coords = getCoords(e);
+            const rect = draggedItem.getBoundingClientRect();
+            dragOffset.x = coords.x - rect.left;
+            dragOffset.y = coords.y - rect.top;
+            
+            // Добавляем глобальные слушатели
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('touchend', handleEnd);
+            window.addEventListener('touchcancel', handleCancel);
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('mouseup', handleEnd);
+        }
+        
+        function handleMove(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            
+            if (e.type === 'touchmove') {
+                updateStats('touchmove');
+            }
+            
+            const coords = getCoords(e);
+            const testArea = document.getElementById('testArea');
+            const rect = testArea.getBoundingClientRect();
+            
+            let x = coords.x - rect.left - dragOffset.x;
+            let y = coords.y - rect.top - dragOffset.y;
+            
+            // Ограничиваем область
+            x = Math.max(0, Math.min(x, rect.width - draggedItem.offsetWidth));
+            y = Math.max(0, Math.min(y, rect.height - draggedItem.offsetHeight));
+            
+            draggedItem.style.left = x + 'px';
+            draggedItem.style.top = y + 'px';
+        }
+        
+        function handleEnd(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            
+            const eventType = e.type;
+            log(`${eventType} на ${draggedItem.id}`, 'success');
+            
+            if (eventType === 'touchend') {
+                updateStats('touchend');
+            }
+            
+            draggedItem.classList.remove('dragging');
+            draggedItem = null;
+            
+            // Удаляем глобальные слушатели
+            window.removeEventListener('touchmove', handleMove);
+            window.removeEventListener('touchend', handleEnd);
+            window.removeEventListener('touchcancel', handleCancel);
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('mouseup', handleEnd);
+        }
+        
+        function handleCancel(e) {
+            if (!draggedItem) return;
+            
+            log(`⚠️ TOUCHCANCEL на ${draggedItem.id} - Касание отменено браузером!`, 'error');
+            updateStats('touchcancel');
+            
+            // Обрабатываем как обычный end
+            handleEnd(e);
+        }
+        
+        // Функции управления
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            log('Лог очищен', 'success');
+        }
+        
+        function resetStats() {
+            stats.touchstart = 0;
+            stats.touchmove = 0;
+            stats.touchend = 0;
+            stats.touchcancel = 0;
+            Object.keys(stats).forEach(key => {
+                document.getElementById(`stat-${key}`).textContent = '0';
+            });
+            log('Статистика сброшена', 'success');
+        }
+        
+        function testTouch() {
+            const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            const hasPointer = 'onpointerdown' in window;
+            
+            log(`Touch support: ${isTouchDevice}`, isTouchDevice ? 'success' : 'error');
+            log(`Max touch points: ${navigator.maxTouchPoints}`, 'success');
+            log(`Pointer events: ${hasPointer}`, hasPointer ? 'success' : 'warning');
+            log(`User agent: ${navigator.userAgent}`, 'success');
+        }
+        
+        // Автоматический тест при загрузке
+        window.addEventListener('load', () => {
+            log('✅ Страница загружена', 'success');
+            testTouch();
+        });
+    </script>
+</body>
+</html>

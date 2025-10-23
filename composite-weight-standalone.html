@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборный груз - Правильная отрисовка</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .canvas-wrapper {
+            display: flex;
+            justify-content: space-around;
+            gap: 30px;
+            margin: 30px 0;
+        }
+
+        .canvas-box {
+            text-align: center;
+        }
+
+        canvas {
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            background: #f9f9f9;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .label {
+            margin-top: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .info {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+
+        .info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз - Вид сбоку</h1>
+        
+        <div class="canvas-wrapper">
+            <div class="canvas-box">
+                <canvas id="rod-canvas" width="120" height="400"></canvas>
+                <div class="label">Штанга 10г</div>
+            </div>
+            
+            <div class="canvas-box">
+                <canvas id="disk-10g-canvas" width="150" height="120"></canvas>
+                <div class="label">Диск 10г (вид сбоку)</div>
+            </div>
+            
+            <div class="canvas-box">
+                <canvas id="disk-20g-canvas" width="180" height="130"></canvas>
+                <div class="label">Диск 20г (вид сбоку)</div>
+            </div>
+            
+            <div class="canvas-box">
+                <canvas id="disk-50g-canvas" width="220" height="150"></canvas>
+                <div class="label">Диск 50г (вид сбоку)</div>
+            </div>
+        </div>
+
+        <h2 style="text-align: center; color: #667eea; margin: 40px 0 20px;">Наборный груз в сборе (90г)</h2>
+        
+        <div style="text-align: center;">
+            <canvas id="assembly-canvas" width="250" height="500"></canvas>
+        </div>
+
+        <div class="info">
+            <h3>📐 Как собирается:</h3>
+            <p><strong>1.</strong> Штанга 10г стоит вертикально (крючок вверху)</p>
+            <p><strong>2.</strong> На штангу снизу надевается диск 50г (самый большой)</p>
+            <p><strong>3.</strong> Сверху на него кладётся диск 20г (средний)</p>
+            <p><strong>4.</strong> Сверху кладётся диск 10г (самый маленький)</p>
+            <p><strong>5.</strong> Внизу гайка удерживает всю стопку</p>
+            <p style="margin-top: 15px;"><strong>Итого:</strong> 10г (штанга) + 50г + 20г + 10г = <span style="color: #667eea; font-size: 1.2em;">90 грамм</span></p>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // ОТРИСОВКА ШТАНГИ (вид сбоку)
+        // ============================================
+        function drawRod(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const rodWidth = 8;
+            const rodHeight = 280;
+            const hookRadius = 12;
+            const nutHeight = 15;
+            const nutWidth = 20;
+            
+            // Крючок (сверху)
+            ctx.save();
+            ctx.strokeStyle = '#a0a8b0';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(centerX, 30, hookRadius, 0, Math.PI);
+            ctx.stroke();
+            
+            // Соединение крючка со стержнем
+            ctx.fillStyle = '#b0b8c0';
+            ctx.fillRect(centerX - rodWidth/2, 30, rodWidth, 15);
+            ctx.restore();
+            
+            // Основной стержень
+            const rodGradient = ctx.createLinearGradient(centerX - rodWidth/2, 0, centerX + rodWidth/2, 0);
+            rodGradient.addColorStop(0, '#707880');
+            rodGradient.addColorStop(0.5, '#d0d8e0');
+            rodGradient.addColorStop(1, '#808890');
+            
+            ctx.fillStyle = rodGradient;
+            ctx.fillRect(centerX - rodWidth/2, 45, rodWidth, rodHeight);
+            
+            // Блики на стержне
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(centerX - rodWidth/2 + 1, 45, 2, rodHeight);
+            
+            // Гайка снизу
+            const nutY = 45 + rodHeight;
+            ctx.fillStyle = '#808890';
+            ctx.fillRect(centerX - nutWidth/2, nutY, nutWidth, nutHeight);
+            
+            // Грани гайки
+            ctx.strokeStyle = '#505860';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(centerX - nutWidth/2 + 3, nutY);
+            ctx.lineTo(centerX - nutWidth/2, nutY + nutHeight/2);
+            ctx.lineTo(centerX - nutWidth/2 + 3, nutY + nutHeight);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX + nutWidth/2 - 3, nutY);
+            ctx.lineTo(centerX + nutWidth/2, nutY + nutHeight/2);
+            ctx.lineTo(centerX + nutWidth/2 - 3, nutY + nutHeight);
+            ctx.stroke();
+            
+            // Блик на гайке
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(centerX - nutWidth/2 + 2, nutY + 2, 4, nutHeight - 4);
+        }
+        
+        // ============================================
+        // ОТРИСОВКА ДИСКА (вид сбоку - прямоугольник с толщиной)
+        // ============================================
+        function drawDiskSideView(ctx, x, y, width, thickness, color) {
+            // Основной прямоугольник диска
+            const gradient = ctx.createLinearGradient(x - width/2, y, x + width/2, y);
+            gradient.addColorStop(0, darkenColor(color, 0.3));
+            gradient.addColorStop(0.3, color);
+            gradient.addColorStop(0.7, lightenColor(color, 0.2));
+            gradient.addColorStop(1, darkenColor(color, 0.2));
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x - width/2, y - thickness/2, width, thickness);
+            
+            // Верхняя грань (светлая)
+            ctx.fillStyle = lightenColor(color, 0.3);
+            ctx.fillRect(x - width/2 + 2, y - thickness/2, width - 4, 1);
+            
+            // Нижняя грань (тёмная)
+            ctx.fillStyle = darkenColor(color, 0.4);
+            ctx.fillRect(x - width/2 + 2, y + thickness/2 - 1, width - 4, 1);
+            
+            // Боковые блики
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(x - width/2 + 1, y - thickness/2 + 1, 3, thickness - 2);
+            
+            // Обводка
+            ctx.strokeStyle = darkenColor(color, 0.5);
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - width/2, y - thickness/2, width, thickness);
+            
+            // Отверстие в центре (чёрная линия)
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y - thickness/2);
+            ctx.lineTo(x, y + thickness/2);
+            ctx.stroke();
+        }
+        
+        // ============================================
+        // ДИСК 10г (вид сбоку)
+        // ============================================
+        function drawDisk10g(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const width = 60;
+            const thickness = 12;
+            
+            drawDiskSideView(ctx, centerX, centerY, width, thickness, '#b0b8c0');
+            
+            // Надпись
+            ctx.fillStyle = '#667eea';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('10 г', centerX, centerY + thickness/2 + 20);
+            ctx.font = '11px Arial';
+            ctx.fillStyle = '#999';
+            ctx.fillText('⌀30 мм', centerX, centerY + thickness/2 + 35);
+        }
+        
+        // ============================================
+        // ДИСК 20г (вид сбоку)
+        // ============================================
+        function drawDisk20g(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const width = 80;
+            const thickness = 14;
+            
+            drawDiskSideView(ctx, centerX, centerY, width, thickness, '#a8b0b8');
+            
+            ctx.fillStyle = '#667eea';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('20 г', centerX, centerY + thickness/2 + 20);
+            ctx.font = '11px Arial';
+            ctx.fillStyle = '#999';
+            ctx.fillText('⌀40 мм', centerX, centerY + thickness/2 + 35);
+        }
+        
+        // ============================================
+        // ДИСК 50г (вид сбоку)
+        // ============================================
+        function drawDisk50g(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const width = 100;
+            const thickness = 18;
+            
+            drawDiskSideView(ctx, centerX, centerY, width, thickness, '#a0a8b0');
+            
+            ctx.fillStyle = '#667eea';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('50 г', centerX, centerY + thickness/2 + 20);
+            ctx.font = '11px Arial';
+            ctx.fillStyle = '#999';
+            ctx.fillText('⌀50 мм', centerX, centerY + thickness/2 + 35);
+        }
+        
+        // ============================================
+        // СБОРКА: Наборный груз целиком (стопка)
+        // ============================================
+        function drawAssembly(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const rodWidth = 8;
+            const rodHeight = 320;
+            const hookRadius = 12;
+            const nutHeight = 15;
+            const nutWidth = 20;
+            
+            // ===== КРЮЧОК =====
+            ctx.save();
+            ctx.strokeStyle = '#a0a8b0';
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(centerX, 30, hookRadius, 0, Math.PI);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#b0b8c0';
+            ctx.fillRect(centerX - rodWidth/2, 30, rodWidth, 15);
+            ctx.restore();
+            
+            // ===== СТЕРЖЕНЬ (верхняя часть над дисками) =====
+            const rodTopY = 45;
+            const rodTopHeight = 120;
+            
+            const rodGradient = ctx.createLinearGradient(centerX - rodWidth/2, 0, centerX + rodWidth/2, 0);
+            rodGradient.addColorStop(0, '#707880');
+            rodGradient.addColorStop(0.5, '#d0d8e0');
+            rodGradient.addColorStop(1, '#808890');
+            
+            ctx.fillStyle = rodGradient;
+            ctx.fillRect(centerX - rodWidth/2, rodTopY, rodWidth, rodTopHeight);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(centerX - rodWidth/2 + 1, rodTopY, 2, rodTopHeight);
+            
+            // ===== ДИСКИ СТОПКОЙ (снизу вверх: 50г, 20г, 10г) =====
+            let currentY = rodTopY + rodTopHeight;
+            
+            // ДИСК 10г (самый верхний, самый маленький)
+            const disk10Width = 60;
+            const disk10Thickness = 12;
+            drawDiskSideView(ctx, centerX, currentY + disk10Thickness/2, disk10Width, disk10Thickness, '#b0b8c0');
+            currentY += disk10Thickness;
+            
+            // ДИСК 20г (средний)
+            const disk20Width = 80;
+            const disk20Thickness = 14;
+            drawDiskSideView(ctx, centerX, currentY + disk20Thickness/2, disk20Width, disk20Thickness, '#a8b0b8');
+            currentY += disk20Thickness;
+            
+            // ДИСК 50г (самый нижний, самый большой)
+            const disk50Width = 100;
+            const disk50Thickness = 18;
+            drawDiskSideView(ctx, centerX, currentY + disk50Thickness/2, disk50Width, disk50Thickness, '#a0a8b0');
+            currentY += disk50Thickness;
+            
+            // ===== СТЕРЖЕНЬ (нижняя часть под дисками) =====
+            const rodBottomY = currentY;
+            const rodBottomHeight = 80;
+            
+            ctx.fillStyle = rodGradient;
+            ctx.fillRect(centerX - rodWidth/2, rodBottomY, rodWidth, rodBottomHeight);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(centerX - rodWidth/2 + 1, rodBottomY, 2, rodBottomHeight);
+            
+            // ===== ГАЙКА =====
+            const nutY = rodBottomY + rodBottomHeight;
+            ctx.fillStyle = '#808890';
+            ctx.fillRect(centerX - nutWidth/2, nutY, nutWidth, nutHeight);
+            
+            ctx.strokeStyle = '#505860';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(centerX - nutWidth/2 + 3, nutY);
+            ctx.lineTo(centerX - nutWidth/2, nutY + nutHeight/2);
+            ctx.lineTo(centerX - nutWidth/2 + 3, nutY + nutHeight);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX + nutWidth/2 - 3, nutY);
+            ctx.lineTo(centerX + nutWidth/2, nutY + nutHeight/2);
+            ctx.lineTo(centerX + nutWidth/2 - 3, nutY + nutHeight);
+            ctx.stroke();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(centerX - nutWidth/2 + 2, nutY + 2, 4, nutHeight - 4);
+            
+            // ===== АННОТАЦИИ =====
+            ctx.save();
+            ctx.font = '11px Arial';
+            ctx.fillStyle = '#666';
+            ctx.textAlign = 'left';
+            
+            // Стрелки к дискам
+            const arrowX = centerX + disk50Width/2 + 10;
+            
+            ctx.fillText('← 10г', arrowX, rodTopY + rodTopHeight + disk10Thickness/2);
+            ctx.fillText('← 20г', arrowX, rodTopY + rodTopHeight + disk10Thickness + disk20Thickness/2);
+            ctx.fillText('← 50г', arrowX, rodTopY + rodTopHeight + disk10Thickness + disk20Thickness + disk50Thickness/2);
+            
+            ctx.restore();
+            
+            // ===== ИТОГОВАЯ МАССА =====
+            ctx.save();
+            ctx.font = 'bold 18px Arial';
+            ctx.fillStyle = '#667eea';
+            ctx.textAlign = 'center';
+            ctx.fillText('Σ = 90 г', centerX, nutY + nutHeight + 30);
+            
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#999';
+            ctx.fillText('(10г + 10г + 20г + 50г)', centerX, nutY + nutHeight + 48);
+            ctx.restore();
+        }
+        
+        // ============================================
+        // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+        // ============================================
+        function lightenColor(color, factor) {
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            const newR = Math.min(255, Math.floor(r + (255 - r) * factor));
+            const newG = Math.min(255, Math.floor(g + (255 - g) * factor));
+            const newB = Math.min(255, Math.floor(b + (255 - b) * factor));
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+        
+        function darkenColor(color, factor) {
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            const newR = Math.max(0, Math.floor(r * (1 - factor)));
+            const newG = Math.max(0, Math.floor(g * (1 - factor)));
+            const newB = Math.max(0, Math.floor(b * (1 - factor)));
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+        
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+        window.addEventListener('DOMContentLoaded', () => {
+            drawRod('rod-canvas');
+            drawDisk10g('disk-10g-canvas');
+            drawDisk20g('disk-20g-canvas');
+            drawDisk50g('disk-50g-canvas');
+            drawAssembly('assembly-canvas');
+            
+            console.log('✅ Наборный груз отрисован (вид сбоку, стопка)');
+        });
+    </script>
+</body>
+</html>

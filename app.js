@@ -3,6 +3,19 @@
 // JavaScript Controller
 // ============================================
 
+/**
+ * Вспомогательная функция для безопасного экранирования HTML
+ * Защита от XSS атак
+ */
+function escapeHtml(text) {
+    if (typeof text !== 'string') {
+        return String(text);
+    }
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 class MainScreenController {
     constructor() {
         this.kits = this.initializeKits();
@@ -196,40 +209,85 @@ class MainScreenController {
     // ============================================
     loadProgress() {
         const defaultProgress = this.getDefaultProgress();
-        const saved = localStorage.getItem('lab_progress');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                const merged = {
-                    ...defaultProgress,
-                    ...parsed,
-                    totalExperiments: defaultProgress.totalExperiments,
-                    baseExperiments: defaultProgress.baseExperiments,
-                    kits: {
-                        ...defaultProgress.kits,
-                        ...(parsed.kits || {})
-                    }
-                };
-
-                Object.values(this.kits).forEach(kit => {
-                    const progress = merged.kits[kit.id] || { completed: 0 };
-                    merged.kits[kit.id] = {
-                        ...progress,
-                        total: kit.experiments || 0,
-                        program: kit.program
-                    };
-                });
-
-                return merged;
-            } catch (e) {
-                console.error('Ошибка загрузки прогресса:', e);
+        
+        try {
+            // ✅ Проверка 1: Поддержка localStorage браузером
+            if (typeof Storage === 'undefined') {
+                console.warn('⚠️ localStorage не поддерживается браузером');
+                return defaultProgress;
             }
+            
+            // ✅ Проверка 2: Доступность localStorage (не приватный режим)
+            try {
+                localStorage.setItem('__test__', '1');
+                localStorage.removeItem('__test__');
+            } catch (testError) {
+                console.warn('⚠️ localStorage недоступен (возможно, приватный режим браузера)');
+                return defaultProgress;
+            }
+            
+            // ✅ Попытка загрузить сохранённые данные
+            const saved = localStorage.getItem('lab_progress');
+            if (!saved) {
+                console.log('📊 Прогресс не найден, используем значения по умолчанию');
+                return defaultProgress;
+            }
+            
+            // ✅ Парсинг JSON с обработкой ошибок
+            const parsed = JSON.parse(saved);
+            const merged = {
+                ...defaultProgress,
+                ...parsed,
+                totalExperiments: defaultProgress.totalExperiments,
+                baseExperiments: defaultProgress.baseExperiments,
+                kits: {
+                    ...defaultProgress.kits,
+                    ...(parsed.kits || {})
+                }
+            };
+
+            Object.values(this.kits).forEach(kit => {
+                const progress = merged.kits[kit.id] || { completed: 0 };
+                merged.kits[kit.id] = {
+                    ...progress,
+                    total: kit.experiments || 0,
+                    program: kit.program
+                };
+            });
+
+            console.log('✅ Прогресс успешно загружен');
+            return merged;
+            
+        } catch (error) {
+            console.error('❌ Ошибка при загрузке прогресса:', error);
+            return defaultProgress;
         }
-        return defaultProgress;
     }
 
     saveProgress() {
-        localStorage.setItem('lab_progress', JSON.stringify(this.currentProgress));
+        try {
+            // ✅ Проверка доступности localStorage
+            if (typeof Storage === 'undefined') {
+                console.warn('⚠️ Не удалось сохранить прогресс: localStorage не поддерживается');
+                return false;
+            }
+            
+            localStorage.setItem('lab_progress', JSON.stringify(this.currentProgress));
+            console.log('💾 Прогресс сохранён');
+            return true;
+            
+        } catch (error) {
+            // Возможные ошибки:
+            // - QuotaExceededError: недостаточно места
+            // - SecurityError: приватный режим
+            console.error('❌ Ошибка при сохранении прогресса:', error.name, error.message);
+            
+            if (error.name === 'QuotaExceededError') {
+                console.warn('⚠️ Недостаточно места в localStorage');
+            }
+            
+            return false;
+        }
     }
 
     updateProgressDisplay() {
@@ -546,7 +604,7 @@ class MainScreenController {
                 <ul style="list-style: none; padding: 0;">
                     ${kit.experimentsList.map((exp, i) => `
                         <li style="padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                            <strong>${i + 1}.</strong> ${exp}
+                            <strong>${i + 1}.</strong> ${escapeHtml(exp)}
                         </li>
                     `).join('')}
                 </ul>
@@ -565,22 +623,23 @@ class MainScreenController {
                     ? '🔵 В разработке (расширенная программа)'
                     : '🔒 В разработке';
 
+        // ✅ Безопасное использование innerHTML с экранированием
         body.innerHTML = `
             <div style="line-height: 1.8;">
                 <p style="font-size: 16px; color: var(--text-secondary); margin-bottom: 20px;">
-                    ${kit.description}
+                    ${escapeHtml(kit.description)}
                 </p>
                 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
                     <div style="padding: 16px; background: var(--glass-bg); border-radius: 12px;">
                         <div style="font-size: 28px; font-weight: 700; color: var(--primary-blue);">
-                            ${kit.experiments || '?'}
+                            ${escapeHtml(kit.experiments || '?')}
                         </div>
                         <div style="font-size: 14px; color: var(--text-muted);">Экспериментов</div>
                     </div>
                     <div style="padding: 16px; background: var(--glass-bg); border-radius: 12px;">
                         <div style="font-size: 28px; font-weight: 700; color: var(--primary-green);">
-                            ${kit.duration}
+                            ${escapeHtml(kit.duration)}
                         </div>
                         <div style="font-size: 14px; color: var(--text-muted);">Длительность</div>
                     </div>
@@ -589,7 +648,7 @@ class MainScreenController {
                 ${experimentsHTML}
 
                 <div style="margin-top: 24px; padding: 16px; background: rgba(0, 102, 204, 0.1); border-left: 4px solid var(--primary-blue); border-radius: 8px;">
-                    <div><strong>� Программа:</strong> ${programLabel}</div>
+                    <div><strong>🎓 Программа:</strong> ${escapeHtml(programLabel)}</div>
                     <div style="margin-top: 8px;"><strong>📖 Статус:</strong> ${statusMessage}</div>
                 </div>
             </div>
@@ -605,6 +664,7 @@ class MainScreenController {
 
         title.textContent = '📖 О проекте';
 
+        // ✅ Статичный контент - безопасно для innerHTML (без пользовательского ввода)
         body.innerHTML = `
             <div style="line-height: 1.8;">
                 <h3 style="margin-bottom: 16px;">Виртуальная лаборатория физики для подготовки к ОГЭ 2025</h3>
@@ -671,19 +731,152 @@ class MainScreenController {
 }
 
 // ============================================
+// FREEMIUM MODEL FUNCTIONS
+// ============================================
+
+/**
+ * Показать модальное окно апгрейда
+ */
+function showUpgradeModal() {
+    const modal = document.getElementById('upgradeModal');
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Аналитика: трекаем попытку доступа к премиум контенту
+        console.log('📊 Показано upgrade окно');
+    }
+}
+
+/**
+ * Закрыть модальное окно апгрейда
+ */
+function closeUpgradeModal() {
+    const modal = document.getElementById('upgradeModal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+
+/**
+ * Обработка покупки подписки
+ */
+function handleUpgrade(tier) {
+    console.log(`💳 Переход к оплате тарифа: ${tier}`);
+    
+    // TODO: Интеграция с платежной системой
+    // Варианты: ЮKassa, CloudPayments, Stripe
+    
+    alert(`🚀 Переход к оплате тарифа "${tier.toUpperCase()}"
+    
+В production версии здесь будет:
+• Форма оплаты (ЮKassa/CloudPayments)
+• Создание аккаунта
+• Моментальная активация доступа
+
+Стоимость: 990 ₽ за полный доступ на год`);
+    
+    // Временно: симуляция успешной покупки
+    // unlockProAccess();
+}
+
+/**
+ * Разблокировка PRO доступа (после оплаты)
+ */
+function unlockProAccess() {
+    localStorage.setItem('labosfera_subscription', 'pro');
+    localStorage.setItem('labosfera_subscription_date', new Date().toISOString());
+    
+    closeUpgradeModal();
+    
+    // Показать уведомление
+    alert('🎉 Поздравляем! PRO доступ активирован!\n\nВсе 33+ эксперимента теперь доступны.');
+    
+    // Перезагрузить страницу для обновления интерфейса
+    location.reload();
+}
+
+/**
+ * Проверка статуса подписки
+ */
+function checkSubscriptionStatus() {
+    const subscription = localStorage.getItem('labosfera_subscription');
+    const subscriptionDate = localStorage.getItem('labosfera_subscription_date');
+    
+    if (subscription === 'pro' && subscriptionDate) {
+        const purchaseDate = new Date(subscriptionDate);
+        const now = new Date();
+        const daysPassed = (now - purchaseDate) / (1000 * 60 * 60 * 24);
+        
+        // Подписка на год (365 дней)
+        if (daysPassed < 365) {
+            return { status: 'pro', daysLeft: Math.ceil(365 - daysPassed) };
+        } else {
+            // Подписка истекла
+            localStorage.removeItem('labosfera_subscription');
+            localStorage.removeItem('labosfera_subscription_date');
+            return { status: 'free', daysLeft: 0 };
+        }
+    }
+    
+    return { status: 'free', daysLeft: 0 };
+}
+
+/**
+ * Проверка доступа к эксперименту
+ */
+function canAccessExperiment(expId) {
+    const subscription = checkSubscriptionStatus();
+    
+    // Первый эксперимент комплекта №2 всегда бесплатен
+    if (expId === '2-1') {
+        return true;
+    }
+    
+    // Остальное требует PRO
+    return subscription.status === 'pro';
+}
+
+/**
+ * Связь для школ
+ */
+function contactSchool() {
+    window.location.href = 'mailto:school@labosfera.ru?subject=Заявка на корпоративный доступ&body=Здравствуйте! Интересует корпоративный доступ для школы.';
+}
+
+// ============================================
 // ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔬 Загрузка виртуальной лаборатории физики...');
     window.mainScreenController = new MainScreenController();
     
+    // Проверка статуса подписки
+    const subscription = checkSubscriptionStatus();
+    console.log(`💎 Статус подписки: ${subscription.status.toUpperCase()}`);
+    if (subscription.status === 'pro') {
+        console.log(`⏰ Осталось дней: ${subscription.daysLeft}`);
+    }
+    
+    // Настройка кнопок freemium
+    document.getElementById('startFreeBtn')?.addEventListener('click', () => {
+        window.location.href = 'experiments/kit2/experiment-1-spring.html';
+    });
+    
+    document.getElementById('viewPricingBtn')?.addEventListener('click', () => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    document.getElementById('upgradePremiumBtn')?.addEventListener('click', showUpgradeModal);
+    
     // Приветственное сообщение в консоли
     console.log('%c🔬 ВИРТУАЛЬНАЯ ЛАБОРАТОРИЯ ФИЗИКИ', 
         'font-size: 20px; font-weight: bold; color: #0066CC;');
-    console.log('%cLabosfera × ОГЭ 2025', 
+    console.log('%cLabosfera × ОГЭ 2025 • FREEMIUM', 
         'font-size: 14px; color: #00A86B;');
-    console.log('Версия: 1.0.0 (Пилот - Комплект №2)');
-    console.log('Все 7 комплектов готовы к внедрению!');
+    console.log('Версия: 2.0.0 (Freemium Model)');
+    console.log('🎁 1 бесплатный эксперимент • 💎 33+ в PRO');
 });
 
 // ============================================

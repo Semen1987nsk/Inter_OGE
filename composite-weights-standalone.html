@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборный груз - Визуализация</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 3px solid #764ba2;
+            padding-bottom: 10px;
+        }
+
+        .canvas-container {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .specs {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .specs p {
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .specs strong {
+            color: #667eea;
+        }
+
+        .assembly-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .assembly-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз - Компоненты</h1>
+
+        <div class="grid">
+            <!-- Штанга 10г -->
+            <div class="card">
+                <h2>Штанга (основа) - 10г</h2>
+                <div class="canvas-container">
+                    <canvas id="rod-canvas" width="120" height="300"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Материал:</strong> Металл</p>
+                    <p><strong>Длина:</strong> ~100 мм</p>
+                    <p><strong>Диаметр:</strong> ⌀8 мм</p>
+                </div>
+            </div>
+
+            <!-- Диск 10г -->
+            <div class="card">
+                <h2>Диск 10 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-10g-canvas" width="200" height="200"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Диаметр:</strong> ~30 мм</p>
+                    <p><strong>Толщина:</strong> ~3 мм</p>
+                </div>
+            </div>
+
+            <!-- Диск 20г -->
+            <div class="card">
+                <h2>Диск 20 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-20g-canvas" width="220" height="220"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 20 г</p>
+                    <p><strong>Диаметр:</strong> ~40 мм</p>
+                    <p><strong>Толщина:</strong> ~3 мм</p>
+                </div>
+            </div>
+
+            <!-- Диск 50г -->
+            <div class="card">
+                <h2>Диск 50 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-50g-canvas" width="250" height="250"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 50 г</p>
+                    <p><strong>Диаметр:</strong> ~50 мм</p>
+                    <p><strong>Толщина:</strong> ~4 мм</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сборка -->
+        <div class="assembly-section">
+            <h2>🔧 Наборный груз в сборе</h2>
+            <p style="margin-bottom: 20px; color: #666;">
+                10г (штанга) + 50г + 20г + 10г = <strong style="color: #667eea;">90 г</strong>
+            </p>
+            <canvas id="assembly-canvas" width="300" height="400"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Утилиты для работы с цветом
+        function lighten(color, factor) {
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            const newR = Math.min(255, Math.floor(r + (255 - r) * factor));
+            const newG = Math.min(255, Math.floor(g + (255 - g) * factor));
+            const newB = Math.min(255, Math.floor(b + (255 - b) * factor));
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+
+        function darken(color, factor) {
+            const hex = color.replace('#', '');
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            
+            const newR = Math.max(0, Math.floor(r * (1 - factor)));
+            const newG = Math.max(0, Math.floor(g * (1 - factor)));
+            const newB = Math.max(0, Math.floor(b * (1 - factor)));
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+
+        // Рисуем штангу 10г
+        function drawRod(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const rodWidth = 8;
+            const rodHeight = 180;
+            const hookSize = 20;
+            
+            // Верхний крючок
+            ctx.strokeStyle = '#c0c8d0';
+            ctx.lineWidth = rodWidth;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - rodHeight/2 - hookSize - 10, 10, 0, Math.PI);
+            ctx.stroke();
+            
+            // Стержень
+            const gradient = ctx.createLinearGradient(
+                centerX - rodWidth/2, centerY - rodHeight/2,
+                centerX + rodWidth/2, centerY - rodHeight/2
+            );
+            gradient.addColorStop(0, '#8090a0');
+            gradient.addColorStop(0.5, '#f0f4f8');
+            gradient.addColorStop(1, '#8090a0');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(centerX - rodWidth/2, centerY - rodHeight/2, rodWidth, rodHeight);
+            
+            // Резьба (нижняя часть)
+            const threadLength = 30;
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 10; i++) {
+                const y = centerY + rodHeight/2 - threadLength + i * 3;
+                ctx.beginPath();
+                ctx.moveTo(centerX - rodWidth/2, y);
+                ctx.lineTo(centerX + rodWidth/2, y);
+                ctx.stroke();
+            }
+            
+            // Гайка
+            ctx.fillStyle = '#909098';
+            ctx.strokeStyle = '#606068';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI * 2 / 6) + Math.PI / 6;
+                const x = centerX + Math.cos(angle) * 7;
+                const y = centerY + rodHeight/2 - 5 + Math.sin(angle) * 7;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        // Рисуем диск
+        function drawDisk(canvasId, outerR, innerR, thickness, baseColor, label) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const x = canvas.width / 2;
+            const y = canvas.height / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Тень
+            ctx.save();
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = '#000';
+            ctx.filter = 'blur(8px)';
+            ctx.beginPath();
+            ctx.arc(x + 3, y + 5, outerR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.filter = 'none';
+            ctx.restore();
+            
+            // 3D боковая грань
+            const sideGradient = ctx.createLinearGradient(x, y, x, y + thickness * 3);
+            sideGradient.addColorStop(0, baseColor);
+            sideGradient.addColorStop(1, darken(baseColor, 0.3));
+            ctx.fillStyle = sideGradient;
+            ctx.beginPath();
+            ctx.ellipse(x, y + thickness, outerR, outerR * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Верхняя плоскость
+            const topGradient = ctx.createRadialGradient(
+                x - outerR * 0.3, y - outerR * 0.3, 0,
+                x, y, outerR * 1.2
+            );
+            topGradient.addColorStop(0, lighten(baseColor, 0.4));
+            topGradient.addColorStop(0.3, baseColor);
+            topGradient.addColorStop(0.7, darken(baseColor, 0.2));
+            topGradient.addColorStop(1, darken(baseColor, 0.4));
+            
+            ctx.fillStyle = topGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, outerR, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = darken(baseColor, 0.5);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Концентрические круги
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 0.5;
+            for (let r = innerR + 10; r < outerR; r += 8) {
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            // Отверстие
+            const holeGradient = ctx.createRadialGradient(x, y, innerR * 0.3, x, y, innerR);
+            holeGradient.addColorStop(0, '#000');
+            holeGradient.addColorStop(1, darken(baseColor, 0.6));
+            ctx.fillStyle = holeGradient;
+            ctx.beginPath();
+            ctx.arc(x, y, innerR, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Блики
+            const highlightGradient = ctx.createRadialGradient(
+                x - outerR * 0.4, y - outerR * 0.4, 0,
+                x - outerR * 0.2, y - outerR * 0.2, outerR * 0.5
+            );
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+            highlightGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = highlightGradient;
+            ctx.beginPath();
+            ctx.arc(x - outerR * 0.3, y - outerR * 0.3, outerR * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Надпись
+            ctx.font = `bold ${outerR * 0.3}px Arial`;
+            ctx.fillStyle = '#667eea';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.strokeText(label, x, y + outerR + 20);
+            ctx.fillText(label, x, y + outerR + 20);
+        }
+
+        // Рисуем сборку
+        function drawAssembly(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const rodTop = 50;
+            const rodHeight = 180;
+            const rodWidth = 8;
+            const hookSize = 20;
+            
+            // Крючок
+            ctx.strokeStyle = '#c0c8d0';
+            ctx.lineWidth = rodWidth;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(centerX, rodTop, 10, 0, Math.PI);
+            ctx.stroke();
+            
+            // Стержень
+            const gradient = ctx.createLinearGradient(
+                centerX - rodWidth/2, rodTop + 10,
+                centerX + rodWidth/2, rodTop + 10
+            );
+            gradient.addColorStop(0, '#8090a0');
+            gradient.addColorStop(0.5, '#f0f4f8');
+            gradient.addColorStop(1, '#8090a0');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(centerX - rodWidth/2, rodTop + 10, rodWidth, rodHeight);
+            
+            // Диски на штанге (вид сбоку)
+            let currentY = rodTop + rodHeight - 20;
+            
+            // Диск 50г (нижний)
+            drawDiskOnRod(ctx, centerX, currentY, 65, '#a0a8b0');
+            currentY -= 15;
+            
+            // Диск 20г
+            drawDiskOnRod(ctx, centerX, currentY, 50, '#a8b0b8');
+            currentY -= 12;
+            
+            // Диск 10г (верхний)
+            drawDiskOnRod(ctx, centerX, currentY, 40, '#b0b8c0');
+            
+            // Итоговая масса
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#667eea';
+            ctx.textAlign = 'center';
+            ctx.fillText('Σ = 90 г', centerX, rodTop + rodHeight + 40);
+        }
+
+        function drawDiskOnRod(ctx, x, y, radius, color) {
+            const gradient = ctx.createLinearGradient(x - radius, y, x + radius, y);
+            gradient.addColorStop(0, darken(color, 0.4));
+            gradient.addColorStop(0.5, color);
+            gradient.addColorStop(1, darken(color, 0.4));
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x - radius, y - 2, radius * 2, 4);
+            
+            ctx.strokeStyle = darken(color, 0.5);
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - radius, y - 2, radius * 2, 4);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(x - radius * 0.7, y - 1.5, radius * 0.3, 1);
+        }
+
+        // Запускаем отрисовку после загрузки страницы
+        window.addEventListener('DOMContentLoaded', () => {
+            drawRod('rod-canvas');
+            drawDisk('disk-10g-canvas', 40, 5, 3, '#b0b8c0', '10 г');
+            drawDisk('disk-20g-canvas', 50, 5, 3, '#a8b0b8', '20 г');
+            drawDisk('disk-50g-canvas', 65, 5, 4, '#a0a8b0', '50 г');
+            drawAssembly('assembly-canvas');
+            console.log('✅ Все элементы отрисованы!');
+        });
+    </script>
+</body>
+</html>

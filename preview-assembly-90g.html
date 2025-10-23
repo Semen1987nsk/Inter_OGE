@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборный груз 90г - Проверка сборки</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1000px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .svg-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-start;
+            gap: 40px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .svg-box {
+            text-align: center;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .svg-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .svg-box img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .info {
+            background: #f0f0f0;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .info h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info li {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .info li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .approved {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
+
+        .status.ok {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.new {
+            background: #fef3c7;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз 90г - Итоговая сборка</h1>
+
+        <div class="svg-container">
+            <!-- Отдельные элементы (утверждены) -->
+            <div class="svg-box" style="flex: 1; min-width: 150px;">
+                <h3>Штанга 10г <span class="status ok">✓ УТВЕРЖДЕНО</span></h3>
+                <img src="assets/equipment/composite-weights/rod-10g-side.svg" alt="Штанга 10г">
+            </div>
+
+            <div class="svg-box" style="flex: 1; min-width: 150px;">
+                <h3>Диск 10г <span class="status ok">✓ УТВЕРЖДЕНО</span></h3>
+                <img src="assets/equipment/composite-weights/disk-10g-side.svg" alt="Диск 10г">
+            </div>
+
+            <div class="svg-box" style="flex: 1; min-width: 150px;">
+                <h3>Диск 20г <span class="status ok">✓ УТВЕРЖДЕНО</span></h3>
+                <img src="assets/equipment/composite-weights/disk-20g-side.svg" alt="Диск 20г">
+            </div>
+
+            <div class="svg-box" style="flex: 1; min-width: 150px;">
+                <h3>Диск 50г <span class="status ok">✓ УТВЕРЖДЕНО</span></h3>
+                <img src="assets/equipment/composite-weights/disk-50g-side.svg" alt="Диск 50г">
+            </div>
+        </div>
+
+        <hr style="margin: 40px 0; border: none; border-top: 2px solid #e5e7eb;">
+
+        <div class="svg-container">
+            <!-- Сборка (на проверке) -->
+            <div class="svg-box" style="flex: 1; max-width: 350px;">
+                <h3>Наборный груз в сборе <span class="status new">🔄 ИСПРАВЛЕНО</span></h3>
+                <img src="assets/equipment/composite-weights/assembly-90g-side.svg" alt="Сборка 90г">
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>📋 Что исправлено в сборке:</h3>
+            <ul>
+                <li>Диски теперь <strong>лежат прямо на опорном кольце</strong> (y=218)</li>
+                <li>Убран дублирующий стержень, который визуально перекрывал диски</li>
+                <li>Резьба начинается от опорного кольца и проходит через все диски</li>
+                <li>Диск 50г (самый большой) лежит непосредственно на опоре</li>
+                <li>Диск 20г лежит на диске 50г</li>
+                <li>Диск 10г (самый маленький) лежит на диске 20г</li>
+                <li>Гайка внизу удерживает всю конструкцию</li>
+            </ul>
+
+            <h3 style="margin-top: 25px;">🎯 Ключевые координаты:</h3>
+            <ul>
+                <li><strong>Опорное кольцо:</strong> верхняя плоскость y=218</li>
+                <li><strong>Диск 50г:</strong> начинается y=218 (высота 18px) → заканчивается y=236</li>
+                <li><strong>Диск 20г:</strong> начинается y=236 (высота 14px) → заканчивается y=250</li>
+                <li><strong>Диск 10г:</strong> начинается y=250 (высота 12px) → заканчивается y=262</li>
+            </ul>
+
+            <h3 style="margin-top: 25px;">✅ Итого:</h3>
+            <p style="font-size: 1.2em; color: #667eea; font-weight: bold; margin-top: 10px;">
+                10г (штанга) + 50г + 20г + 10г = <span style="font-size: 1.5em;">90 грамм</span>
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #666;">
+                Обновите страницу (F5), чтобы увидеть последние изменения SVG
+            </p>
+        </div>
+    </div>
+</body>
+</html>

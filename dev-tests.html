@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Dev Tests - Inter OGE</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f1429 0%, #1a1f3a 100%);
+            color: #fff;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #00A86B;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #0ff;
+        }
+        
+        .header p {
+            color: #888;
+            font-size: 1.1rem;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(0, 168, 107, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #00A86B;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .test-link {
+            display: block;
+            padding: 20px;
+            background: linear-gradient(135deg, #0066CC, #0099FF);
+            border: 2px solid #0099FF;
+            border-radius: 10px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .test-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 168, 107, 0.4);
+            border-color: #00A86B;
+        }
+        
+        .test-link.touch {
+            background: linear-gradient(135deg, #00A86B, #00D98F);
+            border-color: #00D98F;
+        }
+        
+        .test-link.experiment {
+            background: linear-gradient(135deg, #CC6600, #FF9933);
+            border-color: #FF9933;
+        }
+        
+        .link-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .link-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+        
+        .link-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .info-box {
+            background: rgba(0, 102, 204, 0.1);
+            border: 2px solid #0066CC;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            color: #0ff;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+        
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info-box li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00A86B;
+            font-weight: bold;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Dev Tests & Experiments</h1>
+            <p>Набор тестовых страниц для разработки и отладки</p>
+        </div>
+        
+        <!-- Touch Tests -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>👆</span>
+                Touch Events Testing
+            </h2>
+            <div class="links-grid">
+                <a href="interact-touch-test.html" class="test-link touch">
+                    <span class="link-icon">📱</span>
+                    <div class="link-title">Interact.js Touch Test</div>
+                    <div class="link-desc">Проверка Interact.js с touch events</div>
+                </a>
+                
+                <a href="touch-test.html" class="test-link touch" style="opacity: 0.5; pointer-events: none;">
+                    <span class="link-icon">🖐️</span>
+                    <div class="link-title">Simple Touch Test</div>
+                    <div class="link-desc">Базовый тест касаний (если есть)</div>
+                </a>
+            </div>
+            
+            <div class="info-box">
+                <h3>💡 Как тестировать Touch:</h3>
+                <ul>
+                    <li><strong>F12</strong> - открыть DevTools</li>
+                    <li><strong>Ctrl+Shift+M</strong> - Device Toolbar</li>
+                    <li>Выбрать <strong>"iPad Pro"</strong> или <strong>"Responsive"</strong></li>
+                    <li>Переключить <strong>[Mouse] → [Touch]</strong> в верхней панели</li>
+                    <li>Перетащить элементы мышью (эмулируется как палец)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Experiments -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>🔬</span>
+                Experiments
+            </h2>
+            <div class="links-grid">
+                <a href="experiments/kit2/experiment-1-spring.html" class="test-link experiment">
+                    <span class="link-icon">🌀</span>
+                    <div class="link-title">Жёсткость пружины</div>
+                    <div class="link-desc">Комплект №2, опыт 1 (основной)</div>
+                </a>
+                
+                <a href="experiments/kit2/experiment-2-oscillations.html" class="test-link experiment" style="opacity: 0.5; pointer-events: none;">
+                    <span class="link-icon">↕️</span>
+                    <div class="link-title">Колебания пружины</div>
+                    <div class="link-desc">Комплект №2, опыт 2</div>
+                </a>
+            </div>
+            
+            <div class="info-box">
+                <h3>🔍 Диагностика в экспериментах:</h3>
+                <ul>
+                    <li>Touch диагностика включается автоматически</li>
+                    <li>Оверлей в правом верхнем углу</li>
+                    <li><strong>Ctrl+Shift+D</strong> - вкл/выкл диагностику</li>
+                    <li>Console: <code>window.touchDiag.enable()</code></li>
+                    <li>Проверяйте: <strong>Touch Cancels = 0</strong></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Preview Files -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>🎨</span>
+                Preview & Standalone
+            </h2>
+            <div class="links-grid">
+                <a href="composite-weight-preview.html" class="test-link">
+                    <span class="link-icon">⚖️</span>
+                    <div class="link-title">Composite Weight Preview</div>
+                    <div class="link-desc">Превью наборных грузов</div>
+                </a>
+                
+                <a href="disk-10g.html" class="test-link">
+                    <span class="link-icon">🟢</span>
+                    <div class="link-title">Диск 10г</div>
+                    <div class="link-desc">Отдельный диск</div>
+                </a>
+                
+                <a href="disk-20g.html" class="test-link">
+                    <span class="link-icon">🔵</span>
+                    <div class="link-title">Диск 20г</div>
+                    <div class="link-desc">Отдельный диск</div>
+                </a>
+                
+                <a href="disk-50g.html" class="test-link">
+                    <span class="link-icon">🔴</span>
+                    <div class="link-title">Диск 50г</div>
+                    <div class="link-desc">Отдельный диск</div>
+                </a>
+            </div>
+        </div>
+        
+        <!-- Documentation -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>📚</span>
+                Documentation & Reports
+            </h2>
+            <div class="info-box" style="margin-top: 0;">
+                <h3>📄 Созданные отчёты:</h3>
+                <ul>
+                    <li><strong>TOUCH_ANALYSIS_REPORT.md</strong> - детальный анализ touch events</li>
+                    <li><strong>TOUCH_EMULATION_GUIDE.md</strong> - гайд по эмуляции без панели</li>
+                    <li><strong>FIXES_COMPLETED.md</strong> - список выполненных исправлений</li>
+                    <li><strong>CODE_REVIEW_REPORT.md</strong> - полный код-ревью</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Quick Console Commands -->
+        <div class="section">
+            <h2 class="section-title">
+                <span>⌨️</span>
+                Quick Console Commands
+            </h2>
+            <div class="info-box" style="margin-top: 0; background: rgba(0, 0, 0, 0.3); font-family: 'Courier New', monospace; font-size: 13px;">
+                <h3>💻 Полезные команды (вставьте в Console):</h3>
+                <pre style="background: rgba(0, 0, 0, 0.5); padding: 10px; border-radius: 5px; overflow-x: auto; margin: 10px 0;">
+// Проверка touch поддержки
+console.log({
+    hasTouch: 'ontouchstart' in window,
+    maxTouchPoints: navigator.maxTouchPoints,
+    hasPointer: 'onpointerdown' in window
+});
+
+// Включить диагностику (в эксперименте)
+window.touchDiag.enable();
+
+// Проверить CSS touch-action
+const overlay = document.getElementById('drag-drop-overlay');
+console.log('touch-action:', getComputedStyle(overlay).touchAction);
+
+// Состояние эксперимента
+console.log(experiment.state);
+                </pre>
+            </div>
+        </div>
+        
+        <a href="index.html" class="back-link">← Вернуться на главную</a>
+    </div>
+</body>
+</html>

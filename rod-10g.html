@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Штанга 10г - Наборный груз</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        canvas {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            background: #f9f9f9;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .specs {
+            margin-top: 30px;
+            text-align: left;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .specs h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .specs p {
+            margin: 8px 0;
+            color: #333;
+        }
+        
+        .specs strong {
+            color: #764ba2;
+        }
+        
+        .back-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Штанга (основа)</h1>
+        <p class="subtitle">Масса: 10 грамм</p>
+        
+        <canvas id="rod-canvas" width="150" height="350"></canvas>
+        
+        <div class="specs">
+            <h3>📋 Технические характеристики</h3>
+            <p><strong>Масса:</strong> 10 г ± 0.5 г</p>
+            <p><strong>Материал:</strong> Металл (сталь или алюминий)</p>
+            <p><strong>Длина общая:</strong> ~100 мм</p>
+            <p><strong>Диаметр стержня:</strong> 8 мм</p>
+            <p><strong>Резьба:</strong> М8 (нижняя часть ~30 мм)</p>
+            <p><strong>Покрытие:</strong> Металлик (серебристый)</p>
+            
+            <h3 style="margin-top: 20px;">🔧 Конструкция</h3>
+            <p><strong>1. Верхний крючок:</strong> U-образное кольцо для подвешивания</p>
+            <p><strong>2. Гладкий стержень:</strong> Основная часть для надевания дисков</p>
+            <p><strong>3. Резьбовая часть:</strong> Для фиксации дисков стопорной гайкой</p>
+            <p><strong>4. Стопорная гайка:</strong> Шестигранная, предотвращает спадание дисков</p>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='composite-weight-preview.html'">
+            ← Вернуться к обзору
+        </button>
+    </div>
+    
+    <script src="composite-weight-renderer.js"></script>
+</body>
+</html>

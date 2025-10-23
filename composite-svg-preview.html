@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборный груз - SVG Превью</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .svg-container {
+            background: #f5f5f5;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .svg-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .specs {
+            text-align: left;
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .specs p {
+            margin: 5px 0;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .specs strong {
+            color: #667eea;
+        }
+
+        .assembly-card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .assembly-card h2 {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 30px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .info-box {
+            background: rgba(255,255,255,0.95);
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #555;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз - SVG изображения</h1>
+        <p style="text-align: center; color: white; margin-bottom: 30px; font-size: 1.1rem;">
+            Отрисовано на основе реальных фотографий ФИПИ
+        </p>
+
+        <div class="grid">
+            <!-- Штанга 10г -->
+            <div class="card">
+                <h2>Штанга 10 г</h2>
+                <div class="svg-container">
+                    <img src="assets/equipment/composite-rod-10g.svg" alt="Штанга 10г">
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Длина:</strong> ~100 мм</p>
+                    <p><strong>Диаметр:</strong> ⌀8 мм</p>
+                    <p><strong>Элементы:</strong></p>
+                    <p>• Крючок U-образный</p>
+                    <p>• Гладкий стержень</p>
+                    <p>• Резьба М8</p>
+                    <p>• Гайка шестигранная</p>
+                </div>
+                <a href="assets/equipment/composite-rod-10g.svg" download class="download-btn">Скачать SVG</a>
+            </div>
+
+            <!-- Диск 10г -->
+            <div class="card">
+                <h2>Диск 10 г</h2>
+                <div class="svg-container">
+                    <img src="assets/equipment/composite-disk-10g.svg" alt="Диск 10г" style="height: 80px;">
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Диаметр:</strong> ~30 мм</p>
+                    <p><strong>Толщина:</strong> ~3 мм</p>
+                    <p><strong>Вид:</strong> Сбоку (профиль)</p>
+                    <p><strong>Отверстие:</strong> ⌀9 мм</p>
+                </div>
+                <a href="assets/equipment/composite-disk-10g.svg" download class="download-btn">Скачать SVG</a>
+            </div>
+
+            <!-- Диск 20г -->
+            <div class="card">
+                <h2>Диск 20 г</h2>
+                <div class="svg-container">
+                    <img src="assets/equipment/composite-disk-20g.svg" alt="Диск 20г" style="height: 90px;">
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 20 г</p>
+                    <p><strong>Диаметр:</strong> ~40 мм</p>
+                    <p><strong>Толщина:</strong> ~3.5 мм</p>
+                    <p><strong>Вид:</strong> Сбоку (профиль)</p>
+                    <p><strong>Отверстие:</strong> ⌀9 мм</p>
+                </div>
+                <a href="assets/equipment/composite-disk-20g.svg" download class="download-btn">Скачать SVG</a>
+            </div>
+
+            <!-- Диск 50г -->
+            <div class="card">
+                <h2>Диск 50 г</h2>
+                <div class="svg-container">
+                    <img src="assets/equipment/composite-disk-50g.svg" alt="Диск 50г" style="height: 100px;">
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 50 г</p>
+                    <p><strong>Диаметр:</strong> ~50 мм</p>
+                    <p><strong>Толщина:</strong> ~4.5 мм</p>
+                    <p><strong>Вид:</strong> Сбоку (профиль)</p>
+                    <p><strong>Отверстие:</strong> ⌀9 мм</p>
+                    <p><strong>Особенность:</strong> Самый большой</p>
+                </div>
+                <a href="assets/equipment/composite-disk-50g.svg" download class="download-btn">Скачать SVG</a>
+            </div>
+        </div>
+
+        <!-- Сборка -->
+        <div class="assembly-card">
+            <h2>🔧 Наборный груз в сборе</h2>
+            <p style="color: #666; margin-bottom: 30px;">
+                Штанга 10г + Диск 50г + Диск 20г + Диск 10г = <strong style="color: #667eea; font-size: 1.5em;">90 грамм</strong>
+            </p>
+            
+            <div class="svg-container" style="max-width: 600px; margin: 0 auto;">
+                <img src="assets/equipment/composite-assembly-90g.svg" alt="Сборка 90г" style="height: 450px;">
+            </div>
+            
+            <a href="assets/equipment/composite-assembly-90g.svg" download class="download-btn" style="font-size: 1.1rem; padding: 12px 30px;">
+                Скачать сборку SVG
+            </a>
+        </div>
+
+        <div class="info-box">
+            <h3>📋 Технические особенности отрисовки:</h3>
+            <p><strong>✅ Вид сбоку (профиль)</strong> - диски показаны как прямоугольники с толщиной</p>
+            <p><strong>✅ Стопка</strong> - диски лежат друг на друге по размеру: 50г → 20г → 10г</p>
+            <p><strong>✅ Металлические эффекты</strong> - градиенты, блики, тени</p>
+            <p><strong>✅ Отверстия</strong> - показаны вертикальными чёрными линиями</p>
+            <p><strong>✅ Точность</strong> - пропорции и размеры по реальным фотографиям ФИПИ</p>
+            <p style="margin-top: 15px;"><strong>Файлы:</strong> SVG векторные, масштабируются без потери качества</p>
+        </div>
+    </div>
+</body>
+</html>

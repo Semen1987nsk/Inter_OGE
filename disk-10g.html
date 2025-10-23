@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диск 10г - Наборный груз</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        h1 {
+            color: #43e97b;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        canvas {
+            border: 3px solid #43e97b;
+            border-radius: 10px;
+            background: #f9f9f9;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .specs {
+            margin-top: 30px;
+            text-align: left;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .specs h3 {
+            color: #43e97b;
+            margin-bottom: 15px;
+        }
+        
+        .specs p {
+            margin: 8px 0;
+            color: #333;
+        }
+        
+        .specs strong {
+            color: #38f9d7;
+        }
+        
+        .back-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #43e97b;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            background: #38f9d7;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚪ Диск груз 10 г</h1>
+        <p class="subtitle">Наименьший диск в наборе</p>
+        
+        <canvas id="disk-10g-canvas" width="250" height="250"></canvas>
+        
+        <div class="specs">
+            <h3>📋 Технические характеристики</h3>
+            <p><strong>Масса:</strong> 10 г ± 0.5 г</p>
+            <p><strong>Материал:</strong> Металл (сталь)</p>
+            <p><strong>Диаметр внешний:</strong> ~30 мм</p>
+            <p><strong>Отверстие центральное:</strong> ~9 мм (для штанги ⌀8мм)</p>
+            <p><strong>Толщина:</strong> ~3 мм</p>
+            <p><strong>Цвет:</strong> Серый металлик</p>
+            <p><strong>Покрытие:</strong> Матовое, антикоррозийное</p>
+            
+            <h3 style="margin-top: 20px;">🎯 Применение</h3>
+            <p>• Создание точной массы груза</p>
+            <p>• Самый лёгкий диск для тонкой настройки</p>
+            <p>• Надевается на штангу 10г</p>
+            <p>• Можно использовать несколько дисков</p>
+            
+            <h3 style="margin-top: 20px;">📐 Форма</h3>
+            <p><strong>Геометрия:</strong> Круглый диск (цилиндр)</p>
+            <p><strong>Поверхность:</strong> Плоская, с концентрическими кругами (следы обработки)</p>
+            <p><strong>Кромка:</strong> Фаска по краям для безопасности</p>
+        </div>
+        
+        <button class="back-btn" onclick="window.location.href='composite-weight-preview.html'">
+            ← Вернуться к обзору
+        </button>
+    </div>
+    
+    <script src="composite-weight-renderer.js"></script>
+</body>
+</html>

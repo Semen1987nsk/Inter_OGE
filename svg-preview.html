@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Наборный груз - Превью</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+        }
+
+        .svg-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .svg-card {
+            background: #f9f9f9;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s ease;
+        }
+
+        .svg-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-color: #667eea;
+        }
+
+        .svg-wrapper {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .svg-wrapper img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .file-path {
+            font-size: 0.85rem;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .assembly-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .assembly-section h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .assembly-svg {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            display: inline-block;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .info-box {
+            background: #fff;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 5px;
+        }
+
+        .info-box h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз - SVG Изображения</h1>
+
+        <div class="info-box">
+            <h4>📐 Вид сбоку (профиль)</h4>
+            <p>Все элементы отрисованы в виде сбоку, как они выглядят в реальности. Диски показаны как прямоугольники с толщиной, штанга проходит через них.</p>
+        </div>
+
+        <div class="svg-grid">
+            <!-- Штанга -->
+            <div class="svg-card">
+                <h3>Штанга 10г</h3>
+                <div class="svg-wrapper">
+                    <img src="assets/equipment/composite-weights/rod-10g-side.svg" alt="Штанга 10г">
+                </div>
+                <p><strong>Масса:</strong> 10 г</p>
+                <p><strong>Элементы:</strong> Крючок + стержень + резьба + гайка</p>
+                <div class="file-path">rod-10g-side.svg</div>
+            </div>
+
+            <!-- Диск 10г -->
+            <div class="svg-card">
+                <h3>Диск 10г</h3>
+                <div class="svg-wrapper">
+                    <img src="assets/equipment/composite-weights/disk-10g-side.svg" alt="Диск 10г">
+                </div>
+                <p><strong>Масса:</strong> 10 г</p>
+                <p><strong>Размер:</strong> ⌀30 мм × 3 мм</p>
+                <div class="file-path">disk-10g-side.svg</div>
+            </div>
+
+            <!-- Диск 20г -->
+            <div class="svg-card">
+                <h3>Диск 20г</h3>
+                <div class="svg-wrapper">
+                    <img src="assets/equipment/composite-weights/disk-20g-side.svg" alt="Диск 20г">
+                </div>
+                <p><strong>Масса:</strong> 20 г</p>
+                <p><strong>Размер:</strong> ⌀40 мм × 3 мм</p>
+                <div class="file-path">disk-20g-side.svg</div>
+            </div>
+
+            <!-- Диск 50г -->
+            <div class="svg-card">
+                <h3>Диск 50г</h3>
+                <div class="svg-wrapper">
+                    <img src="assets/equipment/composite-weights/disk-50g-side.svg" alt="Диск 50г">
+                </div>
+                <p><strong>Масса:</strong> 50 г</p>
+                <p><strong>Размер:</strong> ⌀50 мм × 4 мм</p>
+                <div class="file-path">disk-50g-side.svg</div>
+            </div>
+        </div>
+
+        <div class="assembly-section">
+            <h2>🏗️ Наборный груз в сборе (пирамидка)</h2>
+            
+            <div class="assembly-svg">
+                <img src="assets/equipment/composite-weights/assembly-90g-pyramid.svg" alt="Наборный груз 90г" width="220">
+            </div>
+
+            <div class="info-box" style="text-align: left; margin-top: 30px;">
+                <h4>Порядок сборки (снизу вверх):</h4>
+                <p>1️⃣ <strong>Диск 50г</strong> (самый большой) - основание пирамиды</p>
+                <p>2️⃣ <strong>Диск 20г</strong> (средний) - кладётся сверху</p>
+                <p>3️⃣ <strong>Диск 10г</strong> (самый маленький) - верхушка пирамиды</p>
+                <p>4️⃣ <strong>Штанга 10г</strong> проходит через все диски</p>
+                <p>5️⃣ <strong>Гайка</strong> снизу удерживает всю конструкцию</p>
+                <p style="margin-top: 15px; font-size: 1.2em; color: #667eea;"><strong>Итого: 90 грамм</strong> (10 + 50 + 20 + 10)</p>
+            </div>
+
+            <div class="file-path">assembly-90g-pyramid.svg</div>
+        </div>
+
+        <div class="info-box" style="margin-top: 30px;">
+            <h4>💾 Расположение файлов:</h4>
+            <p><code>/workspaces/Inter_OGE/assets/equipment/composite-weights/</code></p>
+            <ul style="margin-top: 10px; margin-left: 20px; color: #666;">
+                <li>rod-10g-side.svg</li>
+                <li>disk-10g-side.svg</li>
+                <li>disk-20g-side.svg</li>
+                <li>disk-50g-side.svg</li>
+                <li>assembly-90g-pyramid.svg</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

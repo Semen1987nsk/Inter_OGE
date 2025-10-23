@@ -20,10 +20,12 @@ class SpringExperiment {
         Object.keys(this.canvases).forEach(key => {
             const canvas = this.canvases[key];
             if (!canvas) {
-                console.error(`Canvas element missing: ${key}`);
-            } else {
-                this.contexts[key] = canvas.getContext('2d');
+                // ❌ КРИТИЧЕСКАЯ ОШИБКА: Canvas элемент не найден в DOM
+                const errorMsg = `Critical error: Canvas element '${key}' not found in DOM. Check HTML structure.`;
+                console.error(errorMsg);
+                throw new Error(errorMsg);
             }
+            this.contexts[key] = canvas.getContext('2d');
         });
 
         // State
@@ -58,7 +60,9 @@ class SpringExperiment {
             usedWeightIds: new Set(), // 🔧 ID грузов, размещённых СВОБОДНО на canvas (НЕ подвешенных!)
             // 🆕 Записанные значения для расчёта
             recordedForce: null, // Записанное значение силы F
-            recordedElongation: null // Записанное значение удлинения Δl
+            recordedElongation: null, // Записанное значение удлинения Δl
+            // 🎯 Оптимизация рендеринга: перерисовывать только при изменениях
+            isDirty: true // Флаг "состояние изменилось, нужна перерисовка"
         };
 
         this.springDragged = false;
@@ -278,6 +282,32 @@ class SpringExperiment {
 
     async init() {
         try {
+            // 🔧 CRITICAL FIX: Настраиваем Interact.js для полной поддержки touch событий
+            if (typeof interact !== 'undefined') {
+                // Отключаем autoScroll чтобы избежать конфликтов с touch-action: none
+                // interact.autoScroll API отличается в разных версиях;
+                // попробуем безопасно отключить автоскролл если функция доступна,
+                // иначе используем опцию autoScroll в draggable конфигурации.
+                try {
+                    if (typeof interact.autoScroll === 'function') {
+                        interact.autoScroll(false);
+                    } else if (typeof interact.settings === 'object') {
+                        // Некоторые сборки expose settings
+                        interact.settings.autoScroll = false;
+                    } else {
+                        console.log('[DRAG] autoScroll API not available - will rely on draggable.autoScroll option');
+                    }
+                } catch (err) {
+                    console.warn('[DRAG] autoScroll disable failed:', err && err.message);
+                }
+                
+                console.log('✅ Interact.js configured for touch support');
+                console.log('   - autoScroll: disabled');
+                console.log('   - Touch device:', ('ontouchstart' in window));
+            } else {
+                console.error('❌ Interact.js not loaded!');
+            }
+            
             // Resize canvases
             this.resizeCanvases();
             window.addEventListener('resize', () => this.resizeCanvases());
@@ -1363,6 +1393,7 @@ class SpringExperiment {
         this.state.springElongation = 0;
         this.state.weightAttached = false;
         this.state.currentWeight = null;
+        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
 
         this.renderEquipmentInventory();
         this.drawDynamic();
@@ -1396,6 +1427,7 @@ class SpringExperiment {
         this.physics.springConstant = this.defaults.springConstant;
         this.springOffset = { x: 0, y: 0 };
         this.springDragged = false;
+        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         
         // Сбрасываем позицию пружины
         if (this.canvases.dynamic) {
@@ -1545,6 +1577,7 @@ class SpringExperiment {
         }
 
         console.log('[DETACH-WEIGHT] ✅ Снимаем груз:', weightId);
+        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         const removedWeight = this.state.attachedWeights.pop();
         
         // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА: Если это штанга с дисками - возвращаем ВСЕ диски!
@@ -1642,6 +1675,15 @@ class SpringExperiment {
             return;
         }
 
+        // 🔧 КРИТИЧНО: Глобальная настройка Interact.js для touch поддержки
+        console.log('[DRAG] Настройка touch поддержки для Interact.js');
+        console.log('[DRAG] Interact.js версия:', interact.version || 'unknown');
+        console.log('[DRAG] Touch support:', 'ontouchstart' in window);
+        console.log('[DRAG] Max touch points:', navigator.maxTouchPoints);
+        console.log('[DRAG] Pointer events:', 'onpointerdown' in window);
+        
+        interact.pointerMoveTolerance(5); // Небольшой порог для начала drag (5px)
+        
         interact.dynamicDrop(true);
 
         const initDraggables = () => {
@@ -1651,6 +1693,13 @@ class SpringExperiment {
             interact('.weight-item').draggable({
                 inertia: false,
                 autoScroll: true,
+                // 🔧 КРИТИЧНО: Включаем все типы событий (mouse, touch, pen)
+                manualStart: false,
+                hold: 0, // Немедленное начало drag без задержки
+                // Разрешаем drag от любого элемента
+                allowFrom: null,
+                ignoreFrom: null,
+                cursorChecker: null,
                 listeners: {
                     start: (event) => this.onDragStart(event),
                     move: (event) => this.onDragMove(event),
@@ -1661,6 +1710,12 @@ class SpringExperiment {
             interact('.equipment-item').draggable({
                 inertia: true,
                 autoScroll: true,
+                // 🔧 КРИТИЧНО: Включаем все типы событий (mouse, touch, pen)
+                manualStart: false,
+                hold: 0, // Немедленное начало drag без задержки
+                allowFrom: null,
+                ignoreFrom: null,
+                cursorChecker: null,
                 listeners: {
                     start: (event) => this.onDragStart(event),
                     move: (event) => this.onDragMove(event),
@@ -1683,6 +1738,8 @@ class SpringExperiment {
         interact('#drag-drop-overlay').dropzone({
             accept: '.weight-item, .equipment-item',
             overlap: 0.1,
+            // 🔧 FIX: Добавляем проверку на touch events
+            checker: null, // Отключаем кастомную проверку для совместимости с touch
             ondrop: (event) => {
                 console.log('[DROPZONE] ondrop вызван!');
                 this.handleCanvasDrop(event);
@@ -1705,6 +1762,11 @@ class SpringExperiment {
     }
 
     onDragStart(event) {
+        // 🔧 ДИАГНОСТИКА: Логируем тип события для отладки touch
+        console.log('[DRAG-START] Event type:', event.type, 
+                    'Interaction type:', event.interaction?.pointerType,
+                    'Target:', event.target.dataset.weightId || event.target.dataset.equipmentId);
+        
         const type = event.target.dataset.type || 'weight';
         
         // 🆕 Проверяем: груз уже использован (на холсте ИЛИ прикреплён к оборудованию)?
@@ -1714,8 +1776,8 @@ class SpringExperiment {
                 console.log('[DRAG] ⛔ Груз уже использован:', weightId,
                     '| usedWeightIds:', this.state.usedWeightIds.has(weightId),
                     '| selectedWeights:', this.state.selectedWeights.has(weightId));
-                event.preventDefault?.();
-                event.stopPropagation?.();
+                // 🔧 FIX: Для Interact.js используем interaction.stop() вместо preventDefault
+                event.interaction?.stop();
                 return false;
             }
         }
@@ -2166,6 +2228,7 @@ class SpringExperiment {
         }
         
         this.state.isAnimating = true;
+        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         console.log('[ATTACH-WEIGHT] Флаг isAnimating → true');
         this.state.weightAttached = true;
 
@@ -2294,7 +2357,7 @@ class SpringExperiment {
                 currentTime: startTime
             });
 
-            const animateFrame = (currentTime) => {
+                const animateFrame = (currentTime) => {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
@@ -2322,10 +2385,9 @@ class SpringExperiment {
                 }
                 
                 this.state.springElongation = this.state.springLength - this.state.springNaturalLength;
+                this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки во время анимации
 
-                this.updateVisualScale(this.state.springLength);
-
-                // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
+                this.updateVisualScale(this.state.springLength);                // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
                 const totalMass = this.state.attachedWeights.reduce((sum, item) => {
                     const def = this.getWeightById(item.id);
                     return sum + (def?.mass ?? 0);
@@ -2963,15 +3025,41 @@ class SpringExperiment {
             return sum + (weightDef?.mass || 0);
         }, 0);
 
+        // ✅ ВАЛИДАЦИЯ: Масса должна быть положительной
+        if (!Number.isFinite(totalMass) || totalMass <= 0) {
+            console.error('[VALIDATION] Некорректная масса:', totalMass);
+            this.showHint('Ошибка: некорректная масса груза!');
+            return;
+        }
+
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
         const force = (totalMass / 1000) * this.physics.gravity;
+        
+        // ✅ ВАЛИДАЦИЯ: Сила должна быть в разумных пределах
+        if (!Number.isFinite(force) || force <= 0) {
+            console.error('[VALIDATION] Некорректная сила:', force);
+            this.showHint('Ошибка: некорректное значение силы!');
+            return;
+        }
+        if (force > 10) {
+            console.warn('[VALIDATION] Сила слишком велика:', force);
+            this.showHint('Предупреждение: сила превышает 10 Н. Проверьте расчёты!');
+        }
         
         // Удлинение
         const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
 
-        if (!elongationCm || elongationCm <= 0) {
+        // ✅ ВАЛИДАЦИЯ: Удлинение должно быть положительным
+        if (!Number.isFinite(elongationCm) || elongationCm <= 0) {
+            console.error('[VALIDATION] Некорректное удлинение:', elongationCm);
             this.showHint('Ошибка: пружина не растянута!');
             return;
+        }
+        
+        // ✅ ВАЛИДАЦИЯ: Удлинение не должно быть слишком большим
+        if (elongationCm > 50) {
+            console.warn('[VALIDATION] Удлинение слишком велико:', elongationCm);
+            this.showHint('Предупреждение: удлинение превышает 50 см. Проверьте измерения!');
         }
 
         // Проверка дубликатов
@@ -4377,6 +4465,29 @@ class SpringExperiment {
         let dragOffset = { x: 0, y: 0 };
         let draggedFreeWeight = null; // 🆕 Ссылка на перетаскиваемый свободный груз
         
+        // 🔧 УНИВЕРСАЛЬНАЯ функция для получения координат из любого типа события
+        const getEventCoords = (e) => {
+            // Если это touch event
+            if (e.touches && e.touches.length > 0) {
+                return {
+                    clientX: e.touches[0].clientX,
+                    clientY: e.touches[0].clientY
+                };
+            }
+            // Если это changedTouches (touchend)
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                return {
+                    clientX: e.changedTouches[0].clientX,
+                    clientY: e.changedTouches[0].clientY
+                };
+            }
+            // Обычные mouse events
+            return {
+                clientX: e.clientX,
+                clientY: e.clientY
+            };
+        };
+        
         // Проверка клика на пружину (проверяем область вокруг центра пружины)
         const getAnchor = () => ({
             x: this.state.springPosition?.x ?? dynamicCanvas.width * 0.5,
@@ -4414,11 +4525,15 @@ class SpringExperiment {
         
         const handlePointerMove = (e) => {
             if (!isDragging) return;
+            
+            // 🔧 FIX: Предотвращаем прокрутку и зум на тач-устройствах
+            e.preventDefault();
 
+            const coords = getEventCoords(e);
             const rect = interactionSurface.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            this.lastPointer = { x: e.clientX, y: e.clientY };
+            const x = coords.clientX - rect.left;
+            const y = coords.clientY - rect.top;
+            this.lastPointer = { x: coords.clientX, y: coords.clientY };
 
             // 🆕 Перемещаем свободный груз
             if (isDragging === 'freeweight' && draggedFreeWeight) {
@@ -4457,13 +4572,21 @@ class SpringExperiment {
 
         const handlePointerUp = (e) => {
             if (!isDragging) return;
+            
+            // 🔧 FIX: Предотвращаем лишние события
+            e.preventDefault();
 
+            const coords = getEventCoords(e);
             const rect = interactionSurface.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = coords.clientX - rect.left;
+            const y = coords.clientY - rect.top;
 
+            // 🔧 FIX: Удаляем ВСЕ слушатели (mouse + touch)
             window.removeEventListener('mousemove', handlePointerMove);
             window.removeEventListener('mouseup', handlePointerUp);
+            window.removeEventListener('touchmove', handlePointerMove, { passive: false });
+            window.removeEventListener('touchend', handlePointerUp);
+            window.removeEventListener('touchcancel', handlePointerUp);
 
             // 🆕 Обработка отпускания свободного груза
             if (isDragging === 'freeweight' && draggedFreeWeight) {
@@ -4681,10 +4804,19 @@ class SpringExperiment {
             return null;
         };
 
-        interactionSurface.addEventListener('mousedown', (e) => {
+        // 🔧 УНИВЕРСАЛЬНЫЙ обработчик начала перетаскивания (mouse + touch)
+        const handlePointerDown = (e) => {
+            // 🔧 FIX: Для touch events предотвращаем двойные срабатывания
+            if (e.type === 'touchstart') {
+                e.preventDefault();
+            }
+            
+            const coords = getEventCoords(e);
             const rect = interactionSurface.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = coords.clientX - rect.left;
+            const y = coords.clientY - rect.top;
+            
+            console.log(`[DRAG-START] Event: ${e.type}, Coords: (${x.toFixed(0)}, ${y.toFixed(0)})`);
             
             // 🆕 ПРИОРИТЕТ 1: Проверяем свободные грузы (они сверху)
             const freeWeight = findFreeWeightAt(x, y);
@@ -4695,8 +4827,14 @@ class SpringExperiment {
                 dragOffset.y = y - freeWeight.y;
                 freeWeight.isDragging = true;
                 interactionSurface.style.cursor = 'grabbing';
+                
+                // 🔧 FIX: Добавляем слушатели для ОБОИХ типов событий
                 window.addEventListener('mousemove', handlePointerMove);
                 window.addEventListener('mouseup', handlePointerUp);
+                window.addEventListener('touchmove', handlePointerMove, { passive: false });
+                window.addEventListener('touchend', handlePointerUp);
+                window.addEventListener('touchcancel', handlePointerUp);
+                
                 console.log('[FREE-WEIGHTS] Started dragging:', freeWeight.id);
                 return;
             }
@@ -4708,8 +4846,14 @@ class SpringExperiment {
                 dragOffset.x = x - pos.x;
                 dragOffset.y = y - pos.y;
                 interactionSurface.style.cursor = 'grabbing';
+                
                 window.addEventListener('mousemove', handlePointerMove);
                 window.addEventListener('mouseup', handlePointerUp);
+                window.addEventListener('touchmove', handlePointerMove, { passive: false });
+                window.addEventListener('touchend', handlePointerUp);
+                window.addEventListener('touchcancel', handlePointerUp);
+                
+                console.log('[DRAG] Started dragging dynamometer');
                 return;
             }
 
@@ -4720,10 +4864,20 @@ class SpringExperiment {
                 dragOffset.x = x - anchor.x;
                 dragOffset.y = y - anchor.y;
                 interactionSurface.style.cursor = 'grabbing';
+                
                 window.addEventListener('mousemove', handlePointerMove);
                 window.addEventListener('mouseup', handlePointerUp);
+                window.addEventListener('touchmove', handlePointerMove, { passive: false });
+                window.addEventListener('touchend', handlePointerUp);
+                window.addEventListener('touchcancel', handlePointerUp);
+                
+                console.log('[DRAG] Started dragging spring');
             }
-        });
+        };
+        
+        // 🔧 FIX: Добавляем слушатели для ОБОИХ типов событий
+        interactionSurface.addEventListener('mousedown', handlePointerDown);
+        interactionSurface.addEventListener('touchstart', handlePointerDown, { passive: false });
         
         interactionSurface.addEventListener('mousemove', (e) => {
             if (isDragging) return;
@@ -4744,7 +4898,8 @@ class SpringExperiment {
             interactionSurface.style.cursor = (onDynamometer || onSpring) ? 'grab' : 'default';
         });
         
-        console.log('✅ Spring drag enabled');
+        console.log('✅ Spring drag enabled (with touch support)');
+        console.log('✅ Touch diagnostics: Press Ctrl+Shift+D or call window.touchDiag.enable()');
     }
     
     setupFreeWeightsDrag() {
@@ -5210,12 +5365,81 @@ class SpringExperiment {
         }
         this.prevSpringLength = currentLength;
 
-        // Render dynamic layers
-        this.drawDynamic();
-        this.particleSystem.render();
+        // 🎯 Оптимизация: рендерить только при изменениях (dirty flag pattern)
+        // Проверяем изменения длины пружины или наличие частиц
+        const hasSpringMotion = Math.abs(this.springVelocity) > 0.1; // небольшое движение
+        const hasParticles = this.particleSystem.particles && this.particleSystem.particles.length > 0;
+        
+        if (this.state.isDirty || hasSpringMotion || hasParticles || this.state.isDragging) {
+            // Render dynamic layers
+            this.drawDynamic();
+            this.particleSystem.render();
+            this.state.isDirty = false; // Сбрасываем флаг после рендера
+        }
 
         // Continue loop
         requestAnimationFrame((time) => this.animate(time));
+    }
+
+    /**
+     * Очистка ресурсов при выходе из эксперимента
+     * Предотвращает memory leaks
+     */
+    cleanup() {
+        console.log('🧹 Starting experiment cleanup...');
+        
+        try {
+            // 1. Останавливаем анимацию
+            if (this.currentAnimation) {
+                cancelAnimationFrame(this.currentAnimation);
+                this.currentAnimation = null;
+                console.log('  ✓ Animation loop stopped');
+            }
+            
+            // 2. Удаляем interact.js обработчики
+            if (typeof interact !== 'undefined') {
+                try {
+                    interact('.equipment-item').unset();
+                    interact('.weight-item').unset();
+                    interact('.drag-drop-zone').unset();
+                    interact('#drag-drop-overlay').unset();
+                    console.log('  ✓ Interact.js handlers removed');
+                } catch (e) {
+                    console.warn('  ⚠️ Error removing interact handlers:', e.message);
+                }
+            }
+            
+            // 3. Очищаем particle system
+            if (this.particleSystem) {
+                this.particleSystem.clear();
+                console.log('  ✓ Particle system cleared');
+            }
+            
+            // 4. Удаляем window event listeners
+            if (this.handleResize) {
+                window.removeEventListener('resize', this.handleResize);
+                console.log('  ✓ Window event listeners removed');
+            }
+            
+            // 5. Очищаем canvas контексты
+            Object.keys(this.contexts).forEach(key => {
+                const ctx = this.contexts[key];
+                const canvas = this.canvases[key];
+                if (ctx && canvas) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            });
+            console.log('  ✓ Canvas layers cleared');
+            
+            // 6. Сбрасываем состояние
+            this.state.isAnimating = false;
+            this.state.isDragging = false;
+            
+            console.log('✅ Cleanup completed successfully');
+            
+        } catch (error) {
+            console.error('❌ Error during cleanup:', error);
+        }
     }
 }
 
@@ -5322,5 +5546,25 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ All libraries loaded successfully');
     window.experiment = new SpringExperiment();
     console.log('🚀 Spring Experiment loaded!');
+    
+    // ✅ Добавляем cleanup при выходе со страницы
+    window.addEventListener('beforeunload', () => {
+        if (window.experiment && typeof window.experiment.cleanup === 'function') {
+            window.experiment.cleanup();
+        }
+    });
+    
+    // 🔧 ДИАГНОСТИКА: Автоматическое включение ОТКЛЮЧЕНО (мешает работе)
+    // Определяем тач-устройство по наличию touch events
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    
+    if (isTouchDevice && window.touchDiag) {
+        console.log('📱 Touch device detected!');
+        console.log('🔍 Touch diagnostics available: Ctrl+Shift+D or window.touchDiag.enable()');
+        // Автоматическое включение ОТКЛЮЧЕНО - включайте вручную при необходимости
+        // setTimeout(() => { window.touchDiag.enable(); }, 1000);
+    } else {
+        console.log('🖱️ Desktop device. Touch diagnostics: window.touchDiag.enable()');
+    }
 });
-// Force reload: 1761043020
+// Force reload: 1761043021

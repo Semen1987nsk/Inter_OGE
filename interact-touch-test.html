@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Interact.js Touch Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.19/dist/interact.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0f1429;
+            color: #0f0;
+            padding: 20px;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #0ff;
+        }
+        
+        .test-area {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, #1a1f3a, #2a2f4a);
+            border: 3px solid #0f0;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .draggable {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0066cc, #0099ff);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        .draggable.dragging {
+            cursor: grabbing;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.8);
+            z-index: 1000;
+        }
+        
+        .log {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 3px 0;
+            padding: 3px;
+            border-left: 3px solid #0f0;
+            padding-left: 8px;
+            font-size: 12px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            background: rgba(0, 102, 204, 0.2);
+            border: 2px solid #0066cc;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+        }
+        
+        .stat-value {
+            color: #0ff;
+            font-size: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔍 Interact.js Touch Test</h1>
+        <p>Проверка Interact.js с touch events</p>
+    </div>
+    
+    <div class="stats">
+        <div class="stat">
+            <div class="stat-label">Drag Starts</div>
+            <div class="stat-value" id="stat-start">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Drag Moves</div>
+            <div class="stat-value" id="stat-move">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Drag Ends</div>
+            <div class="stat-value" id="stat-end">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Pointer Type</div>
+            <div class="stat-value" id="stat-type">—</div>
+        </div>
+    </div>
+    
+    <div class="test-area">
+        <div class="draggable" style="left: 50px; top: 50px;">ГРУЗ 1</div>
+        <div class="draggable" style="left: 200px; top: 50px;">ГРУЗ 2</div>
+        <div class="draggable" style="left: 350px; top: 50px;">ГРУЗ 3</div>
+    </div>
+    
+    <div class="log" id="log"></div>
+    
+    <script>
+        const stats = { start: 0, move: 0, end: 0 };
+        
+        function log(message, color = '#0f0') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.style.borderLeftColor = color;
+            entry.style.color = color;
+            const time = new Date().toLocaleTimeString('ru-RU', { 
+                hour12: false, 
+                fractionalSecondDigits: 3 
+            });
+            entry.textContent = `[${time}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+            
+            if (logDiv.children.length > 100) {
+                logDiv.removeChild(logDiv.lastChild);
+            }
+        }
+        
+        function updateStat(name, value) {
+            const el = document.getElementById(`stat-${name}`);
+            if (el) el.textContent = value;
+        }
+        
+        // Проверка Interact.js
+        if (typeof interact === 'undefined') {
+            log('❌ Interact.js НЕ ЗАГРУЖЕН!', '#f00');
+        } else {
+            log('✅ Interact.js загружен: ' + (interact.version || 'unknown'), '#0f0');
+            log('✅ Touch support: ' + ('ontouchstart' in window), '#0f0');
+            log('✅ Max touch points: ' + navigator.maxTouchPoints, '#0f0');
+            log('✅ Pointer events: ' + ('onpointerdown' in window), '#0f0');
+            
+            // Настройка Interact.js
+            interact.pointerMoveTolerance(5);
+            log('🔧 Настроен pointerMoveTolerance: 5px', '#0ff');
+            
+            // Настройка draggable
+            interact('.draggable').draggable({
+                inertia: false,
+                autoScroll: false,
+                manualStart: false,
+                hold: 0,
+                listeners: {
+                    start(event) {
+                        stats.start++;
+                        updateStat('start', stats.start);
+                        updateStat('type', event.interaction?.pointerType || '?');
+                        
+                        event.target.classList.add('dragging');
+                        log(`▶ START: type=${event.type}, pointer=${event.interaction?.pointerType}`, '#0ff');
+                    },
+                    move(event) {
+                        stats.move++;
+                        updateStat('move', stats.move);
+                        
+                        const target = event.target;
+                        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+                        
+                        target.style.transform = `translate(${x}px, ${y}px)`;
+                        target.setAttribute('data-x', x);
+                        target.setAttribute('data-y', y);
+                        
+                        if (stats.move % 10 === 0) {
+                            log(`→ MOVE: dx=${event.dx.toFixed(1)}, dy=${event.dy.toFixed(1)}`, '#ff0');
+                        }
+                    },
+                    end(event) {
+                        stats.end++;
+                        updateStat('end', stats.end);
+                        
+                        event.target.classList.remove('dragging');
+                        log(`■ END: type=${event.type}`, '#f80');
+                    }
+                }
+            });
+            
+            log('🚀 Interact.js настроен! Попробуйте перетащить грузы.', '#0f0');
+        }
+    </script>
+</body>
+</html>

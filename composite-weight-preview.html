@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Наборный груз - Все элементы</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            border-bottom: 3px solid #2a5298;
+            padding-bottom: 10px;
+        }
+
+        .canvas-container {
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 250px;
+        }
+
+        canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .specs {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .specs p {
+            margin: 8px 0;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .specs strong {
+            color: #2a5298;
+        }
+
+        .photo-reference {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+        }
+
+        .photo-reference p {
+            color: #856404;
+            font-size: 0.9rem;
+        }
+
+        .assembly-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-top: 30px;
+        }
+
+        .assembly-section h2 {
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
+
+        .assembly-canvas {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔩 Наборный груз - Компоненты</h1>
+
+        <div class="grid">
+            <!-- Штанга 10г -->
+            <div class="card">
+                <h2>Штанга (основа)</h2>
+                <div class="canvas-container">
+                    <canvas id="rod-canvas" width="120" height="300"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Материал:</strong> Металл (сталь/алюминий)</p>
+                    <p><strong>Длина:</strong> ~100 мм</p>
+                    <p><strong>Функция:</strong> Основа для крепления дисков</p>
+                    <p><strong>Элементы:</strong> Верхний крючок + стержень + резьба</p>
+                </div>
+                <div class="photo-reference">
+                    <p>📸 Фото: Штанга из наборного груза 10 грамм.png</p>
+                </div>
+                <a href="rod-10g.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #2a5298; color: white; text-decoration: none; border-radius: 20px; transition: all 0.3s ease;">Открыть отдельно →</a>
+            </div>
+
+            <!-- Диск 10г -->
+            <div class="card">
+                <h2>Диск 10 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-10g-canvas" width="200" height="200"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 10 г</p>
+                    <p><strong>Материал:</strong> Металл</p>
+                    <p><strong>Диаметр:</strong> ~30 мм</p>
+                    <p><strong>Толщина:</strong> ~3 мм</p>
+                    <p><strong>Цвет:</strong> Серый металлик</p>
+                    <p><strong>Отверстие:</strong> Центральное для штанги</p>
+                </div>
+                <div class="photo-reference">
+                    <p>📸 Фото: диск ргуз 10 гр.png</p>
+                </div>
+                <a href="disk-10g.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #43e97b; color: white; text-decoration: none; border-radius: 20px; transition: all 0.3s ease;">Открыть отдельно →</a>
+            </div>
+
+            <!-- Диск 20г -->
+            <div class="card">
+                <h2>Диск 20 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-20g-canvas" width="220" height="220"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 20 г</p>
+                    <p><strong>Материал:</strong> Металл</p>
+                    <p><strong>Диаметр:</strong> ~40 мм</p>
+                    <p><strong>Толщина:</strong> ~3 мм</p>
+                    <p><strong>Цвет:</strong> Серый металлик</p>
+                    <p><strong>Отверстие:</strong> Центральное для штанги</p>
+                </div>
+                <div class="photo-reference">
+                    <p>📸 Фото: Диск груз 20 грамм.png</p>
+                </div>
+                <a href="disk-20g.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #fa709a; color: white; text-decoration: none; border-radius: 20px; transition: all 0.3s ease;">Открыть отдельно →</a>
+            </div>
+
+            <!-- Диск 50г -->
+            <div class="card">
+                <h2>Диск 50 г</h2>
+                <div class="canvas-container">
+                    <canvas id="disk-50g-canvas" width="250" height="250"></canvas>
+                </div>
+                <div class="specs">
+                    <p><strong>Масса:</strong> 50 г</p>
+                    <p><strong>Материал:</strong> Металл</p>
+                    <p><strong>Диаметр:</strong> ~50 мм</p>
+                    <p><strong>Толщина:</strong> ~4 мм</p>
+                    <p><strong>Цвет:</strong> Серый металлик</p>
+                    <p><strong>Отверстие:</strong> Центральное для штанги</p>
+                </div>
+                <div class="photo-reference">
+                    <p>📸 Фото: Диск груз 50 грамм.png</p>
+                </div>
+                <a href="disk-50g.html" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: #f093fb; color: white; text-decoration: none; border-radius: 20px; transition: all 0.3s ease;">Открыть отдельно →</a>
+            </div>
+        </div>
+
+        <!-- Сборка -->
+        <div class="assembly-section">
+            <h2>🔧 Наборный груз в сборе</h2>
+            <p style="margin-bottom: 20px; color: #666; text-align: center;">
+                Штанга 10г + Диск 50г + Диск 20г + Диск 10г = <strong style="color: #2a5298;">90 г</strong>
+            </p>
+            <div class="assembly-canvas">
+                <canvas id="assembly-canvas" width="300" height="400"></canvas>
+            </div>
+            <div class="photo-reference">
+                <p>📸 Фото: Наборный груз в сборе со всеми дисками.png</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="composite-weight-renderer.js"></script>
+</body>
+</html>

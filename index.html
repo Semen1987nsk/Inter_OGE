@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Виртуальная лаборатория физики - ОГЭ 2025 | Labosfera</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="freemium-styles.css">
 </head>
 <body>
     <!-- ============================================
@@ -43,32 +44,43 @@
                 для подготовки к ОГЭ 2025
             </h1>
             <p class="hero-subtitle">
-                Полный набор интерактивных экспериментов с оборудованием Labosfera.<br>
-                Все 7 комплектов по спецификации ФИПИ.
+                Отрабатывай экспериментальные задания ОГЭ онлайн.<br>
+                Попробуй <strong>бесплатно</strong> один эксперимент прямо сейчас!
             </p>
             <div class="hero-features">
                 <div class="feature-item">
                     <span class="feature-icon">✓</span>
-                    <span class="feature-text">7 комплектов оборудования</span>
+                    <span class="feature-text">1 опыт бесплатно</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span class="feature-text">7 комплектов ФИПИ</span>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">✓</span>
                     <span class="feature-text">33+ экспериментов</span>
                 </div>
-                <div class="feature-item">
-                    <span class="feature-icon">✓</span>
-                    <span class="feature-text">Соответствие ФИПИ 2025</span>
-                </div>
             </div>
             <div class="hero-actions">
-                <button class="btn-hero-primary" id="startLearningBtn">
-                    <span class="btn-icon">▶</span>
-                    Начать обучение
+                <button class="btn-hero-primary" id="startFreeBtn">
+                    <span class="btn-icon">🚀</span>
+                    Попробовать бесплатно
                 </button>
-                <button class="btn-hero-secondary" id="aboutProjectBtn">
-                    <span class="btn-icon">📖</span>
-                    О проекте
+                <button class="btn-hero-secondary" id="viewPricingBtn">
+                    <span class="btn-icon">�</span>
+                    Полный доступ
                 </button>
+            </div>
+            <p class="hero-note">
+                ⚡ Бесплатный доступ к эксперименту "Жёсткость пружины" — без регистрации
+            </p>
+            <!-- 🧪 DEV: Quick test links -->
+            <div style="margin-top: 20px; padding: 10px; background: rgba(0, 168, 107, 0.1); border: 2px dashed #00A86B; border-radius: 10px;">
+                <p style="font-size: 14px; color: #00A86B; margin-bottom: 10px;">🔧 <strong>DEV MODE:</strong> Быстрые тесты</p>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <a href="interact-touch-test.html" style="padding: 8px 16px; background: #00A86B; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">📱 Touch Test</a>
+                    <a href="experiments/kit2/experiment-1-spring.html" style="padding: 8px 16px; background: #0066CC; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">🔬 Эксперимент</a>
+                </div>
             </div>
         </div>
     </section>
@@ -78,64 +90,114 @@
          ============================================ -->
     <section class="progress-path">
         <div class="container">
-            <h2 class="section-title">Ваш путь обучения</h2>
+            <div class="freemium-banner">
+                <div class="freemium-badge">🎁 ДЕМО-ВЕРСИЯ</div>
+                <h2 class="section-title">Твой путь подготовки к ОГЭ</h2>
+                <p class="section-subtitle">
+                    Один эксперимент доступен бесплатно. Открой доступ ко всем 33+ опытам!
+                </p>
+            </div>
+            
             <div class="path-visualization">
                 <div class="path-node" data-kit="1" data-status="available">
-                    <div class="node-circle">№1</div>
+                    <div class="node-circle">
+                        <span class="node-icon">⚖️</span>
+                        №1
+                    </div>
                     <div class="node-label">Плотность</div>
-                    <div class="node-status">0/5</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        5 опытов
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node active" data-kit="2" data-status="active">
-                    <div class="node-circle">№2</div>
+                <div class="path-node free-node" data-kit="2" data-status="free">
+                    <div class="node-circle free">
+                        <span class="free-icon">✨</span>
+                        №2
+                    </div>
                     <div class="node-label">Пружины</div>
-                    <div class="node-status">🔥 0/7</div>
+                    <div class="node-status">
+                        <span class="free-badge">БЕСПЛАТНО</span>
+                        1 опыт доступен
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node" data-kit="3" data-status="locked">
-                    <div class="node-circle">№3</div>
+                <div class="path-node" data-kit="3" data-status="available">
+                    <div class="node-circle">
+                        <span class="node-icon">⚡</span>
+                        №3
+                    </div>
                     <div class="node-label">Электричество</div>
-                    <div class="node-status">🔒 0/9</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        9 опытов
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node" data-kit="4" data-status="locked">
-                    <div class="node-circle">№4</div>
+                <div class="path-node" data-kit="4" data-status="available">
+                    <div class="node-circle">
+                        <span class="node-icon">�</span>
+                        №4
+                    </div>
                     <div class="node-label">Оптика</div>
-                    <div class="node-status">🔒 0/6</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        6 опытов
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node" data-kit="5" data-status="locked">
-                    <div class="node-circle">№5</div>
+                <div class="path-node" data-kit="5" data-status="available">
+                    <div class="node-circle">
+                        <span class="node-icon">�</span>
+                        №5
+                    </div>
                     <div class="node-label">Кинематика</div>
-                    <div class="node-status">🔒</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        Скоро
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node" data-kit="6" data-status="locked">
-                    <div class="node-circle">№6</div>
+                <div class="path-node" data-kit="6" data-status="available">
+                    <div class="node-circle">
+                        <span class="node-icon">🎭</span>
+                        №6
+                    </div>
                     <div class="node-label">Механика II</div>
-                    <div class="node-status">🔒 0/6</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        6 опытов
+                    </div>
                 </div>
                 <div class="path-line"></div>
                 
-                <div class="path-node" data-kit="7" data-status="locked">
-                    <div class="node-circle">№7</div>
+                <div class="path-node" data-kit="7" data-status="available">
+                    <div class="node-circle">
+                        <span class="node-icon">🌡️</span>
+                        №7
+                    </div>
                     <div class="node-label">Термодинамика</div>
-                    <div class="node-status">🔒</div>
+                    <div class="node-status">
+                        <span class="available-badge">○</span>
+                        Скоро
+                    </div>
                 </div>
             </div>
-            <div class="overall-progress">
-                <div class="progress-bar-container">
-                    <div class="progress-bar-fill" style="width: 0%" id="progressFill"></div>
-                </div>
-                <div class="progress-text">
-                    <span id="progressPercent">0%</span> 
-                    (<span id="progressCount">0/33+</span> опытов выполнено)
-                </div>
+            
+            <div class="upgrade-cta">
+                <button class="btn-upgrade-premium" id="upgradePremiumBtn">
+                    <span class="btn-icon">💎</span>
+                    <span class="btn-content">
+                        <span class="btn-title">Получить полный доступ</span>
+                        <span class="btn-subtitle">33+ экспериментов • Все комплекты ФИПИ</span>
+                    </span>
+                </button>
             </div>
         </div>
     </section>
@@ -150,20 +212,20 @@
         <a href="#kit2" class="quick-nav-item active" data-kit="2">
             №2 <span class="quick-status">🔥</span>
         </a>
-        <a href="#kit3" class="quick-nav-item locked" data-kit="3">
-            №3 <span class="quick-status">🔒</span>
+        <a href="#kit3" class="quick-nav-item" data-kit="3">
+            №3 <span class="quick-status">○</span>
         </a>
-        <a href="#kit4" class="quick-nav-item locked" data-kit="4">
-            №4 <span class="quick-status">🔒</span>
+        <a href="#kit4" class="quick-nav-item" data-kit="4">
+            №4 <span class="quick-status">○</span>
         </a>
-        <a href="#kit5" class="quick-nav-item locked" data-kit="5">
-            №5 <span class="quick-status">🔒</span>
+        <a href="#kit5" class="quick-nav-item" data-kit="5">
+            №5 <span class="quick-status">○</span>
         </a>
-        <a href="#kit6" class="quick-nav-item locked" data-kit="6">
-            №6 <span class="quick-status">🔒</span>
+        <a href="#kit6" class="quick-nav-item" data-kit="6">
+            №6 <span class="quick-status">○</span>
         </a>
-        <a href="#kit7" class="quick-nav-item locked" data-kit="7">
-            №7 <span class="quick-status">🔒</span>
+        <a href="#kit7" class="quick-nav-item" data-kit="7">
+            №7 <span class="quick-status">○</span>
         </a>
     </nav>
 
@@ -173,14 +235,14 @@
     <main class="main-content">
         <div class="container">
             
-            <!-- КОМПЛЕКТ №1 -->
-            <section class="kit-section" id="kit1" data-kit-id="1" data-status="available">
+            <!-- КОМПЛЕКТ №1 - ЗАБЛОКИРОВАН -->
+            <section class="kit-section locked" id="kit1" data-kit-id="1" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">⚖️</span>
                             КОМПЛЕКТ №1: Механика - Плотность и Архимедова сила
-                            <span class="kit-badge available">○ Доступен</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
@@ -193,12 +255,8 @@
                             ~2.5 часа
                         </span>
                         <span class="meta-tag">
-                            <span class="meta-icon">⭐</span>
-                            0% пройдено
-                        </span>
-                        <span class="meta-tag">
-                            <span class="meta-icon">●</span>
-                            0/5 опытов
+                            <span class="meta-icon">🔒</span>
+                            5 опытов PRO
                         </span>
                     </div>
                 </div>
@@ -207,85 +265,117 @@
                 <div class="experiments-carousel">
                     <button class="carousel-btn prev" data-kit="1">‹</button>
                     <div class="carousel-track" id="carouselKit1">
-                        <!-- 5 карточек опытов -->
-                        <div class="experiment-card-mini" data-exp-id="1-1" data-status="available">
+                        
+                        <!-- ВСЕ 5 ОПЫТОВ ЗАБЛОКИРОВАНЫ -->
+                        <div class="experiment-card-mini locked" data-exp-id="1-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">01</div>
-                            <div class="card-mini-photo-placeholder">⚖️</div>
+                            <div class="card-mini-photo-placeholder blurred">⚖️</div>
                             <h4 class="card-mini-title">Измерение плотности</h4>
                             <p class="card-mini-desc">Определение ρ = m/V</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐ Средне</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="1-2" data-status="locked">
+                        <div class="experiment-card-mini locked" data-exp-id="1-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">02</div>
-                            <div class="card-mini-photo-placeholder">💧</div>
+                            <div class="card-mini-photo-placeholder blurred">💧</div>
                             <h4 class="card-mini-title">Архимедова сила</h4>
                             <p class="card-mini-desc">F_A = ρ_ж × g × V</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐ Средне</span>
                             </div>
-                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>�</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="1-3" data-status="locked">
+                        <div class="experiment-card-mini locked" data-exp-id="1-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">03</div>
-                            <div class="card-mini-photo-placeholder">📊</div>
+                            <div class="card-mini-photo-placeholder blurred">📊</div>
                             <h4 class="card-mini-title">F_A от объема</h4>
                             <p class="card-mini-desc">График зависимости</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐⭐ Сложно</span>
                             </div>
-                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>�</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="1-4" data-status="locked">
+                        <div class="experiment-card-mini locked" data-exp-id="1-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">04</div>
-                            <div class="card-mini-photo-placeholder">🧪</div>
+                            <div class="card-mini-photo-placeholder blurred">🧪</div>
                             <h4 class="card-mini-title">F_A от плотности</h4>
                             <p class="card-mini-desc">Соляной раствор</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 25 мин</span>
                                 <span>⭐ Средне</span>
                             </div>
-                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>�</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="1-5" data-status="locked">
+                        <div class="experiment-card-mini locked" data-exp-id="1-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">05</div>
-                            <div class="card-mini-photo-placeholder">⚗️</div>
+                            <div class="card-mini-photo-placeholder blurred">⚗️</div>
                             <h4 class="card-mini-title">F_A от массы</h4>
                             <p class="card-mini-desc">Независимость</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 25 мин</span>
                                 <span>⭐ Легко</span>
                             </div>
-                            <button class="btn-mini-start" disabled>🔒 Скоро</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>�</span> Разблокировать
+                            </button>
                         </div>
+                        
                     </div>
                     <button class="carousel-btn next" data-kit="1">›</button>
                 </div>
 
                 <div class="kit-actions">
-                    <button class="btn-kit-info" data-kit="1">
-                        ℹ️ О комплекте
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (5 опытов)
                     </button>
                 </div>
             </section>
 
-            <!-- КОМПЛЕКТ №2 - АКТИВНЫЙ (Пилот) -->
-            <section class="kit-section active" id="kit2" data-kit-id="2" data-status="active">
+            <!-- КОМПЛЕКТ №2 - ЧАСТИЧНО БЕСПЛАТНЫЙ (1 опыт) -->
+            <section class="kit-section free-trial" id="kit2" data-kit-id="2" data-status="free">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">🔧</span>
                             КОМПЛЕКТ №2: Механика (пружины, трение, рычаги)
-                            <span class="kit-badge active">🔥 АКТИВНЫЙ - ПИЛОТ</span>
+                            <span class="kit-badge free">✨ 1 ОПЫТ БЕСПЛАТНО</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
@@ -297,23 +387,21 @@
                             <span class="meta-icon">⏱️</span>
                             ~3 часа
                         </span>
-                        <span class="meta-tag">
-                            <span class="meta-icon">⭐</span>
-                            0% пройдено
-                        </span>
-                        <span class="meta-tag">
-                            <span class="meta-icon">●</span>
-                            0/6 опытов
+                        <span class="meta-tag free-tag">
+                            <span class="meta-icon">🎁</span>
+                            1 бесплатно / 6 всего
                         </span>
                     </div>
                 </div>
 
-                <!-- Карусель опытов комплекта 2 (РЕАЛИЗОВАН) -->
+                <!-- Карусель опытов комплекта 2 -->
                 <div class="experiments-carousel">
                     <button class="carousel-btn prev" data-kit="2">‹</button>
                     <div class="carousel-track" id="carouselKit2">
-                        <!-- 6 карточек опытов с реальными фото - ОФИЦИАЛЬНАЯ СПЕЦИФИКАЦИЯ ФИПИ -->
-                        <div class="experiment-card-mini" data-exp-id="2-1" data-status="available">
+                        
+                        <!-- ОПЫТ #1 - БЕСПЛАТНЫЙ -->
+                        <div class="experiment-card-mini free" data-exp-id="2-1" data-status="free">
+                            <div class="card-free-badge">🎁 БЕСПЛАТНО</div>
                             <div class="card-mini-number">01</div>
                             <div class="card-mini-photo">
                                 <img src="фото оборудования/Пружина 1  с жесткостью 50 Нм.png" 
@@ -326,12 +414,19 @@
                                 <span>⏱️ 25 мин</span>
                                 <span>⭐ Легко</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start free">
+                                <span>🚀</span> Начать бесплатно
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="2-2" data-status="available">
+                        <!-- ОПЫТЫ #2-6 - ПРЕМИУМ -->
+                        <div class="experiment-card-mini locked" data-exp-id="2-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">02</div>
-                            <div class="card-mini-photo">
+                            <div class="card-mini-photo blurred">
                                 <img src="фото оборудования/брусок деревянный с крючками масса бруска m = (50 ± 5) г.png" 
                                      alt="Брусок" 
                                      onerror="this.parentElement.innerHTML='📦'">
@@ -342,12 +437,18 @@
                                 <span>⏱️ 25 мин</span>
                                 <span>⭐ Средне</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="2-3" data-status="available">
+                        <div class="experiment-card-mini locked" data-exp-id="2-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">03</div>
-                            <div class="card-mini-photo">
+                            <div class="card-mini-photo blurred">
                                 <img src="фото оборудования/динамометр 2 предел измерения 5 Н (С = 0,1 Н).png" 
                                      alt="Динамометр" 
                                      onerror="this.parentElement.innerHTML='⚖️'">
@@ -358,12 +459,18 @@
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐⭐ Сложно</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="2-4" data-status="available">
+                        <div class="experiment-card-mini locked" data-exp-id="2-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">04</div>
-                            <div class="card-mini-photo">
+                            <div class="card-mini-photo blurred">
                                 <img src="фото оборудования/Пружина 2 с жесткостью 10 НМ.png" 
                                      alt="Пружина 2" 
                                      onerror="this.parentElement.innerHTML='🔩'">
@@ -374,12 +481,18 @@
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐⭐ Сложно</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="2-5" data-status="available">
+                        <div class="experiment-card-mini locked" data-exp-id="2-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">05</div>
-                            <div class="card-mini-photo">
+                            <div class="card-mini-photo blurred">
                                 <img src="фото оборудования/Гибкая лента с коэфициентом трения 0,6 - прикрепляется к направляющей на липкой ленте.png" 
                                      alt="Поверхности" 
                                      onerror="this.parentElement.innerHTML='🛤️'">
@@ -390,216 +503,833 @@
                                 <span>⏱️ 40 мин</span>
                                 <span>⭐⭐⭐ Сложно</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                         
-                        <div class="experiment-card-mini" data-exp-id="2-6" data-status="available">
+                        <div class="experiment-card-mini locked" data-exp-id="2-6" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
                             <div class="card-mini-number">06</div>
-                            <div class="card-mini-photo-placeholder">📈</div>
+                            <div class="card-mini-photo-placeholder blurred">📈</div>
                             <h4 class="card-mini-title">Исследование зависимости F_упр от деформации</h4>
                             <p class="card-mini-desc">Закон Гука: F(Δl)</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 30 мин</span>
                                 <span>⭐⭐ Сложно</span>
                             </div>
-                            <button class="btn-mini-start">▶ Начать</button>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
                     </div>
                     <button class="carousel-btn next" data-kit="2">›</button>
                 </div>
 
                 <div class="kit-actions">
-                    <button class="btn-start-kit primary" data-kit="2">
-                        ▶ НАЧАТЬ ЭКСПЕРИМЕНТЫ
+                    <button class="btn-start-kit free" data-kit="2">
+                        🚀 НАЧАТЬ БЕСПЛАТНЫЙ ОПЫТ
                     </button>
-                    <button class="btn-kit-info" data-kit="2">
-                        ℹ️ О комплекте
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать все опыты (5)
                     </button>
                 </div>
             </section>
 
-            <!-- КОМПЛЕКТЫ №3-7 - В РАЗРАБОТКЕ -->
+            <!-- КОМПЛЕКТЫ №3-7 - ЗАБЛОКИРОВАНЫ (PRO) -->
             
-            <!-- КОМПЛЕКТ №3 -->
+            <!-- КОМПЛЕКТ №3 - ЗАБЛОКИРОВАН -->
             <section class="kit-section locked" id="kit3" data-kit-id="3" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">⚡</span>
                             КОМПЛЕКТ №3: Электричество - Законы постоянного тока
-                            <span class="kit-badge locked">🔒 В разработке</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
                         <span class="meta-tag">🔬 Комплект №3</span>
                         <span class="meta-tag">⏱️ ~4 часа</span>
-                        <span class="meta-tag">🔒 9 опытов</span>
+                        <span class="meta-tag">🔒 9 опытов PRO</span>
                     </div>
                 </div>
 
-                <div class="locked-preview">
-                    <div class="locked-overlay">
-                        <div class="locked-content">
-                            <div class="locked-icon">🚧</div>
-                            <h3>В РАЗРАБОТКЕ</h3>
-                            <p>Этот комплект будет доступен в следующей версии</p>
-                            <p class="locked-desc">Закон Ома, соединения проводников, мощность тока</p>
-                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                <!-- Карусель опытов комплекта 3 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="3">‹</button>
+                    <div class="carousel-track" id="carouselKit3">
+                        
+                        <!-- 9 ЗАБЛОКИРОВАННЫХ ОПЫТОВ -->
+                        <div class="experiment-card-mini locked" data-exp-id="3-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder blurred">⚡</div>
+                            <h4 class="card-mini-title">Измерение сопротивления</h4>
+                            <p class="card-mini-desc">R = U / I</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder blurred">💡</div>
+                            <h4 class="card-mini-title">Измерение мощности тока</h4>
+                            <p class="card-mini-desc">P = U × I</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder blurred">🔋</div>
+                            <h4 class="card-mini-title">Измерение работы тока</h4>
+                            <p class="card-mini-desc">A = P × t</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder blurred">📊</div>
+                            <h4 class="card-mini-title">Исследование закона Ома</h4>
+                            <p class="card-mini-desc">I(U) зависимость</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 35 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder blurred">📏</div>
+                            <h4 class="card-mini-title">R от длины проводника</h4>
+                            <p class="card-mini-desc">R ~ l</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-6" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">06</div>
+                            <div class="card-mini-photo-placeholder blurred">🔲</div>
+                            <h4 class="card-mini-title">R от площади сечения</h4>
+                            <p class="card-mini-desc">R ~ 1/S</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-7" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">07</div>
+                            <div class="card-mini-photo-placeholder blurred">🧪</div>
+                            <h4 class="card-mini-title">R от материала</h4>
+                            <p class="card-mini-desc">Удельное сопротивление</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-8" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">08</div>
+                            <div class="card-mini-photo-placeholder blurred">🔗</div>
+                            <h4 class="card-mini-title">Последовательное соединение</h4>
+                            <p class="card-mini-desc">Правило напряжений</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="3-9" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">09</div>
+                            <div class="card-mini-photo-placeholder blurred">⚡</div>
+                            <h4 class="card-mini-title">Параллельное соединение</h4>
+                            <p class="card-mini-desc">Правило токов</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
                     </div>
-                    <div class="experiments-preview-locked">
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                    </div>
+                    <button class="carousel-btn next" data-kit="3">›</button>
                 </div>
-            </section>
 
-            <!-- КОМПЛЕКТ №4 -->
+                <div class="kit-actions">
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (9 опытов)
+                    </button>
+                </div>
+            </section>            <!-- КОМПЛЕКТ №4 - ЗАБЛОКИРОВАН -->
             <section class="kit-section locked" id="kit4" data-kit-id="4" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">🔍</span>
                             КОМПЛЕКТ №4: Оптика - Линзы и преломление
-                            <span class="kit-badge locked">🔒 В разработке</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
                         <span class="meta-tag">🔬 Комплект №4</span>
                         <span class="meta-tag">⏱️ ~3 часа</span>
-                        <span class="meta-tag">🔒 6 опытов</span>
+                        <span class="meta-tag">🔒 6 опытов PRO</span>
                     </div>
                 </div>
 
-                <div class="locked-preview">
-                    <div class="locked-overlay">
-                        <div class="locked-content">
-                            <div class="locked-icon">🚧</div>
-                            <h3>В РАЗРАБОТКЕ</h3>
-                            <p>Этот комплект будет доступен в следующей версии</p>
-                            <p class="locked-desc">Фокусное расстояние, изображения в линзах, закон преломления</p>
-                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                <!-- Карусель опытов комплекта 4 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="4">‹</button>
+                    <div class="carousel-track" id="carouselKit4">
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder blurred">🔬</div>
+                            <h4 class="card-mini-title">Фокусное расстояние линзы</h4>
+                            <p class="card-mini-desc">Собирающая линза</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder blurred">�</div>
+                            <h4 class="card-mini-title">Оптическая сила линзы</h4>
+                            <p class="card-mini-desc">D = 1 / F</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder blurred">📷</div>
+                            <h4 class="card-mini-title">Изображения в линзах</h4>
+                            <p class="card-mini-desc">Действительное / мнимое</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder blurred">📐</div>
+                            <h4 class="card-mini-title">Закон преломления света</h4>
+                            <p class="card-mini-desc">n₁sinα = n₂sinβ</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder blurred">💎</div>
+                            <h4 class="card-mini-title">Показатель преломления</h4>
+                            <p class="card-mini-desc">Измерение для стекла</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="4-6" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">06</div>
+                            <div class="card-mini-photo-placeholder blurred">🌈</div>
+                            <h4 class="card-mini-title">Дисперсия света</h4>
+                            <p class="card-mini-desc">Разложение в спектр</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
                     </div>
-                    <div class="experiments-preview-locked">
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                    </div>
+                    <button class="carousel-btn next" data-kit="4">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (6 опытов)
+                    </button>
                 </div>
             </section>
 
-            <!-- КОМПЛЕКТ №5 -->
+            <!-- КОМПЛЕКТ №5 - ЗАБЛОКИРОВАН -->
             <section class="kit-section locked" id="kit5" data-kit-id="5" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">🚀</span>
                             КОМПЛЕКТ №5: Кинематика и колебания
-                            <span class="kit-badge locked">🔒 В разработке</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
                         <span class="meta-tag">🔬 Комплект №5</span>
                         <span class="meta-tag">⏱️ ~3.5 часа</span>
-                        <span class="meta-tag">🔒 Скоро</span>
+                        <span class="meta-tag">🔒 5 опытов PRO</span>
                     </div>
                 </div>
 
-                <div class="locked-preview">
-                    <div class="locked-overlay">
-                        <div class="locked-content">
-                            <div class="locked-icon">🚧</div>
-                            <h3>В РАЗРАБОТКЕ</h3>
-                            <p>Этот комплект будет доступен в следующей версии</p>
-                            <p class="locked-desc">Равномерное движение, ускорение, колебания маятника</p>
-                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                <!-- Карусель опытов комплекта 5 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="5">‹</button>
+                    <div class="carousel-track" id="carouselKit5">
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="5-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder blurred">🏃</div>
+                            <h4 class="card-mini-title">Равномерное движение</h4>
+                            <p class="card-mini-desc">v = s / t</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Легко</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="5-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder blurred">⏱️</div>
+                            <h4 class="card-mini-title">Измерение ускорения</h4>
+                            <p class="card-mini-desc">a = Δv / Δt</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="5-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder blurred">⏰</div>
+                            <h4 class="card-mini-title">Период колебаний маятника</h4>
+                            <p class="card-mini-desc">T = 2π√(l/g)</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="5-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder blurred">📏</div>
+                            <h4 class="card-mini-title">T от длины маятника</h4>
+                            <p class="card-mini-desc">T ~ √l</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 35 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="5-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder blurred">🎯</div>
+                            <h4 class="card-mini-title">Свободное падение</h4>
+                            <p class="card-mini-desc">g = 2h / t²</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
                     </div>
-                    <div class="experiments-preview-locked">
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                    </div>
+                    <button class="carousel-btn next" data-kit="5">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (5 опытов)
+                    </button>
                 </div>
             </section>
 
-            <!-- КОМПЛЕКТ №6 -->
+            <!-- КОМПЛЕКТ №6 - ЗАБЛОКИРОВАН -->
             <section class="kit-section locked" id="kit6" data-kit-id="6" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">🎭</span>
                             КОМПЛЕКТ №6: Механика - Рычаги и блоки
-                            <span class="kit-badge locked">🔒 В разработке</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
                         <span class="meta-tag">🔬 Комплект №6</span>
                         <span class="meta-tag">⏱️ ~3 часа</span>
-                        <span class="meta-tag">🔒 6 опытов</span>
+                        <span class="meta-tag">🔒 6 опытов PRO</span>
                     </div>
                 </div>
 
-                <div class="locked-preview">
-                    <div class="locked-overlay">
-                        <div class="locked-content">
-                            <div class="locked-icon">🚧</div>
-                            <h3>В РАЗРАБОТКЕ</h3>
-                            <p>Этот комплект будет доступен в следующей версии</p>
-                            <p class="locked-desc">Условие равновесия, момент силы, простые механизмы</p>
-                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                <!-- Карусель опытов комплекта 6 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="6">‹</button>
+                    <div class="carousel-track" id="carouselKit6">
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder blurred">⚖️</div>
+                            <h4 class="card-mini-title">Условие равновесия рычага</h4>
+                            <p class="card-mini-desc">F₁l₁ = F₂l₂</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder blurred">�</div>
+                            <h4 class="card-mini-title">Момент силы</h4>
+                            <p class="card-mini-desc">M = F × l</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder blurred">🏗️</div>
+                            <h4 class="card-mini-title">Неподвижный блок</h4>
+                            <p class="card-mini-desc">Изменение направления силы</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 20 мин</span>
+                                <span>⭐ Легко</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder blurred">🎢</div>
+                            <h4 class="card-mini-title">Подвижный блок</h4>
+                            <p class="card-mini-desc">Выигрыш в силе в 2 раза</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 25 мин</span>
+                                <span>⭐ Средне</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder blurred">🔧</div>
+                            <h4 class="card-mini-title">КПД наклонной плоскости</h4>
+                            <p class="card-mini-desc">η = A_полезн / A_затрач</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="6-6" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">06</div>
+                            <div class="card-mini-photo-placeholder blurred">⚙️</div>
+                            <h4 class="card-mini-title">КПД рычага</h4>
+                            <p class="card-mini-desc">Полезная и затраченная работа</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
                     </div>
-                    <div class="experiments-preview-locked">
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                    </div>
+                    <button class="carousel-btn next" data-kit="6">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (6 опытов)
+                    </button>
                 </div>
             </section>
 
-            <!-- КОМПЛЕКТ №7 -->
+            <!-- КОМПЛЕКТ №7 - ЗАБЛОКИРОВАН -->
             <section class="kit-section locked" id="kit7" data-kit-id="7" data-status="locked">
                 <div class="kit-header">
                     <div class="kit-title-row">
                         <h2 class="kit-title">
                             <span class="kit-icon">🌡️</span>
                             КОМПЛЕКТ №7: Термодинамика - Теплообмен
-                            <span class="kit-badge locked">🔒 В разработке</span>
+                            <span class="kit-badge locked">🔒 PRO</span>
                         </h2>
                     </div>
                     <div class="kit-meta">
                         <span class="meta-tag">🔬 Комплект №7</span>
                         <span class="meta-tag">⏱️ ~3 часа</span>
-                        <span class="meta-tag">🔒 Скоро</span>
+                        <span class="meta-tag">🔒 5 опытов PRO</span>
                     </div>
                 </div>
 
-                <div class="locked-preview">
-                    <div class="locked-overlay">
-                        <div class="locked-content">
-                            <div class="locked-icon">🚧</div>
-                            <h3>В РАЗРАБОТКЕ</h3>
-                            <p>Этот комплект будет доступен в следующей версии</p>
-                            <p class="locked-desc">Количество теплоты, уравнение теплового баланса, фазовые переходы</p>
-                            <button class="btn-notify">🔔 Уведомить о готовности</button>
+                <!-- Карусель опытов комплекта 7 -->
+                <div class="experiments-carousel">
+                    <button class="carousel-btn prev" data-kit="7">‹</button>
+                    <div class="carousel-track" id="carouselKit7">
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="7-1" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">01</div>
+                            <div class="card-mini-photo-placeholder blurred">🌡️</div>
+                            <h4 class="card-mini-title">Удельная теплоёмкость</h4>
+                            <p class="card-mini-desc">Q = cmΔT</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
                         </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="7-2" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">02</div>
+                            <div class="card-mini-photo-placeholder blurred">💧</div>
+                            <h4 class="card-mini-title">Уравнение теплового баланса</h4>
+                            <p class="card-mini-desc">Q_отд = Q_получ</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 35 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="7-3" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">03</div>
+                            <div class="card-mini-photo-placeholder blurred">🧊</div>
+                            <h4 class="card-mini-title">Удельная теплота плавления</h4>
+                            <p class="card-mini-desc">Q = λm</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="7-4" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">04</div>
+                            <div class="card-mini-photo-placeholder blurred">💨</div>
+                            <h4 class="card-mini-title">Удельная теплота парообразования</h4>
+                            <p class="card-mini-desc">Q = Lm</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
+                        <div class="experiment-card-mini locked" data-exp-id="7-5" data-status="premium">
+                            <div class="card-premium-overlay">
+                                <div class="premium-lock">🔒</div>
+                                <div class="premium-label">PRO</div>
+                            </div>
+                            <div class="card-mini-number">05</div>
+                            <div class="card-mini-photo-placeholder blurred">🔥</div>
+                            <h4 class="card-mini-title">КПД нагревателя</h4>
+                            <p class="card-mini-desc">η = Q_полезн / Q_затрач</p>
+                            <div class="card-mini-meta">
+                                <span>⏱️ 30 мин</span>
+                                <span>⭐⭐ Сложно</span>
+                            </div>
+                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
+                                <span>💎</span> Разблокировать
+                            </button>
+                        </div>
+                        
                     </div>
-                    <div class="experiments-preview-locked">
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                        <div class="locked-card"></div>
-                    </div>
+                    <button class="carousel-btn next" data-kit="7">›</button>
+                </div>
+
+                <div class="kit-actions">
+                    <button class="btn-upgrade-kit" onclick="showUpgradeModal()">
+                        💎 Разблокировать комплект (5 опытов)
+                    </button>
                 </div>
             </section>
 
         </div>
     </main>
+
+    <!-- ============================================
+         CONTACT SECTION (Связь с отделом продаж)
+         ============================================ -->
+    <section class="contact-section" id="contact">
+        <div class="container">
+            <div class="contact-header">
+                <h2 class="contact-title">Свяжитесь с отделом продаж</h2>
+                <p class="contact-subtitle">
+                    Получите консультацию по подключению виртуальной лаборатории для вашей школы
+                </p>
+            </div>
+
+            <div class="contact-content">
+                <div class="contact-info">
+                    <div class="contact-card">
+                        <div class="contact-icon">📞</div>
+                        <h3>Телефон</h3>
+                        <a href="tel:88001015987">8 800 101 5987</a>
+                        <p class="contact-hours">Пн-Пт: 9:00 - 18:00 (МСК+4)</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">📧</div>
+                        <h3>Email</h3>
+                        <a href="mailto:info@labosfera.ru">info@labosfera.ru</a>
+                        <p class="contact-hours">Ответим в течение 24 часов</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">🌐</div>
+                        <h3>Веб-сайт</h3>
+                        <a href="https://labosfera.ru" target="_blank">labosfera.ru</a>
+                        <p class="contact-hours">Каталог оборудования и решений</p>
+                    </div>
+
+                    <div class="contact-card">
+                        <div class="contact-icon">📍</div>
+                        <h3>Офис</h3>
+                        <p>г. Новосибирск</p>
+                        <p class="contact-hours">ул. Кирова, 48, офис 1403</p>
+                    </div>
+                </div>
+
+                <div class="contact-benefits">
+                    <h3>Что мы предлагаем:</h3>
+                    <ul class="benefits-list">
+                        <li>✓ <strong>Для школ:</strong> Корпоративные лицензии с панелью учителя</li>
+                        <li>✓ <strong>Для учеников:</strong> Индивидуальный доступ на весь учебный год</li>
+                        <li>✓ <strong>Интеграция:</strong> Возможность интеграции с оборудованием Labosfera</li>
+                        <li>✓ <strong>Методическая поддержка:</strong> Готовые планы уроков и рекомендации</li>
+                        <li>✓ <strong>Обучение:</strong> Бесплатные вебинары для педагогов</li>
+                        <li>✓ <strong>Техподдержка:</strong> Персональный менеджер для школ</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="contact-cta">
+                <p class="cta-text">
+                    💡 <strong>Попробуйте бесплатно:</strong> Один эксперимент доступен без регистрации
+                </p>
+                <a href="#kit2" class="btn-cta">Начать прямо сейчас</a>
+            </div>
+        </div>
+    </section>
 
     <!-- ============================================
          FOOTER
@@ -654,6 +1384,101 @@
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Контент загружается динамически -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODAL: UPGRADE TO PRO
+         ============================================ -->
+    <div class="modal" id="upgradeModal">
+        <div class="modal-overlay" onclick="closeUpgradeModal()"></div>
+        <div class="modal-content upgrade-modal">
+            <button class="modal-close" onclick="closeUpgradeModal()">&times;</button>
+            
+            <div class="modal-header upgrade-header">
+                <div class="upgrade-icon">💎</div>
+                <h2>Разблокируй полный доступ</h2>
+                <p>Получи все 33+ эксперимента и готовься к ОГЭ без ограничений</p>
+            </div>
+            
+            <div class="modal-body">
+                <div class="upgrade-benefits">
+                    <div class="benefit-item">
+                        <span class="benefit-icon">🔓</span>
+                        <div class="benefit-text">
+                            <strong>Все 33+ эксперимента</strong>
+                            <p>Полный доступ ко всем комплектам ФИПИ</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">♾️</span>
+                        <div class="benefit-text">
+                            <strong>Неограниченные попытки</strong>
+                            <p>Тренируйся сколько угодно раз</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">📊</span>
+                        <div class="benefit-text">
+                            <strong>Статистика прогресса</strong>
+                            <p>Отслеживай свои результаты</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">🎓</span>
+                        <div class="benefit-text">
+                            <strong>Сертификаты</strong>
+                            <p>Подтверждение выполненных опытов</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">💬</span>
+                        <div class="benefit-text">
+                            <strong>Поддержка 24/7</strong>
+                            <p>Помощь по любым вопросам</p>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">🆕</span>
+                        <div class="benefit-text">
+                            <strong>Новые опыты бесплатно</strong>
+                            <p>Автоматический доступ к обновлениям</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upgrade-pricing-card">
+                    <div class="pricing-badge">🔥 Лучшее предложение</div>
+                    <div class="pricing-main">
+                        <div class="pricing-amount">
+                            <span class="old-price">2490 ₽</span>
+                            <span class="new-price">990 ₽</span>
+                        </div>
+                        <div class="pricing-period">на весь учебный год</div>
+                        <div class="pricing-savings">Экономия 60% • ~30 ₽ за опыт</div>
+                    </div>
+                    <button class="btn-upgrade-now" onclick="handleUpgrade('pro')">
+                        <span>💎</span> Получить PRO доступ
+                    </button>
+                    <div class="upgrade-guarantee">
+                        ✓ Возврат в течение 14 дней<br>
+                        ✓ Безопасная оплата<br>
+                        ✓ Моментальная активация
+                    </div>
+                </div>
+
+                <div class="upgrade-testimonials">
+                    <h4>Что говорят ученики:</h4>
+                    <div class="testimonial">
+                        <p>"Сдал экспериментальное задание на 5! Все опыты как на реальном экзамене"</p>
+                        <span>— Артём, 9 класс, Москва</span>
+                    </div>
+                    <div class="testimonial">
+                        <p>"Удобнее, чем в школьной лаборатории. Можно повторять сколько угодно раз"</p>
+                        <span>— Мария, 9 класс, Санкт-Петербург</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
