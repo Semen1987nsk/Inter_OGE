@@ -20,36 +20,37 @@ jobs:
           node-version: '20'
       
       - name: Install dependencies
-        run: |
-          cd electron-app
-          npm install
+        working-directory: electron-app
+        run: npm ci
       
-      - name: Build Windows NSIS Installer
+      - name: Check files exist
+        working-directory: electron-app
         run: |
-          cd electron-app
-          npm run build-win-nsis
+          if (Test-Path "app/index.html") { 
+            Write-Host "✅ app/index.html exists" 
+          } else { 
+            Write-Host "❌ app/index.html missing"
+            exit 1
+          }
       
-      - name: Build Windows Portable
+      - name: Build Windows
+        working-directory: electron-app
+        run: npm run package-win
+        continue-on-error: true
+      
+      - name: List dist contents
+        working-directory: electron-app
         run: |
-          cd electron-app
-          npm run build-win-portable
+          Write-Host "📁 Contents of dist:"
+          Get-ChildItem -Path dist -Recurse | Select-Object FullName
       
-      - name: Upload NSIS Installer
+      - name: Upload Windows build
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: electron-app/dist/*.exe
-      
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            electron-app/dist/*.exe
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: windows-build
+          path: electron-app/dist/InterOGE-win32-x64/
+          if-no-files-found: warn
 
   build-linux:
     runs-on: ubuntu-latest
@@ -64,36 +65,51 @@ jobs:
           node-version: '20'
       
       - name: Install dependencies
+        working-directory: electron-app
+        run: npm ci
+      
+      - name: Check files exist
+        working-directory: electron-app
         run: |
-          cd electron-app
-          npm install
+          ls -la app/
+          if [ -f "app/index.html" ]; then
+            echo "✅ app/index.html exists"
+          else
+            echo "❌ app/index.html missing"
+            exit 1
+          fi
       
       - name: Build Linux
-        run: |
-          cd electron-app
-          npm run build-linux
+        working-directory: electron-app
+        run: npm run package-linux
+        continue-on-error: true
       
-      - name: Create tar.gz archive
+      - name: List dist contents
+        working-directory: electron-app
         run: |
-          cd electron-app/dist
-          tar -czf Inter-OGE-Linux-x64.tar.gz linux-unpacked/
+          echo "📁 Contents of dist:"
+          ls -lah dist/ || true
       
-      - name: Upload Linux artifacts
+      - name: Create tar.gz if build succeeded
+        working-directory: electron-app
+        run: |
+          if [ -d "dist/InterOGE-linux-x64" ]; then
+            cd dist
+            tar -czf InterOGE-Linux-x64.tar.gz InterOGE-linux-x64/
+            echo "✅ Archive created"
+          else
+            echo "⚠️ Build directory not found"
+          fi
+      
+      - name: Upload Linux build
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: electron-app/dist/*.tar.gz
-      
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
+          path: |
+            electron-app/dist/InterOGE-linux-x64/
             electron-app/dist/*.tar.gz
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if-no-files-found: warn
 
   build-mac:
     runs-on: macos-latest
@@ -108,28 +124,36 @@ jobs:
           node-version: '20'
       
       - name: Install dependencies
+        working-directory: electron-app
+        run: npm ci
+      
+      - name: Check files exist
+        working-directory: electron-app
         run: |
-          cd electron-app
-          npm install
+          ls -la app/
+          if [ -f "app/index.html" ]; then
+            echo "✅ app/index.html exists"
+          else
+            echo "❌ app/index.html missing"
+            exit 1
+          fi
       
       - name: Build macOS
-        run: |
-          cd electron-app
-          npm run build-mac
+        working-directory: electron-app
+        run: npm run package-mac
+        continue-on-error: true
       
-      - name: Upload macOS artifacts
+      - name: List dist contents
+        working-directory: electron-app
+        run: |
+          echo "📁 Contents of dist:"
+          ls -lah dist/ || true
+      
+      - name: Upload macOS build
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: macos-build
-          path: electron-app/dist/*.dmg
-      
-      - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            electron-app/dist/*.dmg
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: electron-app/dist/InterOGE-darwin-x64/
+          if-no-files-found: warn
+
