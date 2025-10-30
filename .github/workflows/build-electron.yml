@@ -24,11 +24,6 @@ jobs:
           cd electron-app
           npm install
       
-      - name: Copy files
-        run: |
-          cd electron-app
-          npm run copy-files
-      
       - name: Build Windows NSIS Installer
         run: |
           cd electron-app
@@ -73,11 +68,6 @@ jobs:
           cd electron-app
           npm install
       
-      - name: Copy files
-        run: |
-          cd electron-app
-          npm run copy-files
-      
       - name: Build Linux
         run: |
           cd electron-app
@@ -121,11 +111,6 @@ jobs:
         run: |
           cd electron-app
           npm install
-      
-      - name: Copy files
-        run: |
-          cd electron-app
-          npm run copy-files
       
       - name: Build macOS
         run: |
