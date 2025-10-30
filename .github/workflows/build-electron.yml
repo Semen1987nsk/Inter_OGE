@@ -1,0 +1,150 @@
+name: Build Electron Apps
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd electron-app
+          npm install
+      
+      - name: Copy files
+        run: |
+          cd electron-app
+          npm run copy-files
+      
+      - name: Build Windows NSIS Installer
+        run: |
+          cd electron-app
+          npm run build-win-nsis
+      
+      - name: Build Windows Portable
+        run: |
+          cd electron-app
+          npm run build-win-portable
+      
+      - name: Upload NSIS Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: electron-app/dist/*.exe
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            electron-app/dist/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd electron-app
+          npm install
+      
+      - name: Copy files
+        run: |
+          cd electron-app
+          npm run copy-files
+      
+      - name: Build Linux
+        run: |
+          cd electron-app
+          npm run build-linux
+      
+      - name: Create tar.gz archive
+        run: |
+          cd electron-app/dist
+          tar -czf Inter-OGE-Linux-x64.tar.gz linux-unpacked/
+      
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: electron-app/dist/*.tar.gz
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            electron-app/dist/*.tar.gz
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-mac:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: |
+          cd electron-app
+          npm install
+      
+      - name: Copy files
+        run: |
+          cd electron-app
+          npm run copy-files
+      
+      - name: Build macOS
+        run: |
+          cd electron-app
+          npm run build-mac
+      
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-build
+          path: electron-app/dist/*.dmg
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            electron-app/dist/*.dmg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

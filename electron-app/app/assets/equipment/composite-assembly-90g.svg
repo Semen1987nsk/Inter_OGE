@@ -1,0 +1,166 @@
+<svg width="160" height="450" viewBox="0 0 160 450" xmlns="http://www.w3.org/2000/svg">
+  <!-- Наборный груз в сборе 90г - точно по фото -->
+  <!-- Снизу вверх: гайка -> диск 50г -> диск 20г -> диск 10г -> штанга -> крючок -->
+  
+  <defs>
+    <!-- Градиенты для штанги -->
+    <linearGradient id="rodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#888;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ddd;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#999;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Градиенты для дисков -->
+    <linearGradient id="disk50Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#686868;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#b8b8b8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#787878;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="disk20Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#707070;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c0c0c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#808080;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="disk10Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#7a7a7a;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c8c8c8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#888;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- ========== КРЮЧОК СВЕРХУ ========== -->
+  <g id="hook">
+    <path d="M 80 20 Q 60 20 60 35 Q 60 45 70 45 L 70 50" 
+          stroke="url(#rodGrad)" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <path d="M 80 20 Q 100 20 100 35 Q 100 45 90 45 L 90 50" 
+          stroke="url(#rodGrad)" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <ellipse cx="80" cy="18" rx="11" ry="5" fill="#aaa"/>
+    <path d="M 80 20 Q 62 20 62 33" 
+          stroke="rgba(255,255,255,0.5)" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Соединение крючка со стержнем -->
+  <rect x="76" y="48" width="8" height="12" fill="url(#rodGrad)"/>
+  <rect x="77" y="48" width="2" height="12" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- ========== ШТАНГА (верхняя часть над дисками) ========== -->
+  <rect x="76" y="60" width="8" height="190" fill="url(#rodGrad)"/>
+  <rect x="77" y="60" width="2" height="190" fill="rgba(255,255,255,0.4)"/>
+  
+  <!-- ========== ДИСК 10г (самый верхний) ========== -->
+  <g id="disk10-assembled">
+    <!-- Основное тело -->
+    <rect x="50" y="250" width="60" height="12" fill="url(#disk10Grad)"/>
+    <!-- Верхняя грань (светлая) -->
+    <rect x="50" y="250" width="60" height="1.5" fill="#d8d8d8"/>
+    <!-- Боковые блики -->
+    <rect x="51" y="251" width="3" height="10" fill="rgba(255,255,255,0.4)"/>
+    <rect x="106" y="251" width="3" height="10" fill="rgba(255,255,255,0.15)"/>
+    <!-- Отверстие -->
+    <line x1="80" y1="250" x2="80" y2="262" stroke="#000" stroke-width="4"/>
+    <!-- Обводка -->
+    <rect x="50" y="250" width="60" height="12" fill="none" stroke="#555" stroke-width="0.5"/>
+  </g>
+  
+  <!-- ========== ДИСК 20г (средний) ========== -->
+  <g id="disk20-assembled">
+    <!-- Основное тело -->
+    <rect x="40" y="262" width="80" height="14" fill="url(#disk20Grad)"/>
+    <!-- Верхняя грань -->
+    <rect x="40" y="262" width="80" height="2" fill="#d0d0d0"/>
+    <!-- Боковые блики -->
+    <rect x="42" y="263.5" width="4" height="11" fill="rgba(255,255,255,0.45)"/>
+    <rect x="114" y="263.5" width="4" height="11" fill="rgba(255,255,255,0.15)"/>
+    <!-- Отверстие -->
+    <line x1="80" y1="262" x2="80" y2="276" stroke="#000" stroke-width="5"/>
+    <!-- Обводка -->
+    <rect x="40" y="262" width="80" height="14" fill="none" stroke="#4a4a4a" stroke-width="0.6"/>
+    <!-- Текстура -->
+    <line x1="47" y1="269" x2="73" y2="269" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+    <line x1="87" y1="269" x2="113" y2="269" stroke="rgba(255,255,255,0.12)" stroke-width="0.5"/>
+  </g>
+  
+  <!-- ========== ДИСК 50г (самый нижний, самый большой) ========== -->
+  <g id="disk50-assembled">
+    <!-- Основное тело (самый толстый) -->
+    <rect x="30" y="276" width="100" height="18" fill="url(#disk50Grad)"/>
+    <!-- Верхняя грань -->
+    <rect x="30" y="276" width="100" height="2.5" fill="#c8c8c8"/>
+    <!-- Боковые блики -->
+    <rect x="33" y="278" width="5" height="14" fill="rgba(255,255,255,0.5)"/>
+    <rect x="122" y="278" width="5" height="14" fill="rgba(255,255,255,0.15)"/>
+    <!-- Отверстие -->
+    <line x1="80" y1="276" x2="80" y2="294" stroke="#000" stroke-width="6"/>
+    <!-- Обводка -->
+    <rect x="30" y="276" width="100" height="18" fill="none" stroke="#404040" stroke-width="0.7"/>
+    <!-- Текстура -->
+    <line x1="40" y1="285" x2="72" y2="285" stroke="rgba(255,255,255,0.15)" stroke-width="0.6"/>
+    <line x1="88" y1="285" x2="120" y2="285" stroke="rgba(255,255,255,0.15)" stroke-width="0.6"/>
+  </g>
+  
+  <!-- ========== ШТАНГА (нижняя часть под дисками) ========== -->
+  <rect x="76" y="294" width="8" height="100" fill="url(#rodGrad)"/>
+  <rect x="77" y="294" width="2" height="100" fill="rgba(255,255,255,0.4)"/>
+  
+  <!-- Резьба на нижней части -->
+  <g id="thread">
+    <line x1="76" y1="350" x2="84" y2="350" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="353" x2="84" y2="353" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="356" x2="84" y2="356" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="359" x2="84" y2="359" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="362" x2="84" y2="362" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="365" x2="84" y2="365" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="368" x2="84" y2="368" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="371" x2="84" y2="371" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="374" x2="84" y2="374" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="377" x2="84" y2="377" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="380" x2="84" y2="380" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="383" x2="84" y2="383" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="386" x2="84" y2="386" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="389" x2="84" y2="389" stroke="#666" stroke-width="0.5"/>
+    <line x1="76" y1="392" x2="84" y2="392" stroke="#666" stroke-width="0.5"/>
+  </g>
+  
+  <!-- ========== ГАЙКА (удерживает диски снизу) ========== -->
+  <g id="nut">
+    <!-- Тело гайки -->
+    <rect x="70" y="394" width="20" height="12" fill="#888"/>
+    <rect x="71" y="394" width="3" height="12" fill="rgba(255,255,255,0.3)"/>
+    <rect x="87" y="394" width="2" height="12" fill="rgba(0,0,0,0.3)"/>
+    
+    <!-- Грани гайки -->
+    <path d="M 70 394 L 67 400 L 70 406" stroke="#555" stroke-width="1" fill="none"/>
+    <path d="M 90 394 L 93 400 L 90 406" stroke="#555" stroke-width="1" fill="none"/>
+    
+    <!-- Верхняя грань -->
+    <ellipse cx="80" cy="394" rx="10" ry="3" fill="#999"/>
+    <ellipse cx="80" cy="394" rx="7" ry="2" fill="#aaa"/>
+  </g>
+  
+  <!-- ========== ТЕНИ ========== -->
+  <ellipse cx="80" cy="410" rx="50" ry="4" fill="rgba(0,0,0,0.2)" opacity="0.6"/>
+  
+  <!-- ========== АННОТАЦИИ (стрелки к элементам) ========== -->
+  <g id="labels" font-family="Arial" font-size="11" fill="#666">
+    <!-- Стрелка к диску 10г -->
+    <line x1="115" y1="256" x2="135" y2="256" stroke="#888" stroke-width="1" marker-end="url(#arrowhead)"/>
+    <text x="138" y="260" font-size="10">10г</text>
+    
+    <!-- Стрелка к диску 20г -->
+    <line x1="125" y1="269" x2="138" y2="269" stroke="#888" stroke-width="1"/>
+    <text x="140" y="273" font-size="10">20г</text>
+    
+    <!-- Стрелка к диску 50г -->
+    <line x1="135" y1="285" x2="145" y2="285" stroke="#888" stroke-width="1"/>
+    <text x="147" y="289" font-size="10">50г</text>
+  </g>
+  
+  <!-- Маркер стрелки -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#888"/>
+    </marker>
+  </defs>
+</svg>

@@ -1,0 +1,105 @@
+{
+  "name": "inter-oge-demo",
+  "version": "1.0.0",
+  "description": "Демо-приложение для экспериментов ОГЭ по физике",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --enable-logging",
+    "build": "npm run copy-files && electron-builder",
+    "build-win": "npm run copy-files && electron-builder --win",
+    "build-win-portable": "npm run copy-files && electron-builder --win portable",
+    "build-win-nsis": "npm run copy-files && electron-builder --win nsis",
+    "build-mac": "npm run copy-files && electron-builder --mac",
+    "build-linux": "npm run copy-files && electron-builder --linux",
+    "copy-files": "node scripts/copy-files.js",
+    "package-win": "electron-packager . InterOGE --platform=win32 --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
+    "package-mac": "electron-packager . InterOGE --platform=darwin --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
+    "package-linux": "electron-packager . InterOGE --platform=linux --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
+    "package-all": "npm run package-win && npm run package-mac && npm run package-linux",
+    "clean": "rm -rf dist node_modules"
+  },
+  "keywords": [
+    "ОГЭ",
+    "физика",
+    "эксперименты",
+    "образование"
+  ],
+  "author": "Inter OGE Team",
+  "license": "MIT",
+  "build": {
+    "appId": "com.interoge.demo",
+    "productName": "Inter OGE",
+    "copyright": "Copyright © 2025 Inter OGE Team",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "src/**/*",
+      "app/**/*",
+      "assets/icons/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icons/icon.png",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Inter OGE",
+      "installerIcon": "assets/icons/icon.png",
+      "uninstallerIcon": "assets/icons/icon.png",
+      "installerHeaderIcon": "assets/icons/icon.png",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icons/icon.png",
+      "category": "public.app-category.education"
+    },
+    "dmg": {
+      "title": "${productName} ${version}",
+      "icon": "assets/icons/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "tar.gz"
+      ],
+      "icon": "assets/icons/icon.png",
+      "category": "Education",
+      "maintainer": "Inter OGE Team"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2",
+    "sharp": "^0.34.4"
+  }
+}
