@@ -459,6 +459,40 @@ class SpringExperiment {
         return !!(lastDef?.hooksBottom && weight.hooksTop);
     }
 
+    /**
+     * 🔧 ИСПРАВЛЕНИЕ: Получить полную массу груза с учетом сборных дисков
+     * @param {Object} weight - объект груза из attachedWeights
+     * @returns {number} - полная масса в граммах
+     */
+    getTotalWeightMass(weight) {
+        if (!weight) return 0;
+        
+        const weightDef = this.getWeightById(weight.id);
+        let mass = weightDef?.mass || 0;
+        
+        // Добавляем массу дисков сборного груза
+        if (weight.compositeDisks && Array.isArray(weight.compositeDisks)) {
+            weight.compositeDisks.forEach(disk => {
+                const diskDef = this.getWeightById(disk.weightId);
+                if (diskDef) {
+                    mass += diskDef.mass;
+                }
+            });
+        }
+        
+        return mass;
+    }
+
+    /**
+     * 🔧 ИСПРАВЛЕНИЕ: Получить суммарную массу всех прикрепленных грузов
+     * @returns {number} - суммарная масса в граммах
+     */
+    getTotalAttachedMass() {
+        return this.state.attachedWeights.reduce((sum, w) => {
+            return sum + this.getTotalWeightMass(w);
+        }, 0);
+    }
+
     async loadWeightAssets() {
         if (!Array.isArray(this.weightsInventory)) {
             return;
@@ -2266,10 +2300,7 @@ class SpringExperiment {
             attachedWeights: this.state.attachedWeights.map(w => w.id)
         });
 
-        const totalMass = this.state.attachedWeights.reduce((sum, item) => {
-            const def = this.getWeightById(item.id);
-            return sum + (def?.mass ?? 0);
-        }, 0);
+        const totalMass = this.getTotalAttachedMass();
 
         console.log('[ATTACH-WEIGHT] Текущая суммарная масса (г):', totalMass);
 
@@ -2397,10 +2428,7 @@ class SpringExperiment {
                 this.updateVisualScale(this.state.springLength);
 
                 // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
-                const totalMass = this.state.attachedWeights.reduce((sum, item) => {
-                    const def = this.getWeightById(item.id);
-                    return sum + (def?.mass ?? 0);
-                }, 0);
+                const totalMass = this.getTotalAttachedMass();
                 const force = (totalMass / 1000) * this.physics.gravity;
                 const currentElongationCm = this.state.springElongation / this.physics.pixelsPerCm;
                 this.updateCurrentMeasurementDisplay(totalMass, force, currentElongationCm);
@@ -3029,10 +3057,7 @@ class SpringExperiment {
         }
 
         const weightCount = this.state.attachedWeights.length;
-        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
-            const weightDef = this.getWeightById(w.id);
-            return sum + (weightDef?.mass || 0);
-        }, 0);
+        const totalMass = this.getTotalAttachedMass();
 
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
         const force = (totalMass / 1000) * this.physics.gravity;
@@ -4071,10 +4096,7 @@ class SpringExperiment {
         
         // === УКАЗАТЕЛЬ (СТРЕЛКА) ===
         // Рассчитываем текущую силу от подвешенных грузов
-        const totalMass = this.state.attachedWeights.reduce((sum, w) => {
-            const weightDef = this.getWeightById(w.id);
-            return sum + (weightDef?.mass || 0);
-        }, 0);
+        const totalMass = this.getTotalAttachedMass();
         const force = (totalMass / 1000) * this.physics.gravity;
         
         const indicatorY = scaleTop + scaleHeight - (Math.min(force, maxForce) / maxForce) * scaleHeight;
