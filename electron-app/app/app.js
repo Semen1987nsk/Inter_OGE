@@ -3,6 +3,17 @@
 // JavaScript Controller
 // ============================================
 
+// В Electron включаем режим упрощённой отрисовки (без тяжёлых эффектов)
+try {
+    if (typeof window !== 'undefined' && window.electronAPI) {
+        document.documentElement.classList.add('electron');
+        document.documentElement.classList.add('perf-low');
+        console.log('🎯 Electron perf-low режим активирован');
+    }
+} catch (e) {
+    // no-op
+}
+
 /**
  * Вспомогательная функция для безопасного экранирования HTML
  * Защита от XSS атак

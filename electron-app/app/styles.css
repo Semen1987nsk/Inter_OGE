@@ -404,6 +404,60 @@ body {
     color: var(--text-secondary);
 }
 
+/* ============================================
+   PERF LOW MODE (Electron на слабом железе)
+   Отключаем тяжёлые эффекты, ускоряем скролл
+   Активируется классом .perf-low на <html>
+   ============================================ */
+.perf-low *, .perf-low *::before, .perf-low *::after {
+    transition: none !important;
+}
+
+.perf-low .main-header,
+.perf-low .btn-hero-secondary,
+.perf-low .overall-progress,
+.perf-low .quick-nav,
+.perf-low .modal,
+.perf-low .card-premium-overlay {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.perf-low .main-header.scrolled {
+    box-shadow: none !important;
+}
+
+.perf-low .hero-title {
+    text-shadow: none !important;
+}
+
+.perf-low .btn-hero-primary,
+.perf-low .btn-hero-secondary,
+.perf-low .path-node.active .node-circle,
+.perf-low .quick-nav {
+    box-shadow: none !important;
+}
+
+.perf-low .path-node.active .node-circle,
+.perf-low .glow,
+.perf-low [class*="pulse"],
+.perf-low [class*="glow"] {
+    animation: none !important;
+}
+
+.perf-low .main-header {
+    background: rgba(10, 14, 39, 0.96) !important;
+}
+.perf-low .btn-hero-secondary,
+.perf-low .overall-progress,
+.perf-low .quick-nav {
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.perf-low .quick-nav {
+    will-change: transform;
+}
+
 #progressPercent {
     font-size: 24px;
     font-weight: 700;
