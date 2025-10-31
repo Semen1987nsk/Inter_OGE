@@ -4,20 +4,28 @@ const path = require('path');
 let mainWindow;
 
 // ============================================
-// ПРОИЗВОДИТЕЛЬНОСТЬ: GPU ACCELERATION
+// ПРОИЗВОДИТЕЛЬНОСТЬ: АГРЕССИВНАЯ ОПТИМИЗАЦИЯ ДЛЯ СТАРОГО ЖЕЛЕЗА
 // ============================================
-// Принудительно включаем аппаратное ускорение
-app.commandLine.appendSwitch('enable-gpu-rasterization');
-app.commandLine.appendSwitch('enable-zero-copy');
-app.commandLine.appendSwitch('ignore-gpu-blacklist');
-app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
-app.commandLine.appendSwitch('enable-accelerated-video-decode');
+// Отключаем аппаратное ускорение - парадоксально помогает на старых GPU!
+app.disableHardwareAcceleration();
 
-// Отключаем VSync если видеокарта слабая (уменьшает лаги)
-// app.commandLine.appendSwitch('disable-gpu-vsync');
+// V8 оптимизации для старого железа
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
 
-// АЛЬТЕРНАТИВА: Если GPU тормозит - раскомментируйте это:
-// app.disableHardwareAcceleration();
+// Отключаем лишние фичи Chromium
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-breakpad');
+app.commandLine.appendSwitch('disable-component-update');
+app.commandLine.appendSwitch('disable-domain-reliability');
+app.commandLine.appendSwitch('disable-features', 'TranslateUI');
+app.commandLine.appendSwitch('disable-ipc-flooding-protection');
+
+// Для более новых карт можете попробовать эти флаги (закомментировано):
+// app.commandLine.appendSwitch('enable-gpu-rasterization');
+// app.commandLine.appendSwitch('ignore-gpu-blacklist');
 
 const APP_CONFIG = {
     width: 1920,
@@ -40,7 +48,11 @@ function createWindow() {
             contextIsolation: true,
             enableRemoteModule: false,
             webSecurity: true,
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            // КРИТИЧНО для производительности на старом железе:
+            backgroundThrottling: false, // Не замедляем фоновые вкладки
+            offscreen: false,
+            spellcheck: false // Отключаем проверку орфографии
         },
         title: APP_CONFIG.title,
         backgroundColor: APP_CONFIG.backgroundColor,
@@ -59,9 +71,10 @@ function createWindow() {
         mainWindow.show();
         mainWindow.focus();
         
-        if (process.argv.includes('--enable-logging')) {
-            mainWindow.webContents.openDevTools();
-        }
+        // ВАЖНО: НЕ открываем DevTools - они жрут ресурсы!
+        // if (process.argv.includes('--enable-logging')) {
+        //     mainWindow.webContents.openDevTools();
+        // }
     });
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
