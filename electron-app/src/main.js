@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, shell, screen } = require('electron');
 const path = require('path');
 
 let mainWindow;
@@ -6,8 +6,15 @@ let mainWindow;
 // ============================================
 // ПРОИЗВОДИТЕЛЬНОСТЬ: АГРЕССИВНАЯ ОПТИМИЗАЦИЯ ДЛЯ СТАРОГО ЖЕЛЕЗА
 // ============================================
-// Отключаем аппаратное ускорение - парадоксально помогает на старых GPU!
-app.disableHardwareAcceleration();
+// По умолчанию отключаем аппаратное ускорение (стабильнее на старых GPU)
+const TRY_GPU = process.argv.includes('--try-gpu');
+if (!TRY_GPU) {
+    app.disableHardwareAcceleration();
+} else {
+    // РЕЖИМ ПРОБЫ GPU (только по флагу) — может зависнуть на старых видеокартах
+    app.commandLine.appendSwitch('ignore-gpu-blacklist');
+    app.commandLine.appendSwitch('enable-gpu-rasterization');
+}
 
 // V8 оптимизации для старого железа
 app.commandLine.appendSwitch('js-flags', '--max-old-space-size=512');
@@ -37,9 +44,14 @@ const APP_CONFIG = {
 };
 
 function createWindow() {
+    // Подбираем окно под реальное рабочее пространство пользователя,
+    // чтобы не рендерить лишние пиксели (1920x1080 может быть избыточно)
+    const display = screen.getPrimaryDisplay();
+    const workArea = display && display.workAreaSize ? display.workAreaSize : { width: APP_CONFIG.width, height: APP_CONFIG.height };
+
     mainWindow = new BrowserWindow({
-        width: APP_CONFIG.width,
-        height: APP_CONFIG.height,
+        width: Math.max(APP_CONFIG.minWidth, Math.min(workArea.width, APP_CONFIG.width)),
+        height: Math.max(APP_CONFIG.minHeight, Math.min(workArea.height, APP_CONFIG.height)),
         minWidth: APP_CONFIG.minWidth,
         minHeight: APP_CONFIG.minHeight,
         icon: path.join(__dirname, '../assets/icons/icon.png'),
@@ -57,7 +69,8 @@ function createWindow() {
         title: APP_CONFIG.title,
         backgroundColor: APP_CONFIG.backgroundColor,
         show: false,
-        autoHideMenuBar: false
+        autoHideMenuBar: false,
+        useContentSize: true
     });
 
     const startUrl = path.join(__dirname, '../app/index.html');
