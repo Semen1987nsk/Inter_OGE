@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест загрузки библиотек</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1f3a;
+            color: #fff;
+        }
+        .test-item {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+        }
+        .success { background: rgba(0, 168, 107, 0.3); }
+        .error { background: rgba(255, 107, 53, 0.3); }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тест загрузки библиотек эксперимента</h1>
+    <div id="results"></div>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.19/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+
+    <!-- Experiment Scripts -->
+    <script src="../shared/physics-engine.js"></script>
+    <script src="../shared/particle-effects.js"></script>
+    <script src="../shared/canvas-utils.js"></script>
+
+    <script>
+        window.addEventListener('load', () => {
+            const results = document.getElementById('results');
+            
+            const tests = [
+                { name: 'Chart.js', check: () => typeof Chart !== 'undefined' },
+                { name: 'interact.js', check: () => typeof interact !== 'undefined' },
+                { name: 'anime.js', check: () => typeof anime !== 'undefined' },
+                { name: 'PhysicsEngine (class)', check: () => typeof PhysicsEngine !== 'undefined' },
+                { name: 'physics (instance)', check: () => typeof physics !== 'undefined' },
+                { name: 'springOscillation (function)', check: () => typeof springOscillation !== 'undefined' },
+                { name: 'linearRegression (function)', check: () => typeof linearRegression !== 'undefined' },
+                { name: 'ParticleSystem (class)', check: () => typeof ParticleSystem !== 'undefined' },
+                { name: 'Particle (class)', check: () => typeof Particle !== 'undefined' },
+                { name: 'CanvasUtils (class)', check: () => typeof CanvasUtils !== 'undefined' },
+                { name: 'canvasUtils (instance)', check: () => typeof canvasUtils !== 'undefined' },
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            results.innerHTML = tests.map(test => {
+                const isPassed = test.check();
+                if (isPassed) passed++;
+                else failed++;
+                
+                return `
+                    <div class="test-item ${isPassed ? 'success' : 'error'}">
+                        ${isPassed ? '✅' : '❌'} ${test.name}
+                    </div>
+                `;
+            }).join('');
+
+            results.innerHTML += `
+                <div style="margin-top: 20px; padding: 20px; border-radius: 8px; background: rgba(255,255,255,0.1);">
+                    <h3>Итого:</h3>
+                    <p style="color: #00A86B;">✅ Успешно: ${passed}</p>
+                    <p style="color: #FF6B35;">❌ Ошибок: ${failed}</p>
+                    ${failed === 0 ? '<p style="color: #FFD700; font-weight: bold;">🎉 Все библиотеки загружены!</p>' : '<p style="color: #FF6B35;">⚠️ Некоторые библиотеки не загружены!</p>'}
+                </div>
+            `;
+
+            console.log('🔍 Тестирование библиотек:');
+            tests.forEach(test => {
+                const isPassed = test.check();
+                console.log(`${isPassed ? '✅' : '❌'} ${test.name}`);
+            });
+            
+            console.log(`\n📊 Итого: ${passed} успешно, ${failed} ошибок`);
+        });
+    </script>
+</body>
+</html>

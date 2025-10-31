@@ -1,0 +1,32 @@
+<svg width="84" height="92" viewBox="0 0 84 92" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+    <radialGradient id="grad_top_50" cx="50%" cy="50%" r="55%" fx="50%" fy="30%">
+        <stop offset="0%" stop-color="#F0F2F5"/>
+        <stop offset="60%" stop-color="#D2D8E0"/>
+        <stop offset="100%" stop-color="#B8C1D1"/>
+    </radialGradient>
+    <linearGradient id="grad_side_50" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#B8C1D1"/>
+        <stop offset="50%" stop-color="#9DA7B8"/>
+        <stop offset="100%" stop-color="#B0B9C8"/>
+    </linearGradient>
+    <filter id="shadow_50" x="-4" y="0" width="92" height="96" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+        <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+        <feOffset dy="6"/>
+        <feGaussianBlur stdDeviation="4"/>
+        <feComposite in2="hardAlpha" operator="out"/>
+        <feColorMatrix type="matrix" values="0 0 0 0 0.06 0 0 0 0 0.08 0 0 0 0 0.15 0 0 0 0.3 0"/>
+        <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow"/>
+        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+</defs>
+<g filter="url(#shadow_50)">
+    <path d="M78 42C78 59.6731 60.9117 74 42 74C23.0883 74 6 59.6731 6 42C6 24.3269 23.0883 10 42 10C60.9117 10 78 24.3269 78 42Z" fill="url(#grad_side_50)"/>
+    <path d="M78 38C78 55.6731 60.9117 70 42 70C23.0883 70 6 55.6731 6 38C6 20.3269 23.0883 6 42 6C60.9117 6 78 20.3269 78 38Z" fill="url(#grad_top_50)"/>
+    <path d="M78 38C78 55.6731 60.9117 70 42 70C23.0883 70 6 55.6731 6 38C6 20.3269 23.0883 6 42 6C60.9117 6 78 20.3269 78 38Z" stroke="#B0B9C8" stroke-width="1"/>
+    <path d="M14.0526 34.8C18.079 25.2 30.1579 22 42 22C53.8421 22 65.921 25.2 69.9474 34.8C65.921 44.4 53.8421 47.6 42 47.6C30.1579 47.6 18.079 44.4 14.0526 34.8Z" fill="white" fill-opacity="0.4"/>
+    <ellipse cx="42" cy="38" rx="9" ry="7" fill="#2B2D42"/>
+    <ellipse cx="42" cy="37" rx="8" ry="6" fill="#4A4E69"/>
+</g>
+</svg>

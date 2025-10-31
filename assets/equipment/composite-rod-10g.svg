@@ -1,0 +1,125 @@
+<svg width="120" height="400" viewBox="0 0 120 400" xmlns="http://www.w3.org/2000/svg"><svg width="40" height="120" viewBox="0 0 40 120" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Штанга 10г - вид сбоку по фото -->  <!-- Штанга 10г для наборного груза -->
+
+  <defs>  
+
+    <linearGradient id="rodGradient" x1="0%" y1="0%" x2="100%" y2="0%">  <!-- Верхний крючок -->
+
+      <stop offset="0%" style="stop-color:#888;stop-opacity:1" />  <g id="hook-top">
+
+      <stop offset="30%" style="stop-color:#ccc;stop-opacity:1" />    <path d="M 20 5 A 8 8 0 0 1 12 13 V 18" stroke="#c0c8d0" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+      <stop offset="70%" style="stop-color:#ddd;stop-opacity:1" />    <rect x="18" y="16" width="4" height="8" fill="#d0d8e0"/>
+
+      <stop offset="100%" style="stop-color:#999;stop-opacity:1" />  </g>
+
+    </linearGradient>  
+
+      <!-- Основной стержень -->
+
+    <linearGradient id="hookGradient" x1="0%" y1="0%" x2="100%" y2="0%">  <defs>
+
+      <stop offset="0%" style="stop-color:#999;stop-opacity:1" />    <linearGradient id="rodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+
+      <stop offset="50%" style="stop-color:#ccc;stop-opacity:1" />      <stop offset="0%" style="stop-color:#8090a0;stop-opacity:1" />
+
+      <stop offset="100%" style="stop-color:#aaa;stop-opacity:1" />      <stop offset="30%" style="stop-color:#d0d8e0;stop-opacity:1" />
+
+    </linearGradient>      <stop offset="50%" style="stop-color:#f0f4f8;stop-opacity:1" />
+
+  </defs>      <stop offset="70%" style="stop-color:#d0d8e0;stop-opacity:1" />
+
+        <stop offset="100%" style="stop-color:#8090a0;stop-opacity:1" />
+
+  <!-- Крючок сверху (U-образное кольцо) -->    </linearGradient>
+
+  <g id="hook">  </defs>
+
+    <!-- Основа крючка -->  
+
+    <path d="M 60 20 Q 40 20 40 35 Q 40 45 50 45 L 50 50"   <rect x="18" y="24" width="4" height="70" fill="url(#rodGrad)"/>
+
+          stroke="url(#hookGradient)"   
+
+          stroke-width="7"   <!-- Блик на стержне -->
+
+          fill="none"   <rect x="19" y="24" width="1" height="70" fill="rgba(255,255,255,0.4)"/>
+
+          stroke-linecap="round"/>  
+
+    <path d="M 60 20 Q 80 20 80 35 Q 80 45 70 45 L 70 50"   <!-- Резьба (нижняя часть) -->
+
+          stroke="url(#hookGradient)"   <rect x="18" y="94" width="4" height="20" fill="#a0a8b0"/>
+
+          stroke-width="7"   <line x1="18" y1="96" x2="22" y2="96" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+          fill="none"   <line x1="18" y1="99" x2="22" y2="99" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+          stroke-linecap="round"/>  <line x1="18" y1="102" x2="22" y2="102" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+    <!-- Верхняя часть кольца -->  <line x1="18" y1="105" x2="22" y2="105" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+    <ellipse cx="60" cy="18" rx="11" ry="5" fill="url(#hookGradient)"/>  <line x1="18" y1="108" x2="22" y2="108" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+    <!-- Блики -->  <line x1="18" y1="111" x2="22" y2="111" stroke="rgba(0,0,0,0.3)" stroke-width="0.5"/>
+
+    <path d="M 60 20 Q 42 20 42 33"   
+
+          stroke="rgba(255,255,255,0.5)"   <!-- Стопорная гайка -->
+
+          stroke-width="2"   <polygon points="20,114 24,116 24,118 20,120 16,118 16,116" fill="#909098" stroke="#606068" stroke-width="0.5"/>
+
+          fill="none"   <circle cx="20" cy="117" r="2" fill="rgba(255,255,255,0.3)"/>
+
+          stroke-linecap="round"/>  
+
+  </g>  <!-- Текст массы -->
+
+    <text x="20" y="62" font-family="Arial" font-size="8" fill="#2a5298" text-anchor="middle" font-weight="bold">10г</text>
+
+  <!-- Соединение крючка со стержнем --></svg>
+
+  <rect x="56" y="48" width="8" height="15" fill="url(#rodGradient)"/>
+  <rect x="57" y="48" width="2" height="15" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- Основной стержень (гладкая часть) -->
+  <rect x="56" y="63" width="8" height="260" fill="url(#rodGradient)"/>
+  <!-- Блик на стержне -->
+  <rect x="57" y="63" width="2" height="260" fill="rgba(255,255,255,0.4)"/>
+  <rect x="62" y="63" width="1" height="260" fill="rgba(255,255,255,0.2)"/>
+  
+  <!-- Резьба внизу (визуально показана штриховкой) -->
+  <g id="thread">
+    <line x1="56" y1="290" x2="64" y2="290" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="293" x2="64" y2="293" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="296" x2="64" y2="296" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="299" x2="64" y2="299" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="302" x2="64" y2="302" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="305" x2="64" y2="305" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="308" x2="64" y2="308" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="311" x2="64" y2="311" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="314" x2="64" y2="314" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="317" x2="64" y2="317" stroke="#666" stroke-width="0.5"/>
+    <line x1="56" y1="320" x2="64" y2="320" stroke="#666" stroke-width="0.5"/>
+  </g>
+  
+  <!-- Гайка снизу (шестигранная) -->
+  <g id="nut">
+    <!-- Тело гайки -->
+    <rect x="50" y="323" width="20" height="12" fill="#888"/>
+    <rect x="51" y="323" width="3" height="12" fill="rgba(255,255,255,0.3)"/>
+    <rect x="67" y="323" width="2" height="12" fill="rgba(0,0,0,0.3)"/>
+    
+    <!-- Грани гайки -->
+    <path d="M 50 323 L 47 329 L 50 335" stroke="#555" stroke-width="1" fill="none"/>
+    <path d="M 70 323 L 73 329 L 70 335" stroke="#555" stroke-width="1" fill="none"/>
+    
+    <!-- Верхняя грань -->
+    <ellipse cx="60" cy="323" rx="10" ry="3" fill="#999"/>
+    <ellipse cx="60" cy="323" rx="7" ry="2" fill="#aaa"/>
+  </g>
+  
+  <!-- Тени -->
+  <ellipse cx="60" cy="338" rx="12" ry="3" fill="rgba(0,0,0,0.2)" opacity="0.5"/>
+</svg>

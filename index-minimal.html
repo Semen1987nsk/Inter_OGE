@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inter OGE - Minimal Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0a0e27;
+            color: #fff;
+            line-height: 1.6;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1 { margin-bottom: 30px; color: #0066CC; }
+        .kit {
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            /* БЕЗ backdrop-filter, БЕЗ box-shadow, БЕЗ transitions */
+        }
+        .kit:hover { background: rgba(255,255,255,0.12); }
+        .kit-title { font-size: 20px; margin-bottom: 10px; }
+        .kit-desc { color: #b8c5d6; font-size: 14px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #0066CC;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .btn:hover { background: #0052A3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔬 Inter OGE - Виртуальные эксперименты</h1>
+        
+        <div class="kit">
+            <div class="kit-title">⚖️ Комплект №1: Механика - Плотность</div>
+            <div class="kit-desc">5 опытов • ~2.5 часа • Измерение плотности и архимедовой силы</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">🔧 Комплект №2: Механика - Пружины</div>
+            <div class="kit-desc">6 опытов • ~3 часа • Закон Гука, трение, рычаги</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">⚡ Комплект №3: Электричество</div>
+            <div class="kit-desc">9 опытов • ~4 часа • Законы постоянного тока</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">🔍 Комплект №4: Оптика</div>
+            <div class="kit-desc">6 опытов • ~3 часа • Линзы и преломление</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">🚀 Комплект №5: Колебания</div>
+            <div class="kit-desc">8 опытов • ~3.5 часа • Маятники и движение</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">⚙️ Комплект №6: Рычаги и блоки</div>
+            <div class="kit-desc">4 опыта • ~3 часа • Условия равновесия</div>
+            <button class="btn">Начать →</button>
+        </div>
+
+        <div class="kit">
+            <div class="kit-title">🌡️ Комплект №7: Термодинамика</div>
+            <div class="kit-desc">4 опыта • ~3 часа • Калориметрия</div>
+            <button class="btn">Начать →</button>
+        </div>
+    </div>
+
+    <script>
+        // МИНИМАЛЬНЫЙ JS - только клики
+        document.querySelectorAll('.btn').forEach((btn, i) => {
+            btn.addEventListener('click', () => {
+                alert(`Открываем комплект №${i+1}`);
+            });
+        });
+
+        // Счётчик FPS для теста
+        let lastTime = performance.now();
+        let frames = 0;
+        let fps = 60;
+
+        function measureFPS() {
+            frames++;
+            const now = performance.now();
+            if (now >= lastTime + 1000) {
+                fps = Math.round((frames * 1000) / (now - lastTime));
+                document.title = `Inter OGE - ${fps} FPS`;
+                frames = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(measureFPS);
+        }
+        measureFPS();
+
+        console.log('✅ Minimal версия загружена');
+        console.log('DOM элементов:', document.querySelectorAll('*').length);
+    </script>
+</body>
+</html>

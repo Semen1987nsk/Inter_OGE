@@ -1,0 +1,101 @@
+<svg width="140" height="40" viewBox="0 0 140 40" xmlns="http://www.w3.org/2000/svg"><svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Диск 50г - вид сбоку (самый большой) -->  <!-- Диск 50г -->
+
+  <defs>  <defs>
+
+    <linearGradient id="disk50Gradient" x1="0%" y1="0%" x2="100%" y2="0%">    <!-- Радиальный градиент для металлического эффекта -->
+
+      <stop offset="0%" style="stop-color:#686868;stop-opacity:1" />    <radialGradient id="diskGrad50" cx="30%" cy="30%">
+
+      <stop offset="20%" style="stop-color:#989898;stop-opacity:1" />      <stop offset="0%" style="stop-color:#d0d8e0;stop-opacity:1" />
+
+      <stop offset="50%" style="stop-color:#b8b8b8;stop-opacity:1" />      <stop offset="30%" style="stop-color:#a0a8b0;stop-opacity:1" />
+
+      <stop offset="80%" style="stop-color:#a0a0a0;stop-opacity:1" />      <stop offset="70%" style="stop-color:#808890;stop-opacity:1" />
+
+      <stop offset="100%" style="stop-color:#787878;stop-opacity:1" />      <stop offset="100%" style="stop-color:#606870;stop-opacity:1" />
+
+    </linearGradient>    </radialGradient>
+
+        
+
+    <linearGradient id="disk50Top" x1="0%" y1="0%" x2="0%" y2="100%">    <!-- Блик -->
+
+      <stop offset="0%" style="stop-color:#c8c8c8;stop-opacity:1" />    <radialGradient id="highlight50" cx="40%" cy="40%">
+
+      <stop offset="100%" style="stop-color:#a8a8a8;stop-opacity:1" />      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.7" />
+
+    </linearGradient>      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:0.3" />
+
+  </defs>      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+
+      </radialGradient>
+
+  <!-- Тень снизу -->    
+
+  <ellipse cx="70" cy="35" rx="50" ry="3" fill="rgba(0,0,0,0.18)"/>    <!-- Тень отверстия -->
+
+      <radialGradient id="holeShadow50" cx="50%" cy="50%">
+
+  <!-- Основное тело диска (самый толстый) -->      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+
+  <rect x="20" y="11" width="100" height="18" fill="url(#disk50Gradient)"/>      <stop offset="100%" style="stop-color:#606870;stop-opacity:1" />
+
+      </radialGradient>
+
+  <!-- Верхняя грань -->  </defs>
+
+  <rect x="20" y="11" width="100" height="2.5" fill="url(#disk50Top)"/>  
+
+    <!-- Тень диска -->
+
+  <!-- Нижняя грань -->  <ellipse cx="42" cy="42" rx="32" ry="32" fill="rgba(0,0,0,0.2)" filter="blur(4px)"/>
+
+  <rect x="20" y="26.5" width="100" height="2.5" fill="#585858"/>  
+
+    <!-- Боковая грань (3D эффект) -->
+
+  <!-- Боковые блики -->  <ellipse cx="40" cy="42" rx="32" ry="5" fill="#707880"/>
+
+  <rect x="23" y="13" width="5" height="14" fill="rgba(255,255,255,0.5)"/>  
+
+  <rect x="112" y="13" width="5" height="14" fill="rgba(255,255,255,0.15)"/>  <!-- Верхняя плоскость диска -->
+
+    <circle cx="40" cy="40" r="32" fill="url(#diskGrad50)" stroke="#505860" stroke-width="1"/>
+
+  <!-- Центральное отверстие -->  
+
+  <line x1="70" y1="11" x2="70" y2="29" stroke="#000" stroke-width="6"/>  <!-- Концентрические круги (текстура) -->
+
+  <line x1="70" y1="11" x2="70" y2="13" stroke="#2a2a2a" stroke-width="6"/>  <circle cx="40" cy="40" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+
+    <circle cx="40" cy="40" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+
+  <!-- Обводка -->  <circle cx="40" cy="40" r="14" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/>
+
+  <rect x="20" y="11" width="100" height="18" fill="none" stroke="#404040" stroke-width="0.7"/>  
+
+    <!-- Центральное отверстие -->
+
+  <!-- Текстура металла (концентрические линии) -->  <circle cx="40" cy="40" r="5" fill="url(#holeShadow50)" stroke="#404850" stroke-width="1"/>
+
+  <line x1="30" y1="20" x2="62" y2="20" stroke="rgba(255,255,255,0.15)" stroke-width="0.6"/>  
+
+  <line x1="78" y1="20" x2="110" y2="20" stroke="rgba(255,255,255,0.15)" stroke-width="0.6"/>  <!-- Блики -->
+
+  <line x1="28" y1="16" x2="65" y2="16" stroke="rgba(0,0,0,0.1)" stroke-width="0.4"/>  <ellipse cx="32" cy="32" rx="12" ry="12" fill="url(#highlight50)"/>
+
+  <line x1="75" y1="16" x2="112" y2="16" stroke="rgba(0,0,0,0.1)" stroke-width="0.4"/>  <circle cx="30" cy="30" r="4" fill="rgba(255,255,255,0.5)"/>
+
+  <line x1="28" y1="24" x2="65" y2="24" stroke="rgba(0,0,0,0.12)" stroke-width="0.4"/>  
+
+  <line x1="75" y1="24" x2="112" y2="24" stroke="rgba(0,0,0,0.12)" stroke-width="0.4"/>  <!-- Текст массы -->
+
+    <text x="40" y="75" font-family="Arial" font-size="10" fill="#2a5298" text-anchor="middle" font-weight="bold">50г</text>
+
+  <!-- Дополнительные детали (кольцевые метки обработки) --></svg>
+
+  <circle cx="40" cy="20" r="8" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.3"/>
+  <circle cx="100" cy="20" r="8" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="0.3"/>
+</svg>
