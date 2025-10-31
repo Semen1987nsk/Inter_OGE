@@ -13,9 +13,10 @@
     "build-mac": "npm run copy-files && electron-builder --mac",
     "build-linux": "npm run copy-files && electron-builder --linux",
     "copy-files": "node scripts/copy-files.js",
-    "package-win": "electron-packager . InterOGE --platform=win32 --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
-    "package-mac": "electron-packager . InterOGE --platform=darwin --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
-    "package-linux": "electron-packager . InterOGE --platform=linux --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
+    "package-win": "electron-packager . InterOGE --platform=win32 --arch=x64 --out=dist --overwrite --asar",
+    "package-win-icon": "electron-packager . InterOGE --platform=win32 --arch=x64 --icon=assets/icons/icon.png --out=dist --overwrite --asar",
+    "package-mac": "electron-packager . InterOGE --platform=darwin --arch=x64 --out=dist --overwrite --asar",
+    "package-linux": "electron-packager . InterOGE --platform=linux --arch=x64 --out=dist --overwrite --asar",
     "package-all": "npm run package-win && npm run package-mac && npm run package-linux",
     "clean": "rm -rf dist node_modules"
   },

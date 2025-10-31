@@ -20,12 +20,10 @@ class SpringExperiment {
         Object.keys(this.canvases).forEach(key => {
             const canvas = this.canvases[key];
             if (!canvas) {
-                // ❌ КРИТИЧЕСКАЯ ОШИБКА: Canvas элемент не найден в DOM
-                const errorMsg = `Critical error: Canvas element '${key}' not found in DOM. Check HTML structure.`;
-                console.error(errorMsg);
-                throw new Error(errorMsg);
+                console.error(`Canvas element missing: ${key}`);
+            } else {
+                this.contexts[key] = canvas.getContext('2d');
             }
-            this.contexts[key] = canvas.getContext('2d');
         });
 
         // State
@@ -60,9 +58,7 @@ class SpringExperiment {
             usedWeightIds: new Set(), // 🔧 ID грузов, размещённых СВОБОДНО на canvas (НЕ подвешенных!)
             // 🆕 Записанные значения для расчёта
             recordedForce: null, // Записанное значение силы F
-            recordedElongation: null, // Записанное значение удлинения Δl
-            // 🎯 Оптимизация рендеринга: перерисовывать только при изменениях
-            isDirty: true // Флаг "состояние изменилось, нужна перерисовка"
+            recordedElongation: null // Записанное значение удлинения Δl
         };
 
         this.springDragged = false;
@@ -1393,7 +1389,6 @@ class SpringExperiment {
         this.state.springElongation = 0;
         this.state.weightAttached = false;
         this.state.currentWeight = null;
-        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
 
         this.renderEquipmentInventory();
         this.drawDynamic();
@@ -1427,7 +1422,6 @@ class SpringExperiment {
         this.physics.springConstant = this.defaults.springConstant;
         this.springOffset = { x: 0, y: 0 };
         this.springDragged = false;
-        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         
         // Сбрасываем позицию пружины
         if (this.canvases.dynamic) {
@@ -1577,7 +1571,6 @@ class SpringExperiment {
         }
 
         console.log('[DETACH-WEIGHT] ✅ Снимаем груз:', weightId);
-        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         const removedWeight = this.state.attachedWeights.pop();
         
         // 🔩 СПЕЦИАЛЬНАЯ ЛОГИКА: Если это штанга с дисками - возвращаем ВСЕ диски!
@@ -2228,7 +2221,6 @@ class SpringExperiment {
         }
         
         this.state.isAnimating = true;
-        this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки
         console.log('[ATTACH-WEIGHT] Флаг isAnimating → true');
         this.state.weightAttached = true;
 
@@ -2357,7 +2349,7 @@ class SpringExperiment {
                 currentTime: startTime
             });
 
-                const animateFrame = (currentTime) => {
+            const animateFrame = (currentTime) => {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
@@ -2385,9 +2377,10 @@ class SpringExperiment {
                 }
                 
                 this.state.springElongation = this.state.springLength - this.state.springNaturalLength;
-                this.state.isDirty = true; // 🎯 Отметить необходимость перерисовки во время анимации
 
-                this.updateVisualScale(this.state.springLength);                // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
+                this.updateVisualScale(this.state.springLength);
+
+                // ОБНОВЛЯЕМ ПОКАЗАНИЯ В РЕАЛЬНОМ ВРЕМЕНИ во время колебаний
                 const totalMass = this.state.attachedWeights.reduce((sum, item) => {
                     const def = this.getWeightById(item.id);
                     return sum + (def?.mass ?? 0);
@@ -3025,41 +3018,15 @@ class SpringExperiment {
             return sum + (weightDef?.mass || 0);
         }, 0);
 
-        // ✅ ВАЛИДАЦИЯ: Масса должна быть положительной
-        if (!Number.isFinite(totalMass) || totalMass <= 0) {
-            console.error('[VALIDATION] Некорректная масса:', totalMass);
-            this.showHint('Ошибка: некорректная масса груза!');
-            return;
-        }
-
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
         const force = (totalMass / 1000) * this.physics.gravity;
-        
-        // ✅ ВАЛИДАЦИЯ: Сила должна быть в разумных пределах
-        if (!Number.isFinite(force) || force <= 0) {
-            console.error('[VALIDATION] Некорректная сила:', force);
-            this.showHint('Ошибка: некорректное значение силы!');
-            return;
-        }
-        if (force > 10) {
-            console.warn('[VALIDATION] Сила слишком велика:', force);
-            this.showHint('Предупреждение: сила превышает 10 Н. Проверьте расчёты!');
-        }
         
         // Удлинение
         const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
 
-        // ✅ ВАЛИДАЦИЯ: Удлинение должно быть положительным
-        if (!Number.isFinite(elongationCm) || elongationCm <= 0) {
-            console.error('[VALIDATION] Некорректное удлинение:', elongationCm);
+        if (!elongationCm || elongationCm <= 0) {
             this.showHint('Ошибка: пружина не растянута!');
             return;
-        }
-        
-        // ✅ ВАЛИДАЦИЯ: Удлинение не должно быть слишком большим
-        if (elongationCm > 50) {
-            console.warn('[VALIDATION] Удлинение слишком велико:', elongationCm);
-            this.showHint('Предупреждение: удлинение превышает 50 см. Проверьте измерения!');
         }
 
         // Проверка дубликатов
@@ -5365,81 +5332,12 @@ class SpringExperiment {
         }
         this.prevSpringLength = currentLength;
 
-        // 🎯 Оптимизация: рендерить только при изменениях (dirty flag pattern)
-        // Проверяем изменения длины пружины или наличие частиц
-        const hasSpringMotion = Math.abs(this.springVelocity) > 0.1; // небольшое движение
-        const hasParticles = this.particleSystem.particles && this.particleSystem.particles.length > 0;
-        
-        if (this.state.isDirty || hasSpringMotion || hasParticles || this.state.isDragging) {
-            // Render dynamic layers
-            this.drawDynamic();
-            this.particleSystem.render();
-            this.state.isDirty = false; // Сбрасываем флаг после рендера
-        }
+        // Render dynamic layers
+        this.drawDynamic();
+        this.particleSystem.render();
 
         // Continue loop
         requestAnimationFrame((time) => this.animate(time));
-    }
-
-    /**
-     * Очистка ресурсов при выходе из эксперимента
-     * Предотвращает memory leaks
-     */
-    cleanup() {
-        console.log('🧹 Starting experiment cleanup...');
-        
-        try {
-            // 1. Останавливаем анимацию
-            if (this.currentAnimation) {
-                cancelAnimationFrame(this.currentAnimation);
-                this.currentAnimation = null;
-                console.log('  ✓ Animation loop stopped');
-            }
-            
-            // 2. Удаляем interact.js обработчики
-            if (typeof interact !== 'undefined') {
-                try {
-                    interact('.equipment-item').unset();
-                    interact('.weight-item').unset();
-                    interact('.drag-drop-zone').unset();
-                    interact('#drag-drop-overlay').unset();
-                    console.log('  ✓ Interact.js handlers removed');
-                } catch (e) {
-                    console.warn('  ⚠️ Error removing interact handlers:', e.message);
-                }
-            }
-            
-            // 3. Очищаем particle system
-            if (this.particleSystem) {
-                this.particleSystem.clear();
-                console.log('  ✓ Particle system cleared');
-            }
-            
-            // 4. Удаляем window event listeners
-            if (this.handleResize) {
-                window.removeEventListener('resize', this.handleResize);
-                console.log('  ✓ Window event listeners removed');
-            }
-            
-            // 5. Очищаем canvas контексты
-            Object.keys(this.contexts).forEach(key => {
-                const ctx = this.contexts[key];
-                const canvas = this.canvases[key];
-                if (ctx && canvas) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
-            });
-            console.log('  ✓ Canvas layers cleared');
-            
-            // 6. Сбрасываем состояние
-            this.state.isAnimating = false;
-            this.state.isDragging = false;
-            
-            console.log('✅ Cleanup completed successfully');
-            
-        } catch (error) {
-            console.error('❌ Error during cleanup:', error);
-        }
     }
 }
 
@@ -5547,24 +5445,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.experiment = new SpringExperiment();
     console.log('🚀 Spring Experiment loaded!');
     
-    // ✅ Добавляем cleanup при выходе со страницы
-    window.addEventListener('beforeunload', () => {
-        if (window.experiment && typeof window.experiment.cleanup === 'function') {
-            window.experiment.cleanup();
-        }
-    });
-    
-    // 🔧 ДИАГНОСТИКА: Автоматическое включение ОТКЛЮЧЕНО (мешает работе)
-    // Определяем тач-устройство по наличию touch events
+    // 🔧 ДИАГНОСТИКА: Автоматическое включение ОТКЛЮЧЕНО
+    // Для включения диагностики вручную используйте:
+    // - Горячая клавиша: Ctrl+Shift+D
+    // - Консоль: window.touchDiag.enable()
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     
-    if (isTouchDevice && window.touchDiag) {
-        console.log('📱 Touch device detected!');
-        console.log('🔍 Touch diagnostics available: Ctrl+Shift+D or window.touchDiag.enable()');
-        // Автоматическое включение ОТКЛЮЧЕНО - включайте вручную при необходимости
-        // setTimeout(() => { window.touchDiag.enable(); }, 1000);
+    if (isTouchDevice) {
+        console.log('📱 Touch device detected. Touch diagnostics available (Ctrl+Shift+D or window.touchDiag.enable())');
     } else {
-        console.log('🖱️ Desktop device. Touch diagnostics: window.touchDiag.enable()');
+        console.log('🖱️ Desktop device. Touch diagnostics: Ctrl+Shift+D or window.touchDiag.enable()');
     }
 });
 // Force reload: 1761043021

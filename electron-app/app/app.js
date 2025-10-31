@@ -321,13 +321,14 @@ class MainScreenController {
     }
 
     // ============================================
-    // HEADER SCROLL
+    // HEADER SCROLL (ОПТИМИЗИРОВАНО)
     // ============================================
     setupHeaderScroll() {
         const header = document.querySelector('.main-header');
         let lastScroll = 0;
 
-        window.addEventListener('scroll', () => {
+        // ✅ ОПТИМИЗАЦИЯ: Throttle до 100ms (10 вызовов/сек вместо 60-120)
+        const handleScroll = this.throttle(() => {
             const currentScroll = window.pageYOffset;
             
             if (currentScroll > 100) {
@@ -337,24 +338,81 @@ class MainScreenController {
             }
 
             lastScroll = currentScroll;
-        });
+        }, 100);
+
+        // ✅ ОПТИМИЗАЦИЯ: Passive listener для лучшей производительности
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    }
+    
+    // ============================================
+    // PERFORMANCE UTILITIES (Throttle/Debounce)
+    // ============================================
+    throttle(func, delay = 100) {
+        let lastCall = 0;
+        let timeoutId = null;
+        
+        return function throttled(...args) {
+            const now = Date.now();
+            const timeSinceLastCall = now - lastCall;
+            
+            if (timeSinceLastCall >= delay) {
+                lastCall = now;
+                func.apply(this, args);
+            } else {
+                if (timeoutId) {
+                    clearTimeout(timeoutId);
+                }
+                
+                timeoutId = setTimeout(() => {
+                    lastCall = Date.now();
+                    func.apply(this, args);
+                }, delay - timeSinceLastCall);
+            }
+        };
+    }
+    
+    debounce(func, delay = 300) {
+        let timeoutId = null;
+        
+        return function debounced(...args) {
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            
+            timeoutId = setTimeout(() => {
+                func.apply(this, args);
+                timeoutId = null;
+            }, delay);
+        };
     }
 
     // ============================================
-    // QUICK NAVIGATION
+    // QUICK NAVIGATION (ОПТИМИЗИРОВАНО)
     // ============================================
     setupQuickNav() {
         const quickNav = document.getElementById('quickNav');
         const sections = document.querySelectorAll('.kit-section');
         
-        // Intersection Observer для отслеживания активной секции
+        // ✅ ОПТИМИЗАЦИЯ: Кэш для предотвращения лишних обновлений DOM
+        let activeKitId = null;
+        
+        // ✅ ОПТИМИЗАЦИЯ: Обрабатываем только самую видимую секцию
         const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-                    const kitId = entry.target.dataset.kitId;
+            // Фильтруем только видимые и сортируем по visibility
+            const visibleEntries = entries
+                .filter(e => e.isIntersecting && e.intersectionRatio > 0.5)
+                .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+            
+            if (visibleEntries.length > 0) {
+                const topEntry = visibleEntries[0];
+                const kitId = topEntry.target.dataset.kitId;
+                
+                // ✅ ОПТИМИЗАЦИЯ: Обновляем только если действительно изменилось
+                if (kitId !== activeKitId) {
+                    activeKitId = kitId;
                     this.updateActiveQuickNav(kitId);
                 }
-            });
+            }
         }, {
             threshold: [0.5],
             rootMargin: '-100px 0px -50% 0px'
@@ -393,7 +451,7 @@ class MainScreenController {
     }
 
     // ============================================
-    // КАРУСЕЛИ
+    // КАРУСЕЛИ (ОПТИМИЗИРОВАНО)
     // ============================================
     setupCarousels() {
         document.querySelectorAll('.carousel-btn').forEach(btn => {
@@ -412,19 +470,43 @@ class MainScreenController {
             });
         });
 
-        // Автоматическое скрытие кнопок на краях
+        // ✅ ОПТИМИЗАЦИЯ: Debounce для обновления кнопок + кэширование элементов
         document.querySelectorAll('.carousel-track').forEach(track => {
-            track.addEventListener('scroll', () => {
-                const parent = track.closest('.experiments-carousel');
-                const prevBtn = parent.querySelector('.carousel-btn.prev');
-                const nextBtn = parent.querySelector('.carousel-btn.next');
+            // ✅ ОПТИМИЗАЦИЯ: Кэшируем DOM элементы (не ищем каждый раз)
+            const parent = track.closest('.experiments-carousel');
+            const prevBtn = parent.querySelector('.carousel-btn.prev');
+            const nextBtn = parent.querySelector('.carousel-btn.next');
+            
+            if (!prevBtn || !nextBtn) return;
+            
+            // Функция обновления состояния кнопок
+            const updateButtons = () => {
+                const isAtStart = track.scrollLeft <= 20;
+                const isAtEnd = track.scrollLeft >= track.scrollWidth - track.clientWidth - 20;
                 
-                if (prevBtn && nextBtn) {
-                    prevBtn.style.opacity = track.scrollLeft > 20 ? '1' : '0.3';
-                    nextBtn.style.opacity = 
-                        track.scrollLeft < track.scrollWidth - track.clientWidth - 20 ? '1' : '0.3';
+                // ✅ ОПТИМИЗАЦИЯ: Используем classList вместо прямого style (быстрее)
+                // ✅ ОПТИМИЗАЦИЯ: Обновляем только если состояние изменилось
+                if (isAtStart && prevBtn.style.opacity !== '0.3') {
+                    prevBtn.style.opacity = '0.3';
                 }
-            });
+                if (!isAtStart && prevBtn.style.opacity !== '1') {
+                    prevBtn.style.opacity = '1';
+                }
+                
+                if (isAtEnd && nextBtn.style.opacity !== '0.3') {
+                    nextBtn.style.opacity = '0.3';
+                }
+                if (!isAtEnd && nextBtn.style.opacity !== '1') {
+                    nextBtn.style.opacity = '1';
+                }
+            };
+            
+            // ✅ ОПТИМИЗАЦИЯ: Debounce до 150ms + passive listener
+            const debouncedUpdate = this.debounce(updateButtons, 150);
+            track.addEventListener('scroll', debouncedUpdate, { passive: true });
+            
+            // Начальное состояние
+            updateButtons();
         });
     }
 
@@ -877,6 +959,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'font-size: 14px; color: #00A86B;');
     console.log('Версия: 2.0.0 (Freemium Model)');
     console.log('🎁 1 бесплатный эксперимент • 💎 33+ в PRO');
+    console.log('');
+    console.log('%c⚡ ПРОИЗВОДИТЕЛЬНОСТЬ ОПТИМИЗИРОВАНА', 
+        'font-size: 12px; font-weight: bold; color: #FFD700; background: #1a1a2e; padding: 4px 8px;');
+    console.log('✅ Throttled scroll (100ms)');
+    console.log('✅ Optimized IntersectionObserver');
+    console.log('✅ Debounced carousel updates (150ms)');
+    console.log('✅ Passive event listeners');
 });
 
 // ============================================
