@@ -74,7 +74,17 @@ function createWindow() {
         useContentSize: true
     });
 
-    const startUrl = path.join(__dirname, '../app/index.html');
+    // ============================================
+    // ТЕСТ: Переключение между полной и минимальной версией
+    // ============================================
+    const USE_MINIMAL = process.argv.includes('--minimal');
+    const startUrl = USE_MINIMAL 
+        ? path.join(__dirname, '../app/index-minimal.html')
+        : path.join(__dirname, '../app/index.html');
+    
+    if (USE_MINIMAL) {
+        console.log('🎯 ЗАПУСК В РЕЖИМЕ MINIMAL (для теста производительности)');
+    }
     
     mainWindow.loadFile(startUrl).catch(err => {
         console.error('Ошибка загрузки:', err);
