@@ -3059,16 +3059,44 @@ class SpringExperiment {
         const weightCount = this.state.attachedWeights.length;
         const totalMass = this.getTotalAttachedMass();
 
+        // 🔍 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
+        console.group('📊 [MEASUREMENT DEBUG]');
+        console.log('🔧 Пружина ID:', this.state.attachedSpringId);
+        console.log('🔧 Константа жесткости (k):', this.physics.springConstant, 'Н/м');
+        console.log('⚖️  Прикрепленные грузы:', this.state.attachedWeights.map(w => {
+            const weightDef = this.equipment[w.id];
+            return {
+                id: w.id,
+                name: weightDef?.name || w.id,
+                mass: this.getTotalWeightMass(w),
+                disks: w.compositeDisks?.length || 0
+            };
+        }));
+        console.log('⚖️  Общая масса:', totalMass, 'г =', (totalMass/1000), 'кг');
+
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
         const force = (totalMass / 1000) * this.physics.gravity;
+        console.log('💪 Сила (F=mg):', force.toFixed(4), 'Н');
         
         // Удлинение
         const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        console.log('📏 Удлинение (Δl):', elongationCm.toFixed(4), 'см =', (elongationCm/100).toFixed(6), 'м');
 
         if (!elongationCm || elongationCm <= 0) {
+            console.warn('❌ ОШИБКА: пружина не растянута!');
+            console.groupEnd();
             this.showHint('Ошибка: пружина не растянута!');
             return;
         }
+
+        // Расчет жесткости
+        const calculatedStiffness = force / (elongationCm / 100);
+        console.log('🎯 Жесткость (k=F/Δl):', calculatedStiffness.toFixed(4), 'Н/м');
+        console.log('🎯 Ожидаемая k:', this.physics.springConstant, 'Н/м');
+        console.log('🎯 Погрешность:', Math.abs(calculatedStiffness - this.physics.springConstant).toFixed(4), 'Н/м');
+        const errorPercent = (Math.abs(calculatedStiffness - this.physics.springConstant) / this.physics.springConstant * 100).toFixed(2);
+        console.log('🎯 Погрешность %:', errorPercent, '%');
+        console.groupEnd();
 
         // Проверка дубликатов
         const isDuplicate = this.state.measurements.some(m => 
