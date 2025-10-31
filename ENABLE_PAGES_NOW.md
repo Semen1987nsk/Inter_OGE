@@ -48,3 +48,4 @@ https://semen1987nsk.github.io/Inter_OGE/index-minimal.html
 ## ⚠️ Важно
 
 Файлы УЖЕ загружены в ветку gh-pages, просто нужно включить Pages в настройках репо.
+# GitHub Pages Update
