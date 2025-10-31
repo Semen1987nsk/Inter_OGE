@@ -26,6 +26,17 @@ class SpringExperiment {
             }
         });
 
+        // 🚀 ОПТИМИЗАЦИЯ: Offscreen canvas для кеширования пружины
+        this.springCache = {
+            canvas: document.createElement('canvas'),
+            needsUpdate: true,
+            lastLength: null,
+            lastCoils: null
+        };
+        this.springCache.canvas.width = 200;
+        this.springCache.canvas.height = 600;
+        this.springCache.ctx = this.springCache.canvas.getContext('2d');
+
         // State
         this.state = {
             currentStep: 1,
@@ -3514,14 +3525,33 @@ class SpringExperiment {
         // Название оборудования
         this.drawEquipmentLabel(ctx, anchor.x, anchor.y - 35);
 
-        // Рисуем витки пружины как эллипсы
-        this.drawSpringCoils(ctx, anchor, length, coils, springRadius, wireRadius);
+        // 🚀 ОПТИМИЗАЦИЯ: Проверяем, нужно ли перерисовать кеш пружины
+        if (this.springCache.needsUpdate || 
+            this.springCache.lastLength !== length || 
+            this.springCache.lastCoils !== coils) {
+            
+            // Перерисовываем пружину в offscreen canvas
+            const cacheCtx = this.springCache.ctx;
+            cacheCtx.clearRect(0, 0, this.springCache.canvas.width, this.springCache.canvas.height);
+            
+            // Рисуем витки в кеш (центрируем в offscreen canvas)
+            const cacheAnchor = { x: 100, y: 50 };
+            this.drawSpringCoils(cacheCtx, cacheAnchor, length, coils, springRadius, wireRadius);
+            this.drawTopHook(cacheCtx, cacheAnchor.x, cacheAnchor.y, wireRadius);
+            this.drawBottomHook(cacheCtx, cacheAnchor.x, cacheAnchor.y + length, wireRadius);
+            
+            // Обновляем метаданные кеша
+            this.springCache.lastLength = length;
+            this.springCache.lastCoils = coils;
+            this.springCache.needsUpdate = false;
+        }
         
-        // Верхний крючок
-        this.drawTopHook(ctx, anchor.x, anchor.y, wireRadius);
-        
-        // Нижний крючок
-        this.drawBottomHook(ctx, anchor.x, anchor.y + length, wireRadius);
+        // Рисуем закешированную пружину из offscreen canvas
+        ctx.drawImage(
+            this.springCache.canvas,
+            0, 0, 200, length + 100, // Источник
+            anchor.x - 100, anchor.y - 50, 200, length + 100 // Назначение
+        );
 
         // Подвешенные грузы
         this.drawAttachedWeights(ctx, anchor.x, anchor.y + length);
