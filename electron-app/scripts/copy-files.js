@@ -10,13 +10,9 @@ if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
 }
 
+// ВАЖНО: Не перезаписываем Electron-версию index.html/app.js/styles.css в app/
+// Копируем только общие ресурсы и данные экспериментов
 const itemsToCopy = [
-    'index.html',
-    'index-new.html',
-    'app.js',
-    'main-screen.js',
-    'styles.css',
-    'styles-main.css',
     'equipment-kits.js',
     'labosfera-config.js',
     'image-loader.js',

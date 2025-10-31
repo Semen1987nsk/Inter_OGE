@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, dialog, shell, screen } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 
@@ -89,6 +90,31 @@ function createWindow() {
         //     mainWindow.webContents.openDevTools();
         // }
     });
+
+    // Логируем консоль рендера в файл для диагностики
+    try {
+        const logDir = path.join(app.getPath('userData'), 'logs');
+        if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+        const logFile = path.join(logDir, 'app.log');
+        const log = (msg) => {
+            try { fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`); } catch { /* ignore */ }
+        };
+
+        mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+            log(`[console:${level}] ${message} (${sourceId}:${line})`);
+        });
+        mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+            log(`[did-fail-load] ${errorCode} ${errorDescription} url=${validatedURL}`);
+        });
+        mainWindow.webContents.on('render-process-gone', (event, details) => {
+            log(`[render-process-gone] ${JSON.stringify(details)}`);
+        });
+        mainWindow.on('unresponsive', () => log('[window] unresponsive'));
+        app.on('child-process-gone', (event, details) => log(`[child-process-gone] ${JSON.stringify(details)}`));
+        process.on('uncaughtException', (err) => log(`[uncaughtException] ${err.stack || err.message}`));
+    } catch (e) {
+        // ignore logging errors
+    }
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         shell.openExternal(url);
