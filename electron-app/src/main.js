@@ -3,6 +3,22 @@ const path = require('path');
 
 let mainWindow;
 
+// ============================================
+// ПРОИЗВОДИТЕЛЬНОСТЬ: GPU ACCELERATION
+// ============================================
+// Принудительно включаем аппаратное ускорение
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
+app.commandLine.appendSwitch('enable-accelerated-video-decode');
+
+// Отключаем VSync если видеокарта слабая (уменьшает лаги)
+// app.commandLine.appendSwitch('disable-gpu-vsync');
+
+// АЛЬТЕРНАТИВА: Если GPU тормозит - раскомментируйте это:
+// app.disableHardwareAcceleration();
+
 const APP_CONFIG = {
     width: 1920,
     height: 1080,
