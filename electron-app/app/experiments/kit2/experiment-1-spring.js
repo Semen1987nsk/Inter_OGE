@@ -1841,26 +1841,31 @@ class SpringExperiment {
         const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
         const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
+        // ОПТИМИЗАЦИЯ: используем transform для плавного движения
         target.style.transform = `translate(${x}px, ${y}px)`;
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
 
-        // Двигаем призрачную копию вместе с курсором
+        // ОПТИМИЗАЦИЯ: кешируем rect и обновляем ghost только раз
         if (this.dragGhost) {
             const rect = target.getBoundingClientRect();
             this.dragGhost.style.left = rect.left + 'px';
             this.dragGhost.style.top = rect.top + 'px';
-        }
-
-        // Добавляем визуальный след при перемещении
-        if (this.visualSettings?.dragTrail && this.dragGhost) {
-            const rect = this.dragGhost.getBoundingClientRect();
-            const canvasRect = this.canvases.particles.getBoundingClientRect();
             
-            this.particleSystem.updateTrail(
-                rect.left - canvasRect.left + rect.width / 2,
-                rect.top - canvasRect.top + rect.height / 2
-            );
+            // ОПТИМИЗАЦИЯ: обновляем trail только каждые 2 кадра (30 FPS вместо 60)
+            if (this.visualSettings?.dragTrail) {
+                if (!this._trailSkipFrame) {
+                    this._trailSkipFrame = true;
+                    return;
+                }
+                this._trailSkipFrame = false;
+                
+                const canvasRect = this.canvases.particles.getBoundingClientRect();
+                this.particleSystem.updateTrail(
+                    rect.left - canvasRect.left + rect.width / 2,
+                    rect.top - canvasRect.top + rect.height / 2
+                );
+            }
         }
     }
 
