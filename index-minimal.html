@@ -86,9 +86,23 @@
 
     <script>
         // МИНИМАЛЬНЫЙ JS - только клики
+        const kitUrls = [
+            null, // Комплект 1 - нет эксперимента
+            'experiments/kit2/experiment-1-spring.html', // Комплект 2 - есть!
+            null, // Комплект 3 - нет
+            null, // Комплект 4 - нет
+            null, // Комплект 5 - нет
+            null, // Комплект 6 - нет
+            null  // Комплект 7 - нет
+        ];
+
         document.querySelectorAll('.btn').forEach((btn, i) => {
             btn.addEventListener('click', () => {
-                alert(`Открываем комплект №${i+1}`);
+                if (kitUrls[i]) {
+                    window.location.href = kitUrls[i];
+                } else {
+                    alert(`Комплект №${i+1} в разработке. Попробуйте Комплект №2 (Пружины).`);
+                }
             });
         });
 
