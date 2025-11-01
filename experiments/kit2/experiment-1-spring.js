@@ -465,29 +465,21 @@ class SpringExperiment {
      * @returns {number} - полная масса в граммах
      */
     getTotalWeightMass(weight) {
-        if (!weight) {
-            console.warn('[getTotalWeightMass] weight is null/undefined');
-            return 0;
-        }
+        if (!weight) return 0;
         
         const weightDef = this.getWeightById(weight.id);
         let mass = weightDef?.mass || 0;
         
-        console.log(`[getTotalWeightMass] ${weight.id}: базовая масса = ${mass}г`);
-        
         // Добавляем массу дисков сборного груза
         if (weight.compositeDisks && Array.isArray(weight.compositeDisks)) {
-            console.log(`[getTotalWeightMass] Найдено ${weight.compositeDisks.length} дисков:`);
             weight.compositeDisks.forEach(disk => {
                 const diskDef = this.getWeightById(disk.weightId);
                 if (diskDef) {
-                    console.log(`   - ${disk.weightId}: +${diskDef.mass}г`);
                     mass += diskDef.mass;
                 }
             });
         }
         
-        console.log(`[getTotalWeightMass] Итоговая масса ${weight.id}: ${mass}г`);
         return mass;
     }
 
@@ -1686,30 +1678,14 @@ class SpringExperiment {
             const massKg = totalMass / 1000;
             const force = massKg * this.physics.gravity;
             
-            console.group('🔍 [ELONGATION CALC]');
-            console.log('Общая масса всех грузов:', totalMass, 'г =', massKg, 'кг');
-            console.log('Сила F = mg:', force.toFixed(6), 'Н');
-            console.log('Константа пружины k:', this.physics.springConstant, 'Н/м');
-            
             // Только для ПРУЖИНЫ пересчитываем удлинение
             if (this.state.springAttached) {
                 const elongationM = force / this.physics.springConstant;
-                console.log('Удлинение Δl = F/k:', elongationM.toFixed(6), 'м');
-                
                 const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
-                console.log('Удлинение в пикселях:', elongationPx.toFixed(2), 'px');
-                console.log('pixelsPerCm:', this.physics.pixelsPerCm);
-                console.log('Естественная длина:', this.state.springNaturalLength, 'px');
-                
                 const targetLength = this.state.springNaturalLength + elongationPx;
-                console.log('Целевая длина пружины:', targetLength.toFixed(2), 'px');
 
                 this.state.springLength = targetLength;
                 this.state.springElongation = targetLength - this.state.springNaturalLength;
-                
-                console.log('Сохранено springElongation:', this.state.springElongation.toFixed(2), 'px');
-                console.log('Удлинение в см:', (this.state.springElongation / this.physics.pixelsPerCm).toFixed(4), 'см');
-                console.groupEnd();
                 
                 this.updateVisualScale(this.state.springLength);
 
@@ -1717,7 +1693,6 @@ class SpringExperiment {
                 this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
                 this.showHint(`Груз снят. Текущая масса на пружине: ${totalMass.toFixed(0)} г.`);
             } else {
-                console.groupEnd();
                 // Для ДИНАМОМЕТРА просто обновляем отображение
                 this.updateCurrentMeasurementDisplay(totalMass, force, 0);
                 this.showHint(`Груз снят. Текущая масса на динамометре: ${totalMass.toFixed(0)} г.`);
@@ -3083,33 +3058,51 @@ class SpringExperiment {
         }
 
         const weightCount = this.state.attachedWeights.length;
-        const totalMass = this.getTotalAttachedMass();
-
-        // 🔍 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ДЛЯ ОТЛАДКИ
+        
+        // 🔍 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ РАСЧЕТА МАССЫ
         console.group('📊 [MEASUREMENT DEBUG]');
         console.log('🔧 Пружина ID:', this.state.attachedSpringId);
         console.log('🔧 Константа жесткости (k):', this.physics.springConstant, 'Н/м');
-        console.log('⚖️  Прикрепленные грузы:', this.state.attachedWeights.map(w => {
+        
+        console.log('\n⚖️  РАСЧЕТ МАССЫ:');
+        console.log('Прикрепленные грузы:', this.state.attachedWeights.length);
+        this.state.attachedWeights.forEach((w, index) => {
             const weightDef = this.equipment[w.id];
-            return {
-                id: w.id,
-                name: weightDef?.name || w.id,
-                mass: this.getTotalWeightMass(w),
-                disks: w.compositeDisks?.length || 0
-            };
-        }));
-        console.log('⚖️  Общая масса:', totalMass, 'г =', (totalMass/1000), 'кг');
+            const baseMass = weightDef?.mass || 0;
+            let disksMass = 0;
+            
+            if (w.compositeDisks && w.compositeDisks.length > 0) {
+                console.log(`  ${index + 1}. ${w.id} (${weightDef?.name}):`);
+                console.log(`     Базовая масса: ${baseMass}г`);
+                console.log(`     Диски (${w.compositeDisks.length}):`);
+                w.compositeDisks.forEach(disk => {
+                    const diskDef = this.equipment[disk.weightId];
+                    if (diskDef) {
+                        console.log(`       - ${disk.weightId}: ${diskDef.mass}г`);
+                        disksMass += diskDef.mass;
+                    }
+                });
+                console.log(`     Масса дисков: ${disksMass}г`);
+                console.log(`     ИТОГО: ${baseMass + disksMass}г`);
+            } else {
+                console.log(`  ${index + 1}. ${w.id} (${weightDef?.name}): ${baseMass}г`);
+            }
+        });
+        
+        const totalMass = this.getTotalAttachedMass();
+        console.log(`\n⚖️  ОБЩАЯ МАССА: ${totalMass} г = ${(totalMass/1000).toFixed(3)} кг`);
 
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
         const force = (totalMass / 1000) * this.physics.gravity;
-        console.log('💪 Сила (F=mg):', force.toFixed(4), 'Н');
+        console.log(`\n💪 СИЛА: F = mg = ${(totalMass/1000).toFixed(3)} × ${this.physics.gravity} = ${force.toFixed(4)} Н`);
         
         // Удлинение
         const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
-        console.log('📏 Удлинение (Δl):', elongationCm.toFixed(4), 'см =', (elongationCm/100).toFixed(6), 'м');
+        console.log(`\n📏 УДЛИНЕНИЕ: Δl = ${elongationCm.toFixed(4)} см = ${(elongationCm/100).toFixed(6)} м`);
+        console.log(`   (springElongation = ${this.state.springElongation.toFixed(2)} px / ${this.physics.pixelsPerCm} px/см)`);
 
         if (!elongationCm || elongationCm <= 0) {
-            console.warn('❌ ОШИБКА: пружина не растянута!');
+            console.warn('\n❌ ОШИБКА: пружина не растянута!');
             console.groupEnd();
             this.showHint('Ошибка: пружина не растянута!');
             return;
@@ -3117,11 +3110,20 @@ class SpringExperiment {
 
         // Расчет жесткости
         const calculatedStiffness = force / (elongationCm / 100);
-        console.log('🎯 Жесткость (k=F/Δl):', calculatedStiffness.toFixed(4), 'Н/м');
-        console.log('🎯 Ожидаемая k:', this.physics.springConstant, 'Н/м');
-        console.log('🎯 Погрешность:', Math.abs(calculatedStiffness - this.physics.springConstant).toFixed(4), 'Н/м');
-        const errorPercent = (Math.abs(calculatedStiffness - this.physics.springConstant) / this.physics.springConstant * 100).toFixed(2);
-        console.log('🎯 Погрешность %:', errorPercent, '%');
+        console.log(`\n🎯 РАСЧЕТ ЖЕСТКОСТИ:`);
+        console.log(`   k = F / Δl = ${force.toFixed(4)} / ${(elongationCm / 100).toFixed(6)} = ${calculatedStiffness.toFixed(4)} Н/м`);
+        console.log(`   Ожидаемая k: ${this.physics.springConstant} Н/м`);
+        const error = Math.abs(calculatedStiffness - this.physics.springConstant);
+        console.log(`   Погрешность: ${error.toFixed(4)} Н/м`);
+        const errorPercent = (error / this.physics.springConstant * 100).toFixed(2);
+        console.log(`   Погрешность %: ${errorPercent}%`);
+        
+        if (error > 1.0) {
+            console.error(`   ⚠️  БОЛЬШАЯ ПОГРЕШНОСТЬ! (> 1 Н/м)`);
+        } else {
+            console.log(`   ✅ Погрешность в норме`);
+        }
+        
         console.groupEnd();
 
         // Проверка дубликатов
