@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Полная матрица тестов — 46 комбинаций</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #fff;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+        
+        .alert {
+            background: rgba(255, 87, 87, 0.3);
+            border-left: 5px solid #ff5757;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .alert h3 {
+            margin-bottom: 10px;
+            color: #ffeded;
+        }
+        
+        .alert p {
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+        
+        .alert code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .instructions ol {
+            margin-left: 25px;
+            line-height: 1.8;
+        }
+        
+        .instructions li {
+            margin: 10px 0;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        .test-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .test-table thead {
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .test-table th {
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .test-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .test-table tbody tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .test-table .bug-row {
+            background: rgba(255, 87, 87, 0.2);
+            border-left: 4px solid #ff5757;
+        }
+        
+        .test-table .bug-row td {
+            font-weight: 600;
+        }
+        
+        .test-num {
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            text-decoration: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        
+        .actions {
+            text-align: center;
+            margin: 40px 0;
+        }
+        
+        .console-preview {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 20px 0;
+            overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .console-preview pre {
+            margin: 0;
+            line-height: 1.6;
+            color: #a0ff70;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .test-table {
+                font-size: 0.85em;
+            }
+            
+            .test-table th,
+            .test-table td {
+                padding: 8px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Полная матрица тестов жесткости пружин</h1>
+        <div class="subtitle">46 комбинаций грузов × 2 пружины = Полное покрытие тестами</div>
+        
+        <div class="alert">
+            <h3>⚠️ ОБНАРУЖЕНА ПРОБЛЕМА!</h3>
+            <p><strong>Тест №10:</strong> Пружина №1 (50 Н/м) + Штанга 10г</p>
+            <p><strong>Ожидаемая жесткость:</strong> k = 50.0 Н/м</p>
+            <p><strong>Фактическая жесткость:</strong> k = <code style="color: #ff6b6b;">195.0 Н/м</code> ❌</p>
+            <p style="margin-top: 15px;">Математика верна (все 46 тестов ✅), значит проблема в коде эксперимента!</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Как тестировать</h3>
+            <ol>
+                <li><strong>Откройте эксперимент</strong> по кнопке ниже</li>
+                <li><strong>Откройте консоль браузера</strong> (F12 → Console)</li>
+                <li><strong>Прикрепите пружину</strong> (№1 или №2)</li>
+                <li><strong>Подвесьте грузы</strong> из таблицы ниже</li>
+                <li><strong>Нажмите "Записать измерение"</strong></li>
+                <li><strong>Смотрите в консоль</strong>:
+                    <ul style="margin-top: 10px;">
+                        <li><code>🔍 [ELONGATION CALC]</code> — расчет удлинения</li>
+                        <li><code>[getTotalWeightMass]</code> — подсчет массы</li>
+                        <li><code>📊 [MEASUREMENT DEBUG]</code> — финальный результат</li>
+                    </ul>
+                </li>
+                <li><strong>Сравните</strong> <code>🎯 Жесткость (k=F/Δl)</code> с <code>🎯 Ожидаемая k</code></li>
+            </ol>
+        </div>
+        
+        <div class="actions">
+            <a href="experiment-1-spring.html" class="btn-primary" target="_blank">
+                🚀 Открыть эксперимент
+            </a>
+        </div>
+        
+        <div class="section">
+            <h2>🔴 Пружина №1 (50 Н/м) — 25 тестов</h2>
+            
+            <table class="test-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">№</th>
+                        <th>Комбинация</th>
+                        <th style="width: 100px;">Масса</th>
+                        <th style="width: 90px;">F (Н)</th>
+                        <th style="width: 100px;">Δl (см)</th>
+                        <th style="width: 90px;">k ожид.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="test-num">1</td><td>1 × 100г</td><td>100г</td><td>0.98</td><td>1.96</td><td>50.0</td></tr>
+                    <tr><td class="test-num">2</td><td>2 × 100г</td><td>200г</td><td>1.96</td><td>3.92</td><td>50.0</td></tr>
+                    <tr><td class="test-num">3</td><td>3 × 100г</td><td>300г</td><td>2.94</td><td>5.88</td><td>50.0</td></tr>
+                    <tr><td class="test-num">4</td><td>1 × 50г</td><td>50г</td><td>0.49</td><td>0.98</td><td>50.0</td></tr>
+                    <tr><td class="test-num">5</td><td>2 × 50г</td><td>100г</td><td>0.98</td><td>1.96</td><td>50.0</td></tr>
+                    <tr><td class="test-num">6</td><td>3 × 50г</td><td>150г</td><td>1.47</td><td>2.94</td><td>50.0</td></tr>
+                    <tr><td class="test-num">7</td><td>1 × 200г</td><td>200г</td><td>1.96</td><td>3.92</td><td>50.0</td></tr>
+                    <tr><td class="test-num">8</td><td>100г + 50г</td><td>150г</td><td>1.47</td><td>2.94</td><td>50.0</td></tr>
+                    <tr><td class="test-num">9</td><td>100г + 100г + 50г</td><td>250г</td><td>2.45</td><td>4.90</td><td>50.0</td></tr>
+                    <tr class="bug-row"><td class="test-num">10</td><td>⚠️ Штанга 10г (БАГ!)</td><td>10г</td><td>0.098</td><td>0.196</td><td>50.0</td></tr>
+                    <tr><td class="test-num">11</td><td>Штанга + 1×Диск 10г</td><td>20г</td><td>0.196</td><td>0.392</td><td>50.0</td></tr>
+                    <tr><td class="test-num">12</td><td>Штанга + 2×Диск 10г</td><td>30г</td><td>0.294</td><td>0.588</td><td>50.0</td></tr>
+                    <tr><td class="test-num">13</td><td>Штанга + 1×Диск 20г</td><td>30г</td><td>0.294</td><td>0.588</td><td>50.0</td></tr>
+                    <tr><td class="test-num">14</td><td>Штанга + 2×Диск 20г</td><td>50г</td><td>0.490</td><td>0.980</td><td>50.0</td></tr>
+                    <tr><td class="test-num">15</td><td>Штанга + 1×Диск 50г</td><td>60г</td><td>0.588</td><td>1.176</td><td>50.0</td></tr>
+                    <tr><td class="test-num">16</td><td>Штанга + 2×Диск 50г</td><td>110г</td><td>1.078</td><td>2.156</td><td>50.0</td></tr>
+                    <tr><td class="test-num">17</td><td>Штанга + 3×Диск 50г</td><td>160г</td><td>1.568</td><td>3.136</td><td>50.0</td></tr>
+                    <tr><td class="test-num">18</td><td>Штанга + Диск 10г + Диск 20г</td><td>40г</td><td>0.392</td><td>0.784</td><td>50.0</td></tr>
+                    <tr><td class="test-num">19</td><td>Штанга + Диск 10г + Диск 50г</td><td>70г</td><td>0.686</td><td>1.372</td><td>50.0</td></tr>
+                    <tr><td class="test-num">20</td><td>Штанга + Диск 20г + Диск 50г</td><td>80г</td><td>0.784</td><td>1.568</td><td>50.0</td></tr>
+                    <tr><td class="test-num">21</td><td>Штанга + все диски (10+20+50)</td><td>90г</td><td>0.882</td><td>1.764</td><td>50.0</td></tr>
+                    <tr><td class="test-num">22</td><td>100г + Штанга</td><td>110г</td><td>1.078</td><td>2.156</td><td>50.0</td></tr>
+                    <tr><td class="test-num">23</td><td>100г + (Штанга + Диск 50г)</td><td>160г</td><td>1.568</td><td>3.136</td><td>50.0</td></tr>
+                    <tr><td class="test-num">24</td><td>50г + (Штанга + Диск 20г)</td><td>80г</td><td>0.784</td><td>1.568</td><td>50.0</td></tr>
+                    <tr><td class="test-num">25</td><td>2×100г + Штанга</td><td>210г</td><td>2.058</td><td>4.116</td><td>50.0</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🔵 Пружина №2 (10 Н/м) — 21 тест</h2>
+            
+            <table class="test-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;">№</th>
+                        <th>Комбинация</th>
+                        <th style="width: 100px;">Масса</th>
+                        <th style="width: 90px;">F (Н)</th>
+                        <th style="width: 100px;">Δl (см)</th>
+                        <th style="width: 90px;">k ожид.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="test-num">26</td><td>1 × 100г</td><td>100г</td><td>0.98</td><td>9.80</td><td>10.0</td></tr>
+                    <tr><td class="test-num">27</td><td>2 × 100г</td><td>200г</td><td>1.96</td><td>19.60</td><td>10.0</td></tr>
+                    <tr><td class="test-num">28</td><td>3 × 100г</td><td>300г</td><td>2.94</td><td>29.40</td><td>10.0</td></tr>
+                    <tr><td class="test-num">29</td><td>1 × 50г</td><td>50г</td><td>0.49</td><td>4.90</td><td>10.0</td></tr>
+                    <tr><td class="test-num">30</td><td>2 × 50г</td><td>100г</td><td>0.98</td><td>9.80</td><td>10.0</td></tr>
+                    <tr><td class="test-num">31</td><td>3 × 50г</td><td>150г</td><td>1.47</td><td>14.70</td><td>10.0</td></tr>
+                    <tr><td class="test-num">32</td><td>1 × 200г</td><td>200г</td><td>1.96</td><td>19.60</td><td>10.0</td></tr>
+                    <tr><td class="test-num">33</td><td>100г + 50г</td><td>150г</td><td>1.47</td><td>14.70</td><td>10.0</td></tr>
+                    <tr><td class="test-num">34</td><td>Штанга 10г</td><td>10г</td><td>0.098</td><td>0.980</td><td>10.0</td></tr>
+                    <tr><td class="test-num">35</td><td>Штанга + 1×Диск 10г</td><td>20г</td><td>0.196</td><td>1.960</td><td>10.0</td></tr>
+                    <tr><td class="test-num">36</td><td>Штанга + 2×Диск 10г</td><td>30г</td><td>0.294</td><td>2.940</td><td>10.0</td></tr>
+                    <tr><td class="test-num">37</td><td>Штанга + 1×Диск 20г</td><td>30г</td><td>0.294</td><td>2.940</td><td>10.0</td></tr>
+                    <tr><td class="test-num">38</td><td>Штанга + 2×Диск 20г</td><td>50г</td><td>0.490</td><td>4.900</td><td>10.0</td></tr>
+                    <tr><td class="test-num">39</td><td>Штанга + 1×Диск 50г</td><td>60г</td><td>0.588</td><td>5.880</td><td>10.0</td></tr>
+                    <tr><td class="test-num">40</td><td>Штанга + 2×Диск 50г</td><td>110г</td><td>1.078</td><td>10.780</td><td>10.0</td></tr>
+                    <tr><td class="test-num">41</td><td>Штанга + 3×Диск 50г</td><td>160г</td><td>1.568</td><td>15.680</td><td>10.0</td></tr>
+                    <tr><td class="test-num">42</td><td>Штанга + все диски (10+20+50)</td><td>90г</td><td>0.882</td><td>8.820</td><td>10.0</td></tr>
+                    <tr><td class="test-num">43</td><td>100г + Штанга</td><td>110г</td><td>1.078</td><td>10.780</td><td>10.0</td></tr>
+                    <tr><td class="test-num">44</td><td>100г + (Штанга + Диск 50г)</td><td>160г</td><td>1.568</td><td>15.680</td><td>10.0</td></tr>
+                    <tr><td class="test-num">45</td><td>50г + (Штанга + Диск 20г)</td><td>80г</td><td>0.784</td><td>7.840</td><td>10.0</td></tr>
+                    <tr><td class="test-num">46</td><td>2×100г + Штанга</td><td>210г</td><td>2.058</td><td>20.580</td><td>10.0</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>🔍 Что смотреть в консоли</h2>
+            <p style="margin-bottom: 20px;">При прикреплении груза и записи измерения появятся логи:</p>
+            
+            <div class="console-preview">
+                <pre>🔍 [ELONGATION CALC]
+Общая масса всех грузов: 10 г = 0.01 кг
+Сила F = mg: 0.098000 Н
+Константа пружины k: 50 Н/м
+Удлинение Δl = F/k: 0.001960 м
+Удлинение в пикселях: 10.29 px
+...
+
+[getTotalWeightMass] composite_rod_10g: базовая масса = 10г
+[getTotalWeightMass] Итоговая масса composite_rod_10g: 10г
+
+📊 [MEASUREMENT DEBUG]
+🔧 Пружина ID: spring50
+🔧 Константа жесткости (k): 50 Н/м
+⚖️  Общая масса: 10 г = 0.01 кг
+💪 Сила (F=mg): 0.0980 Н
+📏 Удлинение (Δl): 0.1960 см = 0.001960 м
+🎯 Жесткость (k=F/Δl): 50.0000 Н/м  ← ПРОВЕРЯЙ ЭТО!
+🎯 Ожидаемая k: 50 Н/м
+🎯 Погрешность: 0.0000 Н/м</pre>
+            </div>
+            
+            <p><strong>Если жесткость ≠ ожидаемой — баг найден!</strong></p>
+        </div>
+        
+        <div class="section">
+            <h2>📊 Статистика тестирования</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">46</div>
+                    <div class="stat-label">Всего комбинаций</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Пружины</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Покрытие тестами</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">1</div>
+                    <div class="stat-label">Обнаружено багов</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <a href="experiment-1-spring.html" class="btn-primary" target="_blank">
+                🚀 Начать тестирование
+            </a>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; opacity: 0.7;">
+            <p>💡 Совет: начни с Теста №10 (Штанга на Пружине №1) — это известный баг</p>
+            <p>🔧 Открой консоль (F12) ПЕРЕД началом теста</p>
+        </div>
+    </div>
+</body>
+</html>
