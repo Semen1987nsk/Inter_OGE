@@ -465,21 +465,29 @@ class SpringExperiment {
      * @returns {number} - полная масса в граммах
      */
     getTotalWeightMass(weight) {
-        if (!weight) return 0;
+        if (!weight) {
+            console.warn('[getTotalWeightMass] weight is null/undefined');
+            return 0;
+        }
         
         const weightDef = this.getWeightById(weight.id);
         let mass = weightDef?.mass || 0;
         
+        console.log(`[getTotalWeightMass] ${weight.id}: базовая масса = ${mass}г`);
+        
         // Добавляем массу дисков сборного груза
         if (weight.compositeDisks && Array.isArray(weight.compositeDisks)) {
+            console.log(`[getTotalWeightMass] Найдено ${weight.compositeDisks.length} дисков:`);
             weight.compositeDisks.forEach(disk => {
                 const diskDef = this.getWeightById(disk.weightId);
                 if (diskDef) {
+                    console.log(`   - ${disk.weightId}: +${diskDef.mass}г`);
                     mass += diskDef.mass;
                 }
             });
         }
         
+        console.log(`[getTotalWeightMass] Итоговая масса ${weight.id}: ${mass}г`);
         return mass;
     }
 
@@ -1678,20 +1686,38 @@ class SpringExperiment {
             const massKg = totalMass / 1000;
             const force = massKg * this.physics.gravity;
             
+            console.group('🔍 [ELONGATION CALC]');
+            console.log('Общая масса всех грузов:', totalMass, 'г =', massKg, 'кг');
+            console.log('Сила F = mg:', force.toFixed(6), 'Н');
+            console.log('Константа пружины k:', this.physics.springConstant, 'Н/м');
+            
             // Только для ПРУЖИНЫ пересчитываем удлинение
             if (this.state.springAttached) {
                 const elongationM = force / this.physics.springConstant;
+                console.log('Удлинение Δl = F/k:', elongationM.toFixed(6), 'м');
+                
                 const elongationPx = elongationM * 100 * this.physics.pixelsPerCm;
+                console.log('Удлинение в пикселях:', elongationPx.toFixed(2), 'px');
+                console.log('pixelsPerCm:', this.physics.pixelsPerCm);
+                console.log('Естественная длина:', this.state.springNaturalLength, 'px');
+                
                 const targetLength = this.state.springNaturalLength + elongationPx;
+                console.log('Целевая длина пружины:', targetLength.toFixed(2), 'px');
 
                 this.state.springLength = targetLength;
                 this.state.springElongation = targetLength - this.state.springNaturalLength;
+                
+                console.log('Сохранено springElongation:', this.state.springElongation.toFixed(2), 'px');
+                console.log('Удлинение в см:', (this.state.springElongation / this.physics.pixelsPerCm).toFixed(4), 'см');
+                console.groupEnd();
+                
                 this.updateVisualScale(this.state.springLength);
 
                 const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
                 this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
                 this.showHint(`Груз снят. Текущая масса на пружине: ${totalMass.toFixed(0)} г.`);
             } else {
+                console.groupEnd();
                 // Для ДИНАМОМЕТРА просто обновляем отображение
                 this.updateCurrentMeasurementDisplay(totalMass, force, 0);
                 this.showHint(`Груз снят. Текущая масса на динамометре: ${totalMass.toFixed(0)} г.`);
