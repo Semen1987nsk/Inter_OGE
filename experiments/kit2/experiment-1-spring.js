@@ -5019,6 +5019,12 @@ class SpringExperiment {
             return;
         }
         
+        // 🆕 КРИТИЧНО: Если есть наборные диски, добавляем их ДО подвешивания!
+        if (freeWeight.compositeDisks && freeWeight.compositeDisks.length > 0) {
+            weight.compositeDisks = [...freeWeight.compositeDisks];
+            console.log('[ATTACH-FREE] ✅ Диски добавлены ДО подвешивания:', weight.compositeDisks.length, 'шт');
+        }
+
         console.log('[ATTACH-FREE] Вызов attachWeight для:', weight.id);
         this.attachWeight(weight);
         
@@ -5037,16 +5043,14 @@ class SpringExperiment {
             });
         }
 
-        // 🆕 Если это комплектная штанга с набранными дисками, сохраняем информацию о дисках в объекте штанги
+        // 🆕 Добавляем диски в selectedWeights (UI state)
         if (freeWeight.compositeDisks && freeWeight.compositeDisks.length > 0) {
-            console.log('[ATTACH-FREE] Подвешивание штанги с', freeWeight.compositeDisks.length, 'наборными дисками');
+            console.log('[ATTACH-FREE] Обновление UI state для дисков');
 
-            // Находим штангу в attachedWeights и добавляем ей информацию о дисках
+            // Находим штангу в attachedWeights и проверяем наличие дисков
             const rodInChain = this.state.attachedWeights.find(w => w.id === weight.id);
-            if (rodInChain) {
-                // Копируем диски в объект штанги в цепочке
-                rodInChain.compositeDisks = [...freeWeight.compositeDisks];
-                console.log('[ATTACH-FREE] Диски сохранены в объекте штанги в цепочке:', rodInChain.compositeDisks.length);
+            if (rodInChain && rodInChain.compositeDisks) {
+                console.log('[ATTACH-FREE] ✅ Диски уже в объекте штанги в цепочке:', rodInChain.compositeDisks.length);
                 
                 // ✅ КРИТИЧНО: Добавляем диски в selectedWeights и убираем из usedWeightIds
                 // Без этого диски не определяются как "подвешенные"!
