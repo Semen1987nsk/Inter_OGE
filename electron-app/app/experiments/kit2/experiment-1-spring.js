@@ -2340,7 +2340,7 @@ class SpringExperiment {
             this.showHint(`Груз ${weight.name} подвешен. Масса: ${totalMass} г. Наблюдайте колебания...`);
 
             // ИЗМЕРЕНИЕ В РЕАЛЬНОМ ВРЕМЕНИ - обновляем показания сразу
-            const elongationCm = elongationPx / this.physics.pixelsPerCm;
+            const elongationCm = elongationM * 100; // Перевод из метров в сантиметры
             this.updateCurrentMeasurementDisplay(totalMass, force, elongationCm);
 
             console.log('[ATTACH-WEIGHT] Запуск анимации растяжения');
