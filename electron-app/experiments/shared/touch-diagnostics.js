@@ -3,7 +3,7 @@
  * Диагностика проблем с touch events на интерактивных панелях
  */
 
-class TouchDiagnostics {
+export class TouchDiagnostics {
     constructor() {
         this.events = [];
         this.maxEvents = 50;

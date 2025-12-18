@@ -3,7 +3,7 @@
  * Helper functions for canvas rendering and image manipulation
  */
 
-class CanvasUtils {
+export class CanvasUtils {
     constructor() {
         this.imageCache = new Map();
     }
