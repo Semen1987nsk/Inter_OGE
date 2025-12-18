@@ -3,7 +3,7 @@
  * Handles all physics calculations and simulations
  */
 
-class PhysicsEngine {
+export class PhysicsEngine {
     constructor() {
         this.g = 10; // m/s² (simplified)
         this.damping = 0.92; // затухание колебаний
