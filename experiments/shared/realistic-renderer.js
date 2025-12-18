@@ -3,7 +3,7 @@
  * Гибридный рендеринг: фото + canvas-трансформации для интерактивности
  */
 
-class RealisticRenderer {
+export class RealisticRenderer {
     constructor(context) {
         this.ctx = context;
         this.cache = new Map(); // кеш предобработанных изображений
@@ -17,8 +17,9 @@ class RealisticRenderer {
      * @param {number} naturalLength - Исходная длина пружины (px) - целевой размер
      * @param {number} currentLength - Текущая длина (растянутая) (px)
      * @param {number} segments - На сколько сегментов разбить (для плавности)
+     * @param {boolean} isOverloaded - Флаг перегрузки (рисует красным)
      */
-    drawStretchableSpring(img, x, y, naturalLength, currentLength, segments = 20) {
+    drawStretchableSpring(img, x, y, naturalLength, currentLength, segments = 20, isOverloaded = false) {
         if (!img || !img.complete) {
             console.warn('⚠️ Spring image not loaded yet');
             return;
@@ -35,6 +36,13 @@ class RealisticRenderer {
 
         this.ctx.save();
 
+        // Apply red tint if overloaded
+        if (isOverloaded) {
+            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.shadowColor = 'red';
+            this.ctx.shadowBlur = 20;
+        }
+
         // Рисуем пружину по сегментам с растяжением
         for (let i = 0; i < segments; i++) {
             const sy = (i / segments) * img.height; // source Y (пропорционально оригиналу)
@@ -50,10 +58,18 @@ class RealisticRenderer {
                 0, sy, img.width, sh, // source (весь оригинал)
                 x - segmentWidth / 2, dy, segmentWidth, stretchedSegmentHeight // destination (масштабированный)
             );
+            
+            // Overlay red color for overload
+            if (isOverloaded) {
+                this.ctx.globalCompositeOperation = 'source-atop';
+                this.ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                this.ctx.fillRect(x - segmentWidth / 2, dy, segmentWidth, stretchedSegmentHeight);
+                this.ctx.globalCompositeOperation = 'source-over';
+            }
         }
 
         // Добавляем блики при растяжении
-        if (stretchFactor > 1.05) {
+        if (stretchFactor > 1.05 && !isOverloaded) {
             this.addSpringHighlights(x, y, currentLength, stretchFactor);
         }
 

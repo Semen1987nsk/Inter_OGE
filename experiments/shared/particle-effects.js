@@ -43,7 +43,7 @@ class Particle {
     }
 }
 
-class ParticleSystem {
+export class ParticleSystem {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');

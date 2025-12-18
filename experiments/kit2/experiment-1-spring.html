@@ -10,18 +10,13 @@
     <link rel="stylesheet" href="experiment-1-spring.css">
     
     <!-- Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.19/dist/interact.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" defer></script>
+    <script src="../vendor/chart.umd.js" defer></script>
+    <script src="../vendor/interact.min.js" defer></script>
+    <script src="../vendor/anime.min.js" defer></script>
 
     <!-- Experiment Scripts (load in order) -->
-    <script src="../shared/touch-diagnostics.js" defer></script>
-    <script src="../shared/physics-engine.js" defer></script>
-    <script src="../shared/particle-effects.js" defer></script>
-    <script src="../shared/canvas-utils.js" defer></script>
-    <script src="../shared/realistic-renderer.js" defer></script>
-    <script src="../shared/freeform-manager.js" type="module" defer></script>
-    <script src="experiment-1-spring.js?v=20251101-2350" type="module"></script>
+    <!-- Shared modules are now imported in experiment-1-spring.js -->
+    <script src="experiment-1-spring.js?v=20251218-1200" type="module"></script>
 </head>
 <body>
     <!-- Header -->
@@ -36,6 +31,9 @@
         <div class="header-actions">
             <button class="btn-icon" id="btn-help" title="Помощь">
                 <span class="icon">?</span>
+            </button>
+            <button class="btn-icon" id="btn-magnifier" title="Лупа (M)">
+                <span class="icon">🔍</span>
             </button>
             <button class="btn-icon" id="btn-settings" title="Настройки">
                 <span class="icon">⚙</span>
