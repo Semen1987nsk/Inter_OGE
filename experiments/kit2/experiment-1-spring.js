@@ -4,6 +4,13 @@
  */
 
 import { FreeformManager } from '../shared/freeform-manager.js';
+import { ParticleSystem } from '../shared/particle-effects.js';
+import { RealisticRenderer } from '../shared/realistic-renderer.js';
+import { PhysicsEngine } from '../shared/physics-engine.js';
+import { CanvasUtils } from '../shared/canvas-utils.js';
+import { TouchDiagnostics } from '../shared/touch-diagnostics.js';
+import { Magnifier } from '../shared/magnifier.js';
+import { PHYSICS_CONFIG, VISUAL_CONFIG, LAYOUT_CONFIG, EQUIPMENT_CONFIG, WEIGHTS_INVENTORY } from './experiment-config.js';
 
 class SpringExperiment {
     constructor() {
@@ -76,27 +83,12 @@ class SpringExperiment {
         this.pendingWeightIds = new Set();
 
         // Конфигурация планшета с пружиной (используем фото реального оборудования)
-        this.layout = {
-            springRig: {
-                position: { x: 260, y: 80 },
-                width: 260,
-                height: 420,
-                anchorRatio: { x: 0.48, y: 0.18 }, // относительное положение верхнего крючка на фото
-                anchorOffset: { x: 0, y: 0 }
-            }
-        };
+        this.layout = JSON.parse(JSON.stringify(LAYOUT_CONFIG));
 
         this.updateRigGeometry();
 
         // Physics constants
-        this.physics = {
-            springConstant: 50, // N/m (будет рассчитана из экспериментов)
-            gravity: 9.8, // m/s²
-            pixelsPerCm: 40, // масштаб: 40px = 1cm
-            oscillationAmplitude: 0,
-            oscillationTime: 0,
-            isDamping: false
-        };
+        this.physics = { ...PHYSICS_CONFIG };
 
         // Images
         this.images = {
@@ -107,6 +99,8 @@ class SpringExperiment {
         // Systems
         this.particleSystem = new ParticleSystem(this.canvases.particles);
         this.realisticRenderer = new RealisticRenderer(this.contexts.dynamic);
+        this.physicsEngine = new PhysicsEngine(); // Instance for calculations
+        this.magnifier = new Magnifier(this.canvases.dynamic, this.canvases.ui); // Magnifier tool
         
         // Pointer tracking for dynamic highlight
         this.pointer = { x: 0, y: 0, over: false };
@@ -124,10 +118,10 @@ class SpringExperiment {
 
         // Visual scaling to keep soft пружины в кадре
         this.visual = {
-            scale: 1,
-            minScale: 0.2,
-            marginTop: 120,
-            marginBottom: 140
+            scale: VISUAL_CONFIG.scale,
+            minScale: VISUAL_CONFIG.minScale,
+            marginTop: VISUAL_CONFIG.marginTop,
+            marginBottom: VISUAL_CONFIG.marginBottom
         };
 
         // UI references
@@ -138,138 +132,15 @@ class SpringExperiment {
 
         // Visual configuration toggles
         this.visualSettings = {
-            measurementParticles: false,
-            completionConfetti: true
+            measurementParticles: VISUAL_CONFIG.measurementParticles,
+            completionConfetti: VISUAL_CONFIG.completionConfetti
         };
 
         // Inventory metadata
-        this.equipment = {
-            dynamometer1: {
-                id: 'dynamometer1',
-                name: 'Динамометр 1Н',
-                maxForce: 1,
-                icon: '⚖️',
-                type: 'dynamometer',
-                description: 'Для измерения малых сил',
-                scale: 0.1 // Цена деления 0.1 Н
-            },
-            dynamometer5: {
-                id: 'dynamometer5',
-                name: 'Динамометр 5Н',
-                maxForce: 5,
-                icon: '⚖️',
-                type: 'dynamometer',
-                description: 'Для измерения больших сил',
-                scale: 0.5 // Цена деления 0.5 Н
-            },
-            spring50: {
-                id: 'spring50',
-                name: 'Пружина №1',
-                stiffness: '50 Н/м',
-                stiffnessValue: 50,
-                icon: '🌀',
-                type: 'spring',
-                naturalLength: 140
-            },
-            spring10: {
-                id: 'spring10',
-                name: 'Пружина №2',
-                stiffness: '10 Н/м',
-                stiffnessValue: 10,
-                icon: '🧷',
-                type: 'spring',
-                naturalLength: 140
-            }
-        };
+        this.equipment = JSON.parse(JSON.stringify(EQUIPMENT_CONFIG));
 
         // Набор грузов комплекта №2 (ФИПИ ОГЭ 2025)
-        this.weightsInventory = [
-            {
-                id: 'weight100_double_1',
-                mass: 100,
-                name: 'Груз 100 г №1',
-                description: 'Двойной крюк для стыковки',
-                icon: '../../assets/equipment/weight-100g-double-hook.svg',
-                hooksTop: true,
-                hooksBottom: true,
-                targetSize: 88,
-                hookGap: 28
-            },
-            {
-                id: 'weight100_double_2',
-                mass: 100,
-                name: 'Груз 100 г №2',
-                description: 'Двойной крюк для стыковки',
-                icon: '../../assets/equipment/weight-100g-double-hook.svg',
-                hooksTop: true,
-                hooksBottom: true,
-                targetSize: 88,
-                hookGap: 28
-            },
-            {
-                id: 'weight100_double_3',
-                mass: 100,
-                name: 'Груз 100 г №3',
-                description: 'Двойной крюк для стыковки',
-                icon: '../../assets/equipment/weight-100g-double-hook.svg',
-                hooksTop: true,
-                hooksBottom: true,
-                targetSize: 88,
-                hookGap: 28
-            },
-            // 🔩 КОМПОНЕНТЫ НАБОРНОГО ГРУЗА (собирать на canvas)
-            {
-                id: 'composite_rod_10g',
-                mass: 10,
-                name: 'Штанга 10 г',
-                description: 'Основа наборного груза',
-                icon: '../../assets/equipment/composite-weights/rod-10g-side.svg',
-                hooksTop: true,
-                hooksBottom: true,
-                targetSize: 135, // 90 * 1.5
-                hookGap: 28,
-                isCompositeRod: true
-            },
-            {
-                id: 'composite_disk_10g',
-                mass: 10,
-                name: 'Диск 10 г',
-                description: 'Маленький диск для штанги',
-                icon: '../../assets/equipment/composite-weights/disk-10g-side.svg',
-                hooksTop: false,
-                hooksBottom: false,
-                targetSize: 90, // 60 * 1.5
-                hookGap: 0,
-                isCompositeDisk: true,
-                diskSize: 'small'
-            },
-            {
-                id: 'composite_disk_20g',
-                mass: 20,
-                name: 'Диск 20 г',
-                description: 'Средний диск для штанги',
-                icon: '../../assets/equipment/composite-weights/disk-20g-side.svg',
-                hooksTop: false,
-                hooksBottom: false,
-                targetSize: 112.5, // 75 * 1.5
-                hookGap: 0,
-                isCompositeDisk: true,
-                diskSize: 'medium'
-            },
-            {
-                id: 'composite_disk_50g',
-                mass: 50,
-                name: 'Диск 50 г',
-                description: 'Большой диск для штанги',
-                icon: '../../assets/equipment/composite-weights/disk-50g-side.svg',
-                hooksTop: false,
-                hooksBottom: false,
-                targetSize: 135, // 90 * 1.5
-                hookGap: 0,
-                isCompositeDisk: true,
-                diskSize: 'large'
-            }
-        ];
+        this.weightsInventory = JSON.parse(JSON.stringify(WEIGHTS_INVENTORY));
 
         // Cache for tracking last pointer position during canvas drag
         this.lastPointer = { x: 0, y: 0 };
@@ -2501,22 +2372,35 @@ class SpringExperiment {
         const currentForceEl = document.getElementById('current-force');
         const currentElongationEl = document.getElementById('current-elongation');
 
+        // Apply physics noise for realism
+        let displayForce = force;
+        let displayElongationCm = elongationCm;
+
+        if (this.physicsEngine && typeof this.physicsEngine.addNoise === 'function') {
+            if (Number.isFinite(force)) {
+                displayForce = this.physicsEngine.addNoise(force, 0.5); // 0.5% noise
+            }
+            if (Number.isFinite(elongationCm)) {
+                displayElongationCm = this.physicsEngine.addNoise(elongationCm, 0.5);
+            }
+        }
+
         // Обновляем старые элементы если они есть
         if (massEl) {
             massEl.textContent = Number.isFinite(mass) ? mass.toFixed(0) : '—';
         }
         if (oldElongationEl) {
-            oldElongationEl.textContent = Number.isFinite(elongationCm) ? elongationCm.toFixed(2) : '—';
+            oldElongationEl.textContent = Number.isFinite(displayElongationCm) ? displayElongationCm.toFixed(2) : '—';
         }
 
         // ✅ Обновляем НОВЫЕ элементы (текущие показания F и Δl)
         if (currentForceEl) {
-            currentForceEl.textContent = Number.isFinite(force) ? force.toFixed(2) : '—';
+            currentForceEl.textContent = Number.isFinite(displayForce) ? displayForce.toFixed(2) : '—';
         }
 
         if (currentElongationEl) {
             // Переводим см в метры для отображения
-            const elongationM = Number.isFinite(elongationCm) ? elongationCm / 100 : NaN;
+            const elongationM = Number.isFinite(displayElongationCm) ? displayElongationCm / 100 : NaN;
             currentElongationEl.textContent = Number.isFinite(elongationM) ? elongationM.toFixed(3) : '—';
         }
 
@@ -2750,6 +2634,67 @@ class SpringExperiment {
         document.querySelector('#help-modal .modal-close')?.addEventListener('click', () => {
             document.getElementById('help-modal').style.display = 'none';
         });
+
+        // 🆕 Magnifier Listeners
+        const container = document.getElementById('canvas-container') || document.querySelector('.canvas-container');
+        const btnMagnifier = document.getElementById('btn-magnifier');
+
+        if (btnMagnifier) {
+            btnMagnifier.addEventListener('click', () => {
+                if (this.magnifier.visible) {
+                    this.magnifier.hide();
+                    btnMagnifier.classList.remove('active');
+                } else {
+                    this.magnifier.show();
+                    btnMagnifier.classList.add('active');
+                }
+            });
+        }
+
+        if (container) {
+            const updateMagnifierPos = (clientX, clientY) => {
+                const rect = container.getBoundingClientRect();
+                const x = clientX - rect.left;
+                const y = clientY - rect.top;
+                this.magnifier.updatePosition(x, y);
+            };
+
+            container.addEventListener('mousemove', (e) => {
+                updateMagnifierPos(e.clientX, e.clientY);
+            });
+
+            // Touch support
+            container.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    // Prevent scrolling when using magnifier
+                    if (this.magnifier.visible) {
+                        e.preventDefault();
+                    }
+                    updateMagnifierPos(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: false });
+
+            container.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    updateMagnifierPos(e.touches[0].clientX, e.touches[0].clientY);
+                }
+            }, { passive: true });
+
+            // Toggle with 'M' key or Shift
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Shift' || e.key === 'm' || e.key === 'M') {
+                    this.magnifier.show();
+                    btnMagnifier?.classList.add('active');
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'Shift' || e.key === 'm' || e.key === 'M') {
+                    this.magnifier.hide();
+                    btnMagnifier?.classList.remove('active');
+                }
+            });
+        }
     }
 
     handleStepChange() {
@@ -3572,7 +3517,7 @@ class SpringExperiment {
         canvasUtils.clear(ctx);
     }
 
-    drawDynamic() {
+    drawDynamic(isOverloaded = false) {
         const ctx = this.contexts.dynamic;
         
         // Полная очистка с сохранением контекста
@@ -3609,7 +3554,8 @@ class SpringExperiment {
         // 🚀 ОПТИМИЗАЦИЯ: Проверяем, нужно ли перерисовать кеш пружины
         if (this.springCache.needsUpdate || 
             this.springCache.lastLength !== length || 
-            this.springCache.lastCoils !== coils) {
+            this.springCache.lastCoils !== coils ||
+            this.springCache.lastOverloaded !== isOverloaded) {
             
             // Перерисовываем пружину в offscreen canvas
             const cacheCtx = this.springCache.ctx;
@@ -3617,13 +3563,14 @@ class SpringExperiment {
             
             // Рисуем витки в кеш (центрируем в offscreen canvas)
             const cacheAnchor = { x: 100, y: 50 };
-            this.drawSpringCoils(cacheCtx, cacheAnchor, length, coils, springRadius, wireRadius);
-            this.drawTopHook(cacheCtx, cacheAnchor.x, cacheAnchor.y, wireRadius);
-            this.drawBottomHook(cacheCtx, cacheAnchor.x, cacheAnchor.y + length, wireRadius);
+            this.drawSpringCoils(cacheCtx, cacheAnchor, length, coils, springRadius, wireRadius, isOverloaded);
+            this.drawTopHook(cacheCtx, cacheAnchor.x, cacheAnchor.y, wireRadius, isOverloaded);
+            this.drawBottomHook(cacheCtx, cacheAnchor.x, cacheAnchor.y + length, wireRadius, isOverloaded);
             
             // Обновляем метаданные кеша
             this.springCache.lastLength = length;
             this.springCache.lastCoils = coils;
+            this.springCache.lastOverloaded = isOverloaded;
             this.springCache.needsUpdate = false;
         }
         
@@ -3646,20 +3593,50 @@ class SpringExperiment {
         // 🎯 Зона прилипания: если тащим груз, показываем куда можно прикрепить
         const draggedWeight = this.state.freeWeights?.find(w => w.isDragging);
         if (draggedWeight) {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(0, 255, 100, 0.8)';
-            ctx.lineWidth = 3;
-            ctx.setLineDash([8, 4]);
-            
-            // Зелёный круг вокруг нижнего крючка пружины
             const springBottomHookX = anchor.x;
             const springBottomHookY = anchor.y + length;
+            
+            // Calculate distance for snap feedback
+            const weightDef = this.getWeightById(draggedWeight.weightId);
+            const img = weightDef ? (this.images.weights[draggedWeight.weightId] || this.images.weights[weightDef.id]) : null;
+            const targetSize = weightDef?.targetSize ?? 72;
+            const renderScale = targetSize / (img ? Math.max(img.width, img.height) : targetSize);
+            const renderedHeight = img ? img.height * renderScale : targetSize * 0.9;
+            
+            const weightTopHookX = draggedWeight.x;
+            const weightTopHookY = draggedWeight.y - renderedHeight/2 - 12;
+            
+            const distance = Math.hypot(weightTopHookX - springBottomHookX, weightTopHookY - springBottomHookY);
+            const isSnapped = distance < 100;
+
+            ctx.save();
+            
+            if (isSnapped) {
+                // Strong snap feedback
+                ctx.strokeStyle = 'rgba(50, 255, 50, 1.0)';
+                ctx.lineWidth = 5;
+                ctx.setLineDash([]); // Solid line
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.3)';
+                
+                // Draw anchor icon
+                ctx.font = '40px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+                ctx.fillText('⚓', springBottomHookX, springBottomHookY);
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.3)'; // Restore fill style
+            } else {
+                // Weak feedback
+                ctx.strokeStyle = 'rgba(0, 255, 100, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 4]);
+                ctx.fillStyle = 'rgba(0, 255, 100, 0.05)';
+            }
+            
+            // Зелёный круг вокруг нижнего крючка пружины
             ctx.beginPath();
             ctx.arc(springBottomHookX, springBottomHookY, 100, 0, Math.PI * 2); // 🔧 Радиус увеличен до 100
             ctx.stroke();
-            
-            // Полупрозрачная заливка
-            ctx.fillStyle = 'rgba(0, 255, 100, 0.1)';
             ctx.fill();
             
             ctx.restore();
@@ -4232,7 +4209,7 @@ class SpringExperiment {
         }
     }
 
-    drawSpringCoils(ctx, anchor, length, coils, springRadius, wireRadius) {
+    drawSpringCoils(ctx, anchor, length, coils, springRadius, wireRadius, isOverloaded = false) {
         const coilHeight = length / coils;
         
         // Контактная тень
@@ -4260,11 +4237,24 @@ class SpringExperiment {
                 anchor.x - springRadius, y,
                 anchor.x + springRadius, y
             );
-            coilGrad.addColorStop(0, '#b8c2d0');
-            coilGrad.addColorStop(0.2, '#e8ecf2');
-            coilGrad.addColorStop(0.5, '#f8f9fb');
-            coilGrad.addColorStop(0.8, '#d4dce6');
-            coilGrad.addColorStop(1, '#9aa4b2');
+            
+            if (isOverloaded) {
+                // Red tint for overload
+                coilGrad.addColorStop(0, '#d0b8b8');
+                coilGrad.addColorStop(0.2, '#f2e8e8');
+                coilGrad.addColorStop(0.5, '#fbf8f8');
+                coilGrad.addColorStop(0.8, '#e6d4d4');
+                coilGrad.addColorStop(1, '#b29a9a');
+                // Add a red glow
+                ctx.shadowColor = 'rgba(255, 0, 0, 0.5)';
+                ctx.shadowBlur = 10;
+            } else {
+                coilGrad.addColorStop(0, '#b8c2d0');
+                coilGrad.addColorStop(0.2, '#e8ecf2');
+                coilGrad.addColorStop(0.5, '#f8f9fb');
+                coilGrad.addColorStop(0.8, '#d4dce6');
+                coilGrad.addColorStop(1, '#9aa4b2');
+            }
             
             ctx.fillStyle = coilGrad;
             ctx.beginPath();
@@ -4272,7 +4262,7 @@ class SpringExperiment {
             ctx.fill();
             
             // Обводка
-            ctx.strokeStyle = 'rgba(80, 90, 105, 0.3)';
+            ctx.strokeStyle = isOverloaded ? 'rgba(150, 50, 50, 0.5)' : 'rgba(80, 90, 105, 0.3)';
             ctx.lineWidth = 0.5;
             ctx.stroke();
             ctx.restore();
@@ -4294,7 +4284,7 @@ class SpringExperiment {
         }
     }
 
-    drawTopHook(ctx, x, y, wireRadius) {
+    drawTopHook(ctx, x, y, wireRadius, isOverloaded = false) {
         const hookRadius = wireRadius * 2;
         
         // Тень
@@ -4311,16 +4301,22 @@ class SpringExperiment {
         // Тело крючка
         ctx.save();
         const hookGrad = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, hookRadius * 1.2);
-        hookGrad.addColorStop(0, '#ffffff');
-        hookGrad.addColorStop(0.4, '#e8ecf2');
-        hookGrad.addColorStop(1, '#9aa4b2');
+        if (isOverloaded) {
+             hookGrad.addColorStop(0, '#fbf8f8');
+             hookGrad.addColorStop(0.4, '#f2e8e8');
+             hookGrad.addColorStop(1, '#b29a9a');
+        } else {
+             hookGrad.addColorStop(0, '#ffffff');
+             hookGrad.addColorStop(0.4, '#e8ecf2');
+             hookGrad.addColorStop(1, '#9aa4b2');
+        }
         ctx.fillStyle = hookGrad;
         ctx.beginPath();
         ctx.arc(x, y, hookRadius, 0, Math.PI * 2);
         ctx.fill();
         
         // Обводка
-        ctx.strokeStyle = 'rgba(80, 90, 105, 0.4)';
+        ctx.strokeStyle = isOverloaded ? 'rgba(150, 50, 50, 0.4)' : 'rgba(80, 90, 105, 0.4)';
         ctx.lineWidth = 1;
         ctx.stroke();
         ctx.restore();
@@ -4334,7 +4330,7 @@ class SpringExperiment {
         ctx.restore();
     }
 
-    drawBottomHook(ctx, x, y, wireRadius) {
+    drawBottomHook(ctx, x, y, wireRadius, isOverloaded = false) {
         const stemLength = 20;
         const hookWidth = 18;
         const hookHeight = 24;
@@ -4356,12 +4352,18 @@ class SpringExperiment {
         // Стержень
         ctx.save();
         const stemGrad = ctx.createLinearGradient(x - wireRadius, y, x + wireRadius, y);
-        stemGrad.addColorStop(0, '#9aa4b2');
-        stemGrad.addColorStop(0.5, '#e8ecf2');
-        stemGrad.addColorStop(1, '#b8c2d0');
+        if (isOverloaded) {
+            stemGrad.addColorStop(0, '#b29a9a');
+            stemGrad.addColorStop(0.5, '#f2e8e8');
+            stemGrad.addColorStop(1, '#d0b8b8');
+        } else {
+            stemGrad.addColorStop(0, '#9aa4b2');
+            stemGrad.addColorStop(0.5, '#e8ecf2');
+            stemGrad.addColorStop(1, '#b8c2d0');
+        }
         ctx.fillStyle = stemGrad;
         ctx.fillRect(x - wireRadius, y, wireRadius * 2, stemLength);
-        ctx.strokeStyle = 'rgba(80, 90, 105, 0.3)';
+        ctx.strokeStyle = isOverloaded ? 'rgba(150, 50, 50, 0.3)' : 'rgba(80, 90, 105, 0.3)';
         ctx.lineWidth = 0.5;
         ctx.strokeRect(x - wireRadius, y, wireRadius * 2, stemLength);
         ctx.restore();
@@ -5449,9 +5451,17 @@ class SpringExperiment {
         }
         this.prevSpringLength = currentLength;
 
+        // 🆕 Check Overload
+        const isOverloaded = this.physicsEngine.checkOverload(this.state.springElongation);
+
         // Render dynamic layers
-        this.drawDynamic();
+        this.drawDynamic(isOverloaded);
         this.particleSystem.render();
+
+        // 🆕 Render Magnifier
+        const uiCtx = this.contexts.ui;
+        uiCtx.clearRect(0, 0, this.canvases.ui.width, this.canvases.ui.height);
+        this.magnifier.draw();
 
         // Continue loop
         requestAnimationFrame((time) => this.animate(time));
