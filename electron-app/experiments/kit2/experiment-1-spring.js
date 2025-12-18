@@ -5561,6 +5561,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ All libraries loaded successfully');
     window.experiment = new SpringExperiment();
     console.log('🚀 Spring Experiment loaded!');
+
+    // Fullscreen toggle logic
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    }
     
     // 🔧 ДИАГНОСТИКА: Автоматическое включение ОТКЛЮЧЕНО
     // Для включения диагностики вручную используйте:
