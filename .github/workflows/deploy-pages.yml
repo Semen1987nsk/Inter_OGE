@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, download-build ]
   workflow_dispatch:
 
 permissions:
@@ -19,5 +19,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./electron-app/app
+          publish_dir: ./electron-app
           publish_branch: gh-pages
