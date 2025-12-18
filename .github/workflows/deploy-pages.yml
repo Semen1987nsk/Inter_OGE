@@ -28,6 +28,7 @@ jobs:
           cp -r "фото оборудования" public/ || true
           cp equipment-kits.js public/ || true
           cp labosfera-config.js public/ || true
+          cp .nojekyll public/ || true
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
