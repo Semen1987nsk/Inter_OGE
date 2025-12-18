@@ -2390,6 +2390,12 @@ class SpringExperiment {
             }
         }
 
+        // 💾 Save displayed values for consistent recording
+        this.state.lastDisplayed = {
+            force: displayForce,
+            elongationCm: displayElongationCm
+        };
+
         // Обновляем старые элементы если они есть
         if (massEl) {
             massEl.textContent = Number.isFinite(mass) ? mass.toFixed(0) : '—';
@@ -3043,11 +3049,19 @@ class SpringExperiment {
         console.log(`\n⚖️  ОБЩАЯ МАССА: ${totalMass} г = ${(totalMass/1000).toFixed(3)} кг`);
 
         // АВТОМАТИЧЕСКИЙ расчёт силы F = mg
-        const force = (totalMass / 1000) * this.physics.gravity;
+        // 🆕 Use displayed noisy value if available for consistency
+        let force = (totalMass / 1000) * this.physics.gravity;
+        if (this.state.lastDisplayed && Number.isFinite(this.state.lastDisplayed.force)) {
+            force = this.state.lastDisplayed.force;
+        }
         console.log(`\n💪 СИЛА: F = mg = ${(totalMass/1000).toFixed(3)} × ${this.physics.gravity} = ${force.toFixed(4)} Н`);
         
         // Удлинение
-        const elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        // 🆕 Use displayed noisy value if available for consistency
+        let elongationCm = this.state.springElongation / this.physics.pixelsPerCm;
+        if (this.state.lastDisplayed && Number.isFinite(this.state.lastDisplayed.elongationCm)) {
+            elongationCm = this.state.lastDisplayed.elongationCm;
+        }
         console.log(`\n📏 УДЛИНЕНИЕ: Δl = ${elongationCm.toFixed(4)} см = ${(elongationCm/100).toFixed(6)} м`);
         console.log(`   (springElongation = ${this.state.springElongation.toFixed(2)} px / ${this.physics.pixelsPerCm} px/см)`);
 
