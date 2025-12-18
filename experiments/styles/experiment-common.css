@@ -239,7 +239,7 @@ body {
     grid-template-columns: minmax(0, 1fr) 450px;
     gap: 2rem;
     padding: 2rem;
-    max-width: 1920px;
+    max-width: 100%; /* Было 1920px. Ставим 100% для работы на широких интерактивных панелях (4K) */
     margin: 0 auto;
     height: calc(100vh - 85px);
     overflow-y: auto;
