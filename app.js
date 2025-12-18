@@ -550,7 +550,7 @@ class MainScreenController {
         setTimeout(() => {
             // Маршрутизация экспериментов
             const experimentRoutes = {
-                '2-1': 'experiments/kit2/experiment-1-spring.html',
+                '2-1': 'experiments/kit2/experiment-1-spring.html?v=20251218-1330',
                 // Будущие эксперименты будут добавлены здесь
                 // '2-2': 'experiments/kit2/experiment-2-pendulum.html',
                 // '2-3': 'experiments/kit2/experiment-3-spring-pendulum.html',
