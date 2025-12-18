@@ -3,14 +3,14 @@
  * Interactive Spring Stiffness Measurement
  */
 
-import { FreeformManager } from '../shared/freeform-manager.js';
-import { ParticleSystem } from '../shared/particle-effects.js';
-import { RealisticRenderer } from '../shared/realistic-renderer.js';
-import { PhysicsEngine } from '../shared/physics-engine.js';
-import { CanvasUtils } from '../shared/canvas-utils.js';
-import { TouchDiagnostics } from '../shared/touch-diagnostics.js';
-import { Magnifier } from '../shared/magnifier.js';
-import { PHYSICS_CONFIG, VISUAL_CONFIG, LAYOUT_CONFIG, EQUIPMENT_CONFIG, WEIGHTS_INVENTORY } from './experiment-config.js';
+import { FreeformManager } from '../shared/freeform-manager.js?v=1445';
+import { ParticleSystem } from '../shared/particle-effects.js?v=1445';
+import { RealisticRenderer } from '../shared/realistic-renderer.js?v=1445';
+import { PhysicsEngine } from '../shared/physics-engine.js?v=1445';
+import { CanvasUtils } from '../shared/canvas-utils.js?v=1445';
+import { TouchDiagnostics } from '../shared/touch-diagnostics.js?v=1445';
+import { Magnifier } from '../shared/magnifier.js?v=1445';
+import { PHYSICS_CONFIG, VISUAL_CONFIG, LAYOUT_CONFIG, EQUIPMENT_CONFIG, WEIGHTS_INVENTORY } from './experiment-config.js?v=1445';
 
 class SpringExperiment {
     constructor() {
