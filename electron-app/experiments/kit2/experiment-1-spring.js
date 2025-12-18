@@ -6,7 +6,7 @@
 import { FreeformManager } from '../shared/freeform-manager.js?v=1445';
 import { ParticleSystem } from '../shared/particle-effects.js?v=1445';
 import { RealisticRenderer } from '../shared/realistic-renderer.js?v=1445';
-import { PhysicsEngine } from '../shared/physics-engine.js?v=1445';
+import { PhysicsEngine } from '../shared/physics-engine-v2.js';
 import { CanvasUtils } from '../shared/canvas-utils.js?v=1445';
 import { TouchDiagnostics } from '../shared/touch-diagnostics.js?v=1445';
 import { Magnifier } from '../shared/magnifier.js?v=1445';
@@ -5457,7 +5457,7 @@ class SpringExperiment {
         this.prevSpringLength = currentLength;
 
         // 🆕 Check Overload
-        const isOverloaded = this.physicsEngine.checkOverload(this.state.springElongation);
+        const isOverloaded = this.physicsEngine.checkOverload ? this.physicsEngine.checkOverload(this.state.springElongation) : false;
 
         // Render dynamic layers
         this.drawDynamic(isOverloaded);
