@@ -24,6 +24,7 @@ jobs:
           cp freemium-styles.css public/
           cp -r assets public/
           cp -r experiments public/
+          cp root-test.html public/ || true
           cp -r "фото оборудования" public/ || true
           cp equipment-kits.js public/ || true
           cp labosfera-config.js public/ || true
