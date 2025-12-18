@@ -42,8 +42,8 @@ export class Magnifier {
         ctx.closePath();
         ctx.clip();
 
-        // Draw white background
-        ctx.fillStyle = 'white';
+        // Draw dark background (matches Labosfera theme)
+        ctx.fillStyle = '#0A0E27';
         ctx.fill();
 
         // Draw magnified content
