@@ -550,7 +550,7 @@ class MainScreenController {
         setTimeout(() => {
             // Маршрутизация экспериментов
             const experimentRoutes = {
-                '2-1': 'experiments/kit2/experiment-1-spring.html?v=20251218-1430',
+                '2-1': 'experiments/kit2/experiment-1-spring.html?v=20251218-1445',
                 // Будущие эксперименты будут добавлены здесь
                 // '2-2': 'experiments/kit2/experiment-2-pendulum.html',
                 // '2-3': 'experiments/kit2/experiment-3-spring-pendulum.html',
@@ -943,7 +943,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Настройка кнопок freemium
     document.getElementById('startFreeBtn')?.addEventListener('click', () => {
-        window.location.href = 'experiments/kit2/experiment-1-spring.html?v=20251218-1430';
+        window.location.href = 'experiments/kit2/experiment-1-spring.html?v=20251218-1445';
     });
     
     document.getElementById('viewPricingBtn')?.addEventListener('click', () => {
