@@ -100,7 +100,12 @@ class SpringExperiment {
         this.particleSystem = new ParticleSystem(this.canvases.particles);
         this.realisticRenderer = new RealisticRenderer(this.contexts.dynamic);
         this.physicsEngine = new PhysicsEngine(); // Instance for calculations
-        this.magnifier = new Magnifier(this.canvases.dynamic, this.canvases.ui); // Magnifier tool
+        
+        // 🔧 FIX: Pass all visual layers to magnifier so it sees everything
+        this.magnifier = new Magnifier(
+            [this.canvases.background, this.canvases.equipment, this.canvases.dynamic, this.canvases.particles], 
+            this.canvases.ui
+        ); 
         
         // Pointer tracking for dynamic highlight
         this.pointer = { x: 0, y: 0, over: false };
@@ -5549,11 +5554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    if (typeof springOscillation === 'undefined') {
-        console.error('❌ Physics engine not loaded! Check physics-engine.js');
-        alert('Ошибка загрузки: physics-engine не найден');
-        return;
-    }
+    // 🔧 FIX: Removed incorrect check for springOscillation (it is imported, not global)
     
     if (typeof Chart === 'undefined') {
         console.error('❌ Chart.js not loaded!');

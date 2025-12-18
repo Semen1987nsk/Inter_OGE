@@ -4,8 +4,8 @@
  */
 
 export class Magnifier {
-    constructor(sourceCanvas, targetCanvas, radius = 75, zoom = 2.5) {
-        this.sourceCanvas = sourceCanvas;
+    constructor(sourceCanvases, targetCanvas, radius = 75, zoom = 2.5) {
+        this.sourceCanvases = Array.isArray(sourceCanvases) ? sourceCanvases : [sourceCanvases];
         this.targetCanvas = targetCanvas; // Usually UI canvas
         this.ctx = targetCanvas.getContext('2d');
         this.radius = radius;
@@ -57,9 +57,12 @@ export class Magnifier {
         const dx = this.x - this.radius;
         const dy = this.y - this.radius;
 
-        // Draw from source canvas (assuming it's the main game canvas)
-        // Note: In a multi-layer setup, we might need to draw multiple layers or a composite
-        ctx.drawImage(this.sourceCanvas, sx, sy, sWidth, sHeight, dx, dy, d, d);
+        // Draw from all source canvases
+        this.sourceCanvases.forEach(canvas => {
+            if (canvas) {
+                ctx.drawImage(canvas, sx, sy, sWidth, sHeight, dx, dy, d, d);
+            }
+        });
 
         // Draw border/rim
         ctx.restore(); // Remove clip
