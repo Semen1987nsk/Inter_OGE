@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Опыт 1: Измерение жёсткости пружины | Labosfera</title>
     
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert('Ошибка запуска: ' + msg + '\nСтрока: ' + line);
+            console.error('Global Error:', error);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert('Ошибка Promise: ' + event.reason);
+            console.error('Unhandled Rejection:', event.reason);
+        });
+    </script>
+
     <!-- Styles -->
     <link rel="stylesheet" href="../styles/experiment-common.css">
     <link rel="stylesheet" href="experiment-1-spring.css">
