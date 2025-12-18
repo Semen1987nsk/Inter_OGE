@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Опыт 1: Измерение жёсткости пружины | Labosfera</title>
+    
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert('Ошибка запуска: ' + msg + '\nСтрока: ' + line);
+            console.error('Global Error:', error);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert('Ошибка Promise: ' + event.reason);
+            console.error('Unhandled Rejection:', event.reason);
+        });
+    </script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../styles/experiment-common.css?v=1445">
+    <link rel="stylesheet" href="experiment-1-spring.css?v=1445">
+    
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.19/dist/interact.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" defer></script>
+
+    <!-- Experiment Scripts (load in order) -->
+    <script src="experiment-1-spring.js?v=20251218-1445" type="module"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="experiment-header">
+        <button class="btn-back" onclick="window.location.href='../../index.html'">
+            <span class="icon">◀</span> Назад к комплектам
+        </button>
+        <h1 class="experiment-title">
+            <span class="experiment-number">ОПЫТ 1</span>
+            Измерение жёсткости пружины <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v2.0</span>
+        </h1>
+        <div class="header-actions">
+            <button class="btn-icon" id="btn-magnifier" title="Лупа">
+                <span class="icon">🔍</span>
+            </button>
+            <button class="btn-icon" id="btn-fullscreen" title="На весь экран">
+                <span class="icon">⛶</span>
+            </button>
+            <button class="btn-icon" id="btn-help" title="Помощь">
+                <span class="icon">?</span>
+            </button>
+            <button class="btn-icon" id="btn-settings" title="Настройки">
+                <span class="icon">⚙</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="experiment-container">
+        <!-- Left Panel: Simulator -->
+        <section class="simulator-panel">
+            <div class="simulator-header">
+                <h2>Экспериментальная установка</h2>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container" id="canvas-container">
+                <!-- Multi-layer canvas system -->
+                <canvas id="canvas-background" width="900" height="1200"></canvas>
+                <canvas id="canvas-equipment" width="900" height="1200"></canvas>
+                <canvas id="canvas-dynamic" width="900" height="1200"></canvas>
+                <canvas id="canvas-particles" width="900" height="1200"></canvas>
+                <canvas id="canvas-ui" width="900" height="1200"></canvas>
+                <div id="drag-drop-overlay"></div>
+                
+                <!-- Loading overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Загрузка оборудования...</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Right Panel: Controls & Data -->
+        <aside class="control-panel">
+            <!-- Equipment Selection -->
+            <div class="panel-section">
+                <h3>Оборудование</h3>
+                <div class="weights-container" id="equipment-container">
+                    <!-- Оборудование будет добавлено программно -->
+                </div>
+            </div>
+
+            <!-- Weights Selection -->
+            <div class="panel-section">
+                <h3>Грузы</h3>
+                <div class="weights-container" id="weights-container">
+                    <!-- Грузы будут добавлены программно -->
+                </div>
+            </div>
+
+            <!-- Measurement Window -->
+            <div class="panel-section">
+                <h3>Измерения и расчёт</h3>
+                <div class="measurement-window">
+                    <!-- Formula -->
+                    <div class="formula-display">
+                        k = F / Δl
+                    </div>
+
+                    <!-- Variable F (Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">F</div>
+                        <div class="var-input-group">
+                            <div class="var-current">
+                                <span class="var-current-label">Текущее:</span>
+                                <span class="var-current-value" id="current-force">—</span>
+                                <span class="var-unit">Н</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-force-input"
+                                placeholder="Или введите вручную"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-force">
+                                Записать F
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Variable Δl (Elongation) -->
+                    <div class="variable-row">
+                        <div class="var-label">Δl</div>
+                        <div class="var-input-group">
+                            <div class="var-current">
+                                <span class="var-current-label">Текущее:</span>
+                                <span class="var-current-value" id="current-elongation">—</span>
+                                <span class="var-unit">м</span>
+                            </div>
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-elongation-input"
+                                placeholder="Или введите вручную"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-elongation">
+                                Записать Δl
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recorded Values -->
+                    <div class="recorded-values" id="recorded-values">
+                        <div class="recorded-item" id="recorded-force-display" style="display: none;">
+                            <span class="recorded-label">F =</span>
+                            <span class="recorded-value" id="recorded-force-value">—</span>
+                            <span class="recorded-unit">Н</span>
+                        </div>
+                        <div class="recorded-item" id="recorded-elongation-display" style="display: none;">
+                            <span class="recorded-label">Δl =</span>
+                            <span class="recorded-value" id="recorded-elongation-value">—</span>
+                            <span class="recorded-unit">м</span>
+                        </div>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <div class="action-buttons-group">
+                        <button class="btn-reset-measurement" id="btn-reset-measurement">
+                            🔄 Сбросить
+                        </button>
+                        <button class="btn-calculate-stiffness" id="btn-calculate-stiffness" disabled>
+                            Рассчитать жёсткость k
+                        </button>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="calculation-result" id="calculation-result" style="display: none;">
+                        <div class="result-formula">k = F / Δl</div>
+                        <div class="result-calculation" id="result-calculation-text"></div>
+                        <div class="result-final">
+                            <span class="result-label">k =</span>
+                            <span class="result-value" id="result-stiffness-value">—</span>
+                            <span class="result-unit">Н/м</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="panel-section">
+                <button class="btn-success" id="btn-complete" disabled>
+                    <span class="icon">✓</span> Завершить опыт
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Achievement Popup -->
+    <div class="achievement-popup" id="achievement-popup" style="display: none;">
+        <div class="achievement-content">
+            <div class="achievement-icon">🏆</div>
+            <h3 class="achievement-title"></h3>
+            <p class="achievement-desc"></p>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Помощь</h2>
+                <button class="modal-close" onclick="document.getElementById('help-modal').style.display='none'">✕</button>
+            </div>
+            <div class="modal-body">
+                <h3>Как выполнить опыт:</h3>
+                <ol>
+                    <li>Выберите пружину (50 Н/м или 10 Н/м)</li>
+                    <li>Перетащите груз на крючок пружины</li>
+                    <li>Дождитесь окончания колебаний</li>
+                    <li>Измерьте удлинение по линейке</li>
+                    <li>Нажмите "Добавить точку"</li>
+                    <li>Повторите с разными грузами (минимум 4 точки)</li>
+                    <li>Постройте график и определите жёсткость</li>
+                </ol>
+                <h3>Формула:</h3>
+                <p class="formula-large">F = k × Δl</p>
+                <p>где F - сила тяжести (Н), Δl - удлинение (м), k - жёсткость (Н/м)</p>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
