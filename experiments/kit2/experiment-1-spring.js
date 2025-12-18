@@ -3,14 +3,14 @@
  * Interactive Spring Stiffness Measurement
  */
 
-import { FreeformManager } from '../shared/freeform-manager.js';
-import { ParticleSystem } from '../shared/particle-effects.js';
-import { RealisticRenderer } from '../shared/realistic-renderer.js';
-import { PhysicsEngine } from '../shared/physics-engine.js';
-import { CanvasUtils } from '../shared/canvas-utils.js';
-import { TouchDiagnostics } from '../shared/touch-diagnostics.js';
-import { Magnifier } from '../shared/magnifier.js';
-import { PHYSICS_CONFIG, VISUAL_CONFIG, LAYOUT_CONFIG, EQUIPMENT_CONFIG, WEIGHTS_INVENTORY } from './experiment-config.js';
+import { FreeformManager } from '../shared/freeform-manager.js?v=1445';
+import { ParticleSystem } from '../shared/particle-effects.js?v=1445';
+import { RealisticRenderer } from '../shared/realistic-renderer.js?v=1445';
+import { PhysicsEngine } from '../shared/physics-engine.js?v=1445';
+import { CanvasUtils } from '../shared/canvas-utils.js?v=1445';
+import { TouchDiagnostics } from '../shared/touch-diagnostics.js?v=1445';
+import { Magnifier } from '../shared/magnifier.js?v=1445';
+import { PHYSICS_CONFIG, VISUAL_CONFIG, LAYOUT_CONFIG, EQUIPMENT_CONFIG, WEIGHTS_INVENTORY } from './experiment-config.js?v=1445';
 
 class SpringExperiment {
     constructor() {
@@ -100,7 +100,12 @@ class SpringExperiment {
         this.particleSystem = new ParticleSystem(this.canvases.particles);
         this.realisticRenderer = new RealisticRenderer(this.contexts.dynamic);
         this.physicsEngine = new PhysicsEngine(); // Instance for calculations
-        this.magnifier = new Magnifier(this.canvases.dynamic, this.canvases.ui); // Magnifier tool
+        
+        // 🔧 FIX: Pass all visual layers to magnifier so it sees everything
+        this.magnifier = new Magnifier(
+            [this.canvases.background, this.canvases.equipment, this.canvases.dynamic, this.canvases.particles], 
+            this.canvases.ui
+        ); 
         
         // Pointer tracking for dynamic highlight
         this.pointer = { x: 0, y: 0, over: false };
@@ -5549,11 +5554,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    if (typeof springOscillation === 'undefined') {
-        console.error('❌ Physics engine not loaded! Check physics-engine.js');
-        alert('Ошибка загрузки: physics-engine не найден');
-        return;
-    }
+    // 🔧 FIX: Removed incorrect check for springOscillation (it is imported, not global)
     
     if (typeof Chart === 'undefined') {
         console.error('❌ Chart.js not loaded!');
@@ -5571,6 +5572,22 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('✅ All libraries loaded successfully');
     window.experiment = new SpringExperiment();
     console.log('🚀 Spring Experiment loaded!');
+
+    // Fullscreen toggle logic
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    if (btnFullscreen) {
+        btnFullscreen.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        });
+    }
     
     // 🔧 ДИАГНОСТИКА: Автоматическое включение ОТКЛЮЧЕНО
     // Для включения диагностики вручную используйте:

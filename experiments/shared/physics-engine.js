@@ -23,40 +23,11 @@ export class PhysicsEngine {
      * Calculate elongation from mass: Δl = (m × g) / k
      * @param {number} mass - масса (кг)
      * @param {number} k - жёсткость (Н/м)
-     * @param {boolean} withNoise - добавить ли случайную погрешность
      * @returns {number} удлинение (м)
      */
-    calculateElongation(mass, k, withNoise = false) {
+    calculateElongation(mass, k) {
         const F = mass * this.g;
-        let elongation = F / k;
-        
-        if (withNoise) {
-            elongation = this.addNoise(elongation, 0.02); // 2% noise
-        }
-        
-        return elongation;
-    }
-
-    /**
-     * Add random noise to a value
-     * @param {number} value - base value
-     * @param {number} percentage - noise percentage (0.02 = 2%)
-     * @returns {number} value with noise
-     */
-    addNoise(value, percentage) {
-        const noise = (Math.random() - 0.5) * 2 * percentage; // -percentage to +percentage
-        return value * (1 + noise);
-    }
-
-    /**
-     * Check if spring is overloaded
-     * @param {number} currentForce - current force (N)
-     * @param {number} maxForce - max allowed force (N)
-     * @param {number} threshold - overload threshold multiplier (e.g. 1.5)
-     * @returns {boolean} true if overloaded
-     */
-    checkOverload(currentForce, maxForce, threshold = 1.5) {
-        return currentForce > maxForce * threshold;
+        return F / k;
     }
 
     /**
@@ -169,4 +140,31 @@ export class PhysicsEngine {
 }
 
 // Singleton instance
-export const physics = new PhysicsEngine();
+const physics = new PhysicsEngine();
+
+// Export individual functions globally for easy access
+const springForce = (k, deltaL) => physics.springForce(k, deltaL);
+const calculateElongation = (mass, k) => physics.calculateElongation(mass, k);
+const springOscillation = (k, m, x0, t) => physics.springOscillation(k, m, x0, t);
+const frictionForce = (mu, N) => physics.frictionForce(mu, N);
+const calculateWork = (force, distance) => physics.calculateWork(force, distance);
+const linearRegression = (points) => physics.linearRegression(points);
+const percentageError = (measured, actual) => physics.percentageError(measured, actual);
+
+// Make available globally for browser
+if (typeof window !== 'undefined') {
+    window.PhysicsEngine = PhysicsEngine;
+    window.physics = physics;
+    window.springForce = springForce;
+    window.calculateElongation = calculateElongation;
+    window.springOscillation = springOscillation;
+    window.frictionForce = frictionForce;
+    window.calculateWork = calculateWork;
+    window.linearRegression = linearRegression;
+    window.percentageError = percentageError;
+}
+
+// Export for use in other scripts (Node.js)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = PhysicsEngine;
+}

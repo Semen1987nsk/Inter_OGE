@@ -5,18 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Опыт 1: Измерение жёсткости пружины | Labosfera</title>
     
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert('Ошибка запуска: ' + msg + '\nСтрока: ' + line);
+            console.error('Global Error:', error);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert('Ошибка Promise: ' + event.reason);
+            console.error('Unhandled Rejection:', event.reason);
+        });
+    </script>
+
     <!-- Styles -->
-    <link rel="stylesheet" href="../styles/experiment-common.css">
-    <link rel="stylesheet" href="experiment-1-spring.css">
+    <link rel="stylesheet" href="../styles/experiment-common.css?v=1445">
+    <link rel="stylesheet" href="experiment-1-spring.css?v=1445">
     
     <!-- Libraries -->
-    <script src="../vendor/chart.umd.js" defer></script>
-    <script src="../vendor/interact.min.js" defer></script>
-    <script src="../vendor/anime.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.19/dist/interact.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js" defer></script>
 
     <!-- Experiment Scripts (load in order) -->
-    <!-- Shared modules are now imported in experiment-1-spring.js -->
-    <script src="experiment-1-spring.js?v=20251218-1200" type="module"></script>
+    <script src="experiment-1-spring.js?v=20251218-1445" type="module"></script>
 </head>
 <body>
     <!-- Header -->
@@ -26,14 +37,17 @@
         </button>
         <h1 class="experiment-title">
             <span class="experiment-number">ОПЫТ 1</span>
-            Измерение жёсткости пружины
+            Измерение жёсткости пружины <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v2.0</span>
         </h1>
         <div class="header-actions">
+            <button class="btn-icon" id="btn-magnifier" title="Лупа">
+                <span class="icon">🔍</span>
+            </button>
+            <button class="btn-icon" id="btn-fullscreen" title="На весь экран">
+                <span class="icon">⛶</span>
+            </button>
             <button class="btn-icon" id="btn-help" title="Помощь">
                 <span class="icon">?</span>
-            </button>
-            <button class="btn-icon" id="btn-magnifier" title="Лупа (M)">
-                <span class="icon">🔍</span>
             </button>
             <button class="btn-icon" id="btn-settings" title="Настройки">
                 <span class="icon">⚙</span>

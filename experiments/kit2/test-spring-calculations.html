@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Тест расчета пружин - Эксперимент 1</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 30px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            font-size: 1.8em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        .test-list {
+            list-style: none;
+            padding: 0;
+        }
+        .test-list li {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 10px 0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .test-list li:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .test-name {
+            font-weight: 500;
+            flex: 1;
+        }
+        .test-details {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9em;
+        }
+        .test-details span {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+        .instructions {
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 5px solid #ffd700;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .instructions li {
+            margin: 8px 0;
+        }
+        .link-box {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .link-box a {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            color: #fff;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .link-box a:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Тест расчета жесткости пружин</h1>
+        <div class="subtitle">Эксперимент 1 — Определение жесткости пружины</div>
+
+        <div class="instructions">
+            <h3>📋 Инструкция по тестированию</h3>
+            <ol>
+                <li>Откройте эксперимент по ссылке ниже</li>
+                <li>Откройте консоль браузера (F12)</li>
+                <li>Выполните тесты для каждой пружины</li>
+                <li>Записывайте измерения кнопкой "Записать измерение"</li>
+                <li>Проверяйте вывод в консоли: <code>📊 [MEASUREMENT DEBUG]</code></li>
+                <li>Сравните "Жесткость (k=F/Δl)" с "Ожидаемая k"</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🔴 Пружина №1 (50 Н/м)</h2>
+            <ul class="test-list">
+                <li>
+                    <span class="test-name">1 груз 100г</span>
+                    <div class="test-details">
+                        <span>Масса: 100г</span>
+                        <span>F: 0.98 Н</span>
+                        <span>Δl: 1.96 см</span>
+                        <span>k: 50 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">2 груза 100г</span>
+                    <div class="test-details">
+                        <span>Масса: 200г</span>
+                        <span>F: 1.96 Н</span>
+                        <span>Δl: 3.92 см</span>
+                        <span>k: 50 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">3 груза 100г</span>
+                    <div class="test-details">
+                        <span>Масса: 300г</span>
+                        <span>F: 2.94 Н</span>
+                        <span>Δl: 5.88 см</span>
+                        <span>k: 50 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">Стержень + Диск 50г</span>
+                    <div class="test-details">
+                        <span>Масса: 60г</span>
+                        <span>F: 0.59 Н</span>
+                        <span>Δl: 1.18 см</span>
+                        <span>k: 50 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">100г + Сборный (10+50)</span>
+                    <div class="test-details">
+                        <span>Масса: 160г</span>
+                        <span>F: 1.57 Н</span>
+                        <span>Δl: 3.14 см</span>
+                        <span>k: 50 Н/м</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔵 Пружина №2 (10 Н/м) — КРИТИЧНАЯ ПРОВЕРКА!</h2>
+            <ul class="test-list">
+                <li>
+                    <span class="test-name">1 груз 100г</span>
+                    <div class="test-details">
+                        <span>Масса: 100г</span>
+                        <span>F: 0.98 Н</span>
+                        <span>Δl: 9.80 см</span>
+                        <span>k: 10 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">2 груза 100г</span>
+                    <div class="test-details">
+                        <span>Масса: 200г</span>
+                        <span>F: 1.96 Н</span>
+                        <span>Δl: 19.60 см</span>
+                        <span>k: 10 Н/м</span>
+                    </div>
+                </li>
+                <li style="background: rgba(255, 0, 0, 0.3); border: 2px solid #ff6b6b;">
+                    <span class="test-name">⚠️ 3 груза 100г — ПРОБЛЕМНЫЙ СЛУЧАЙ!</span>
+                    <div class="test-details">
+                        <span>Масса: 300г</span>
+                        <span>F: 2.94 Н</span>
+                        <span>Δl: 29.40 см</span>
+                        <span>k: 10 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">Стержень + Диск 50г</span>
+                    <div class="test-details">
+                        <span>Масса: 60г</span>
+                        <span>F: 0.59 Н</span>
+                        <span>Δl: 5.88 см</span>
+                        <span>k: 10 Н/м</span>
+                    </div>
+                </li>
+                <li>
+                    <span class="test-name">Стержень + 2 Диска 50г</span>
+                    <div class="test-details">
+                        <span>Масса: 110г</span>
+                        <span>F: 1.08 Н</span>
+                        <span>Δl: 10.78 см</span>
+                        <span>k: 10 Н/м</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Что искать в консоли</h2>
+            <p>При записи измерения вы увидите:</p>
+            <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; overflow-x: auto;">
+📊 [MEASUREMENT DEBUG]
+🔧 Пружина ID: spring10
+🔧 Константа жесткости (k): 10 Н/м
+⚖️  Прикрепленные грузы: [...]
+⚖️  Общая масса: 300 г = 0.3 кг
+💪 Сила (F=mg): 2.9400 Н
+📏 Удлинение (Δl): 29.4000 см = 0.294000 м
+🎯 Жесткость (k=F/Δl): 10.0000 Н/м
+🎯 Ожидаемая k: 10 Н/м
+🎯 Погрешность: 0.0000 Н/м
+🎯 Погрешность %: 0.00 %
+            </pre>
+            <p><strong>Если погрешность &gt; 0.5 Н/м — найдена ошибка!</strong></p>
+        </div>
+
+        <div class="link-box">
+            <a href="experiment-1-spring.html" target="_blank">
+                🚀 Открыть эксперимент
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; opacity: 0.7; font-size: 0.9em;">
+            <p>💡 Совет: сначала проверьте Spring #2 + 3×100г, это проблемный случай</p>
+            <p>🔧 Все расчеты должны давать k = 10 или 50 Н/м (в зависимости от пружины)</p>
+        </div>
+    </div>
+</body>
+</html>

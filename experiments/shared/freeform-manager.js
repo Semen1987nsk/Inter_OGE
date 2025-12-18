@@ -23,33 +23,33 @@ class DropZone {
         ctx.save();
         
         // Пульсирующий эффект для активной зоны
-        const pulse = isNearby ? Math.sin(Date.now() / 150) * 0.3 + 1.1 : 1; // Усиленная пульсация
+        const pulse = isNearby ? Math.sin(Date.now() / 200) * 0.2 + 1 : 1;
         const radius = this.radius * pulse;
         
         ctx.beginPath();
         ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
         
         if (isNearby) {
-            // Активная зона - яркая и заметная (SNAP FEEDBACK)
+            // Активная зона - яркая и заметная
             const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, radius);
-            gradient.addColorStop(0, 'rgba(50, 255, 100, 0.6)'); // Более насыщенный зеленый
-            gradient.addColorStop(1, 'rgba(50, 255, 100, 0.2)');
+            gradient.addColorStop(0, 'rgba(0, 255, 150, 0.4)');
+            gradient.addColorStop(1, 'rgba(0, 255, 150, 0.1)');
             ctx.fillStyle = gradient;
             ctx.fill();
             
-            ctx.strokeStyle = '#32ff64';
-            ctx.lineWidth = 4;
-            ctx.setLineDash([5, 3]);
+            ctx.strokeStyle = '#00ff96';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
             ctx.stroke();
             
             // Иконка крючка
-            ctx.font = 'bold 28px Arial';
+            ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = '#32ff64';
-            ctx.shadowBlur = 15;
-            ctx.fillText('⚓', this.x, this.y); // Якорь вместо цепи для разнообразия
+            ctx.fillStyle = '#00ff96';
+            ctx.shadowColor = '#00ff96';
+            ctx.shadowBlur = 10;
+            ctx.fillText('🔗', this.x, this.y);
         } else {
             // Неактивная зона - полупрозрачная
             ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
