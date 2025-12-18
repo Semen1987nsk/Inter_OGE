@@ -70,6 +70,27 @@ export class PhysicsEngine {
     }
 
     /**
+     * Check if spring is overloaded
+     * @param {number} elongation - current elongation (pixels or meters)
+     * @param {number} threshold - max allowed elongation
+     * @returns {boolean}
+     */
+    checkOverload(elongation, threshold = 300) {
+        return Math.abs(elongation) > threshold;
+    }
+
+    /**
+     * Add random noise to a value
+     * @param {number} value - base value
+     * @param {number} percentage - max noise percentage (0-100)
+     * @returns {number} value with noise
+     */
+    addNoise(value, percentage = 1) {
+        const noise = value * (percentage / 100) * (Math.random() * 2 - 1);
+        return value + noise;
+    }
+
+    /**
      * Linear regression for data points
      * @param {Array} points - [{x, y}, ...]
      * @returns {object} {slope, intercept, r2}
