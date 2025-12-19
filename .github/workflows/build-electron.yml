@@ -66,50 +66,17 @@ jobs:
       
       - name: Install dependencies
         working-directory: electron-app
-        run: npm ci
+        run: npm install
       
-      - name: Check files exist
+      - name: Build Linux AppImage
         working-directory: electron-app
-        run: |
-          ls -la app/
-          if [ -f "app/index.html" ]; then
-            echo "✅ app/index.html exists"
-          else
-            echo "❌ app/index.html missing"
-            exit 1
-          fi
-      
-      - name: Build Linux
-        working-directory: electron-app
-        run: npm run package-linux
-        continue-on-error: true
-      
-      - name: List dist contents
-        working-directory: electron-app
-        run: |
-          echo "📁 Contents of dist:"
-          ls -lah dist/ || true
-      
-      - name: Create tar.gz if build succeeded
-        working-directory: electron-app
-        run: |
-          if [ -d "dist/InterOGE-linux-x64" ]; then
-            cd dist
-            tar -czf InterOGE-Linux-x64.tar.gz InterOGE-linux-x64/
-            echo "✅ Archive created"
-          else
-            echo "⚠️ Build directory not found"
-          fi
+        run: npm run build:linux
       
       - name: Upload Linux build
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: linux-build
-          path: |
-            electron-app/dist/InterOGE-linux-x64/
-            electron-app/dist/*.tar.gz
-          if-no-files-found: warn
+          name: Inter-OGE-Linux-App
+          path: electron-app/dist/*.AppImage
 
   build-mac:
     runs-on: macos-latest

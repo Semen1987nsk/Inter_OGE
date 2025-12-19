@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "main": "main.js",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Semen1987nsk/Inter_OGE.git"
+  },
   "scripts": {
     "start": "electron .",
     "prebuild": "node copy-files.js",
     "build": "electron-packager . \"Inter OGE Lab\" --platform=win32 --arch=x64 --out=dist --overwrite",
+    "build:linux": "electron-builder --linux AppImage",
     "build:setup": "electron-builder --win nsis"
   },
   "build": {
@@ -15,6 +20,12 @@
     "directories": {
       "output": "dist",
       "buildResources": "build-resources"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Education"
     },
     "files": [
       "**/*",
