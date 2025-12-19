@@ -2,6 +2,8 @@ name: Build Electron Apps
 
 on:
   push:
+    branches:
+      - download-build
     tags:
       - 'v*'
   workflow_dispatch:
