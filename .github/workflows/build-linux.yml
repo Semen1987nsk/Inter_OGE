@@ -1,0 +1,34 @@
+name: Build Linux App
+
+on:
+  push:
+    branches:
+      - download-build
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        working-directory: electron-app
+        run: npm install
+      
+      - name: Build Linux AppImage
+        working-directory: electron-app
+        run: npm run build:linux
+      
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Inter-OGE-Linux-App
+          path: electron-app/dist/*.AppImage
