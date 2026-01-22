@@ -31,7 +31,7 @@ jobs:
         working-directory: electron-app
         env:
           DEBUG: electron-builder
-        run: npm run build:linux -- -c.publish=never
+        run: npm run build:linux
       
       - name: Upload Linux build
         if: always()
