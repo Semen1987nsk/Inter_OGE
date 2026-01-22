@@ -24,6 +24,7 @@ console.log('🚀 Начало копирования файлов проект�
 
 FILES_TO_COPY.forEach(item => {
     const sourcePath = path.join(SOURCE_ROOT, item);
+    console.log(`Checking: ${sourcePath}`);
     const destPath = path.join(DEST_ROOT, item);
 
     try {

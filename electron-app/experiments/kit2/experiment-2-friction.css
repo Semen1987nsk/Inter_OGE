@@ -1,0 +1,736 @@
+/**
+ * Experiment 2: Friction Force Measurement
+ * Styles specific to this experiment
+ * v2.0 - Dark theme matching spring experiment
+ */
+
+/* ==================== CSS VARIABLES (matching spring) ==================== */
+:root {
+    --primary-color: #00A86B;
+    --secondary-color: #0066CC;
+    --accent-color: #FFD700;
+    --bg-primary: #0a0e27;
+    --bg-secondary: #1a1f3a;
+    --bg-tertiary: #252b4a;
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(255, 255, 255, 0.15);
+    --glass-bg: rgba(26, 31, 58, 0.9);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ==================== BODY & CONTAINER ==================== */
+body {
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, #0d1233 100%);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+}
+
+.experiment-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 1rem 2rem;
+}
+
+/* ==================== CANVAS CONTAINER ==================== */
+.canvas-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    background: linear-gradient(135deg, #1a1f3a 0%, #0a0e27 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 60px rgba(0, 102, 204, 0.1);
+    border: 1px solid var(--glass-border);
+}
+
+.canvas-container canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#canvas-background { z-index: 1; }
+#canvas-equipment { z-index: 2; }
+#canvas-dynamic { z-index: 3; }
+#canvas-particles { z-index: 4; pointer-events: none; }
+#canvas-ui { z-index: 5; }
+
+#drag-drop-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.canvas-container.drag-over {
+    box-shadow: 0 0 30px rgba(0, 168, 107, 0.5), inset 0 0 60px rgba(0, 168, 107, 0.2);
+    border-color: var(--primary-color);
+}
+
+/* ==================== HEADER ==================== */
+.experiment-header {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.experiment-header h1 {
+    font-size: 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ==================== SURFACE SELECTOR ==================== */
+.surface-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--glass-bg);
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+}
+
+.surface-selector label {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.surface-selector select {
+    padding: 8px 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.surface-selector select:hover {
+    border-color: var(--secondary-color);
+}
+
+.surface-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 168, 107, 0.3);
+}
+
+/* ==================== EXPERIMENT INSTRUCTIONS ==================== */
+.experiment-instructions {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    border-left: 4px solid var(--primary-color);
+    border: 1px solid var(--glass-border);
+}
+
+.experiment-instructions h3 {
+    margin: 0 0 12px 0;
+    color: var(--primary-color);
+    font-size: 16px;
+}
+
+.experiment-instructions ol {
+    margin: 0;
+    padding-left: 24px;
+    color: var(--text-secondary);
+}
+
+.experiment-instructions li {
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.experiment-instructions li::marker {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* ==================== EQUIPMENT GRID ==================== */
+.equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.equipment-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: var(--glass-bg);
+    border: 2px solid var(--glass-border);
+    border-radius: 12px;
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.equipment-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 168, 107, 0.3);
+}
+
+.equipment-item:active {
+    cursor: grabbing;
+}
+
+.equipment-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+}
+
+.equipment-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.equipment-mass {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ==================== WEIGHTS CONTAINER ==================== */
+.weights-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.weight-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(205, 133, 63, 0.2) 0%, rgba(139, 69, 19, 0.3) 100%);
+    border: 2px solid rgba(205, 133, 63, 0.5);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    touch-action: none;
+}
+
+.weight-item:hover:not(.used) {
+    border-color: var(--primary-color);
+    transform: scale(1.03);
+    box-shadow: 0 8px 24px rgba(0, 168, 107, 0.4);
+}
+
+.weight-item.used {
+    opacity: 0.5;
+    border-color: rgba(100, 100, 100, 0.5);
+    background: rgba(100, 100, 100, 0.2);
+    cursor: pointer;
+}
+
+.weight-item.used:hover {
+    border-color: #e53e3e;
+    opacity: 0.7;
+}
+
+.weight-item.dragging {
+    opacity: 0.4;
+    transform: scale(0.95);
+}
+
+.weight-figure {
+    margin-bottom: 6px;
+}
+
+.weight-preview {
+    border-radius: 6px;
+}
+
+.weight-label {
+    text-align: center;
+}
+
+.weight-mass {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #DEB887;
+}
+
+.weight-status {
+    display: block;
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+    font-weight: 600;
+}
+
+.weight-status {
+    font-size: 10px;
+    color: #718096;
+    margin-top: 4px;
+}
+
+/* ==================== MEASUREMENT WINDOW ==================== */
+.measurement-window {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    color: var(--text-primary);
+}
+
+.formula-display {
+    text-align: center;
+    font-size: 22px;
+    font-family: 'Cambria Math', 'Times New Roman', serif;
+    color: var(--accent-color);
+    padding: 14px;
+    background: rgba(0, 102, 204, 0.2);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(0, 102, 204, 0.3);
+}
+
+.current-values {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+}
+
+.value-row.highlight {
+    background: rgba(229, 62, 62, 0.15);
+    border: 1px solid rgba(229, 62, 62, 0.5);
+}
+
+.value-row .label {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.value-row .value {
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: bold;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.value-row.highlight .value {
+    color: #fc8181;
+}
+
+/* ==================== DATA TABLE ==================== */
+.data-table-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.data-table thead {
+    background: rgba(0, 102, 204, 0.3);
+    color: var(--accent-color);
+    position: sticky;
+    top: 0;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 12px;
+    text-align: center;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.data-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+}
+
+.data-table td {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.table-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+/* ==================== RESULTS WINDOW ==================== */
+.results-window {
+    background: linear-gradient(135deg, rgba(0, 168, 107, 0.15) 0%, rgba(0, 102, 204, 0.15) 100%);
+    border: 2px solid var(--primary-color);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.result-row .label {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.result-row .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--primary-color);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+/* ==================== CHART CONTAINER ==================== */
+.chart-container {
+    height: 200px;
+    background: var(--glass-bg);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--glass-border);
+}
+
+/* ==================== BUTTONS ==================== */
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #00896B 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(0, 168, 107, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 168, 107, 0.5);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    flex: 1;
+    padding: 12px;
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    border: 2px solid var(--glass-border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-secondary:hover {
+    background: rgba(0, 102, 204, 0.2);
+    border-color: var(--secondary-color);
+}
+
+/* Icon buttons (header) */
+.btn-icon {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: rgba(0, 102, 204, 0.3);
+    transform: scale(1.1);
+}
+
+.btn-icon.active {
+    background: rgba(0, 168, 107, 0.3);
+    border-color: var(--primary-color);
+}
+
+/* ==================== HELP MODAL ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 14, 39, 0.9);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 2px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 28px;
+    max-width: 650px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modal-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    color: #e53e3e;
+    transform: scale(1.2);
+}
+
+.help-content h3 {
+    color: var(--primary-color);
+    margin-top: 22px;
+    margin-bottom: 12px;
+}
+
+.help-content p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.help-content ul {
+    color: var(--text-secondary);
+    padding-left: 22px;
+}
+
+.formula-box {
+    background: rgba(0, 102, 204, 0.15);
+    border: 2px solid rgba(0, 102, 204, 0.3);
+    border-radius: 12px;
+    padding: 18px;
+    text-align: center;
+    font-size: 22px;
+    font-family: 'Cambria Math', serif;
+    color: var(--accent-color);
+    margin: 14px 0;
+}
+
+.help-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+}
+
+.help-table td {
+    padding: 10px 14px;
+    border: 1px solid var(--glass-border);
+    color: var(--text-secondary);
+}
+
+.help-table tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ==================== STATUS MESSAGES ==================== */
+.status-success {
+    color: var(--primary-color) !important;
+}
+
+.status-warning {
+    color: #ed8936 !important;
+}
+
+.status-error {
+    color: #e53e3e !important;
+}
+
+.status-info {
+    color: var(--secondary-color) !important;
+}
+
+.experiment-status {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* ==================== LOADING OVERLAY ==================== */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 14, 39, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--glass-border);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-overlay p {
+    color: var(--text-secondary);
+    margin-top: 16px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== DRAG DROP OVERLAY ==================== */
+/* NOTE: Defined earlier with pointer-events: none, only activate on drag */
+#drag-drop-overlay.drag-over {
+    background: rgba(0, 168, 107, 0.1);
+    border: 3px dashed var(--primary-color);
+    pointer-events: auto;
+}
+
+/* ==================== CONTROL PANEL ==================== */
+.control-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 1rem;
+}
+
+.control-panel h3 {
+    color: var(--text-primary);
+    margin-bottom: 14px;
+    font-size: 1.1rem;
+}
+
+/* ==================== SECTIONS ==================== */
+.panel-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.panel-section h4 {
+    color: var(--primary-color);
+    margin-bottom: 14px;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+    .weights-container,
+    .equipment-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .table-actions {
+        flex-direction: column;
+    }
+    
+    .formula-display {
+        font-size: 18px;
+    }
+    
+    .canvas-container {
+        height: 450px;
+    }
+}
+
+/* ==================== SCROLLBAR ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 102, 204, 0.5);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 102, 204, 0.7);
+}

@@ -1,6 +1,71 @@
 /* ==============================================
    EXPERIMENT 1: SPRING STIFFNESS STYLES
+   v2.1 - Added Undo/Redo, Onboarding integration
    ============================================== */
+
+/* ==============================================
+   UNDO/REDO BUTTONS
+   ============================================== */
+
+#btn-undo:not(:disabled):hover,
+#btn-redo:not(:disabled):hover {
+    background: rgba(0, 102, 204, 0.3);
+    transform: scale(1.1);
+}
+
+#btn-undo:disabled,
+#btn-redo:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+#btn-tour {
+    background: linear-gradient(135deg, rgba(0, 168, 107, 0.2), rgba(0, 102, 204, 0.2));
+}
+
+#btn-tour:hover {
+    background: linear-gradient(135deg, rgba(0, 168, 107, 0.4), rgba(0, 102, 204, 0.4));
+    transform: scale(1.1);
+}
+
+/* Keyboard shortcut hints */
+.btn-icon[title]::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.btn-icon:hover[title]::after {
+    opacity: 1;
+}
+
+/* ==============================================
+   RULER HIGHLIGHT ANIMATION
+   ============================================== */
+
+@keyframes ruler-highlight-pulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(0, 168, 107, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(0, 168, 107, 0.6);
+    }
+}
+
+.ruler-highlight {
+    animation: ruler-highlight-pulse 1.5s ease-in-out infinite;
+}
 
 /* Graph Section */
 .graph-section {

@@ -21,13 +21,20 @@ jobs:
       
       - name: Install dependencies
         working-directory: electron-app
-        run: npm install
+        run: npm ci
+      
+      - name: Run Copy Files Script
+        working-directory: electron-app
+        run: node copy-files.js
       
       - name: Build Linux AppImage
         working-directory: electron-app
-        run: npm run build:linux
+        env:
+          DEBUG: electron-builder
+        run: npm run build:linux -- -c.publish=never
       
       - name: Upload Linux build
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Inter-OGE-Linux-App

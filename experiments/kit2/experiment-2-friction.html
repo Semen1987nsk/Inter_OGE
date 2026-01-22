@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Опыт 2: Измерение силы трения скольжения | Labosfera</title>
+    
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert('Ошибка запуска: ' + msg + '\nСтрока: ' + line);
+            console.error('Global Error:', error);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert('Ошибка Promise: ' + event.reason);
+            console.error('Unhandled Rejection:', event.reason);
+        });
+    </script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../styles/experiment-common.css?v=1445">
+    <link rel="stylesheet" href="experiment-2-friction.css?v=2">
+    
+    <!-- Libraries (LOCAL - avoid CDN blocking) -->
+    <script src="../vendor/chart.umd.js" defer></script>
+    <script src="../vendor/interact.min.js" defer></script>
+    <script src="../vendor/anime.min.js" defer></script>
+
+    <!-- Experiment Scripts -->
+    <script src="experiment-2-friction.js?v=2" type="module"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="experiment-header">
+        <button class="btn-back" onclick="window.location.href='../../index.html'">
+            <span class="icon">◀</span> Назад к комплектам
+        </button>
+        <h1 class="experiment-title">
+            <span class="experiment-number">ОПЫТ 2</span>
+            Измерение силы трения скольжения <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v1.0</span>
+        </h1>
+        <div class="header-actions">
+            <button class="btn-icon" id="btn-reset" title="Сбросить эксперимент">
+                <span class="icon">🔄</span>
+            </button>
+            <button class="btn-icon" id="btn-magnifier" title="Лупа">
+                <span class="icon">🔍</span>
+            </button>
+            <button class="btn-icon" id="btn-fullscreen" title="На весь экран">
+                <span class="icon">⛶</span>
+            </button>
+            <button class="btn-icon" id="btn-help" title="Помощь">
+                <span class="icon">?</span>
+            </button>
+            <button class="btn-icon" id="btn-tour" title="Показать обучение">
+                <span class="icon">📖</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="experiment-container">
+        <!-- Left Panel: Simulator -->
+        <section class="simulator-panel">
+            <div class="simulator-header">
+                <h2>Экспериментальная установка</h2>
+                <div class="surface-selector">
+                    <label>Поверхность:</label>
+                    <select id="surface-select">
+                        <option value="wood">Дерево</option>
+                        <option value="plastic">Пластик</option>
+                        <option value="rubber">Резина</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container" id="canvas-container">
+                <!-- Multi-layer canvas system -->
+                <canvas id="canvas-background" width="900" height="600"></canvas>
+                <canvas id="canvas-equipment" width="900" height="600"></canvas>
+                <canvas id="canvas-dynamic" width="900" height="600"></canvas>
+                <canvas id="canvas-particles" width="900" height="600"></canvas>
+                <canvas id="canvas-ui" width="900" height="600"></canvas>
+                <div id="drag-drop-overlay"></div>
+                
+                <!-- Loading overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Загрузка оборудования...</p>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="experiment-instructions">
+                <h3>📋 Порядок выполнения</h3>
+                <ol>
+                    <li>Положите деревянный брусок на поверхность</li>
+                    <li>Добавьте грузы на брусок для увеличения массы</li>
+                    <li>Прикрепите динамометр к бруску</li>
+                    <li>Тяните за динамометр равномерно до скольжения</li>
+                    <li>Запишите показание динамометра (F<sub>тр</sub>)</li>
+                    <li>Повторите с разным количеством грузов</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Right Panel: Controls & Data -->
+        <aside class="control-panel">
+            <!-- Equipment -->
+            <div class="panel-section">
+                <h3>Оборудование</h3>
+                <div class="equipment-grid" id="equipment-container">
+                    <div class="equipment-item" data-equipment="dynamometer5" draggable="true">
+                        <span class="equipment-icon">⚖️</span>
+                        <span class="equipment-name">Динамометр 5Н</span>
+                    </div>
+                    <div class="equipment-item" data-equipment="block" draggable="true">
+                        <span class="equipment-icon">📦</span>
+                        <span class="equipment-name">Брусок</span>
+                        <span class="equipment-mass">100 г</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weights for loading -->
+            <div class="panel-section">
+                <h3>Грузы для нагрузки</h3>
+                <div class="weights-container" id="weights-container">
+                    <!-- Грузы будут добавлены программно -->
+                </div>
+            </div>
+
+            <!-- Measurement Window -->
+            <div class="panel-section">
+                <h3>Измерения</h3>
+                <div class="measurement-window">
+                    <!-- Formula -->
+                    <div class="formula-display">
+                        F<sub>тр</sub> = μ × N = μ × mg
+                    </div>
+                    
+                    <!-- Current values -->
+                    <div class="current-values">
+                        <div class="value-row">
+                            <span class="label">Масса бруска + грузы:</span>
+                            <span class="value" id="total-mass">100 г</span>
+                        </div>
+                        <div class="value-row">
+                            <span class="label">Сила тяжести (N):</span>
+                            <span class="value" id="normal-force">0.98 Н</span>
+                        </div>
+                        <div class="value-row highlight">
+                            <span class="label">Сила трения (F<sub>тр</sub>):</span>
+                            <span class="value" id="friction-force">— Н</span>
+                        </div>
+                        <div class="value-row">
+                            <span class="label">Состояние:</span>
+                            <span class="value" id="motion-state">Покой</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="panel-section">
+                <h3>Таблица измерений</h3>
+                <div class="data-table-container">
+                    <table class="data-table" id="measurements-table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>m, г</th>
+                                <th>N, Н</th>
+                                <th>F<sub>тр</sub>, Н</th>
+                                <th>μ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="measurements-tbody">
+                            <!-- Данные добавляются программно -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-actions">
+                    <button class="btn-secondary" id="btn-record">
+                        📝 Записать измерение
+                    </button>
+                    <button class="btn-secondary" id="btn-clear-table">
+                        🗑️ Очистить
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="panel-section">
+                <h3>Результаты</h3>
+                <div class="results-window">
+                    <div class="result-row">
+                        <span class="label">Коэффициент трения μ:</span>
+                        <span class="value" id="friction-coefficient">—</span>
+                    </div>
+                    <div class="result-row">
+                        <span class="label">Погрешность:</span>
+                        <span class="value" id="result-error">—</span>
+                    </div>
+                    <button class="btn-primary" id="btn-calculate">
+                        📊 Рассчитать μ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chart -->
+            <div class="panel-section">
+                <h3>График F<sub>тр</sub>(N)</h3>
+                <div class="chart-container">
+                    <canvas id="friction-chart"></canvas>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Справка: Сила трения скольжения</h2>
+            <div class="help-content">
+                <h3>Теория</h3>
+                <p><strong>Сила трения скольжения</strong> — сила, возникающая при скольжении одного тела по поверхности другого.</p>
+                
+                <p><strong>Закон Амонтона-Кулона:</strong></p>
+                <div class="formula-box">
+                    F<sub>тр</sub> = μ × N
+                </div>
+                <p>где:</p>
+                <ul>
+                    <li><strong>F<sub>тр</sub></strong> — сила трения скольжения (Н)</li>
+                    <li><strong>μ</strong> — коэффициент трения (безразмерный)</li>
+                    <li><strong>N</strong> — сила нормального давления (Н)</li>
+                </ul>
+                
+                <p>На горизонтальной поверхности: <strong>N = mg</strong></p>
+                
+                <h3>Типичные значения μ</h3>
+                <table class="help-table">
+                    <tr><td>Дерево по дереву</td><td>0.25 - 0.50</td></tr>
+                    <tr><td>Дерево по пластику</td><td>0.20 - 0.35</td></tr>
+                    <tr><td>Дерево по резине</td><td>0.40 - 0.70</td></tr>
+                </table>
+                
+                <h3>Методика измерения</h3>
+                <ol>
+                    <li>Измерить массу бруска с грузами</li>
+                    <li>Равномерно тянуть брусок динамометром</li>
+                    <li>Записать показание в момент равномерного движения</li>
+                    <li>μ = F<sub>тр</sub> / (m × g)</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="experiment-footer">
+        <div class="footer-left">
+            <span class="equipment-info">Комплект №2: Силы и движение</span>
+        </div>
+        <div class="footer-center">
+            <span class="labosfera-brand">Labosfera</span>
+        </div>
+        <div class="footer-right">
+            <span class="experiment-status" id="status-text">Готов к работе</span>
+        </div>
+    </footer>
+</body>
+</html>

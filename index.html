@@ -79,7 +79,8 @@
                 <p style="font-size: 14px; color: #00A86B; margin-bottom: 10px;">🔧 <strong>DEV MODE:</strong> Быстрые тесты</p>
                 <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                     <a href="interact-touch-test.html" style="padding: 8px 16px; background: #00A86B; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">📱 Touch Test</a>
-                    <a href="experiments/kit2/experiment-1-spring.html" style="padding: 8px 16px; background: #0066CC; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">🔬 Эксперимент</a>
+                    <a href="experiments/kit2/experiment-1-spring.html" style="padding: 8px 16px; background: #0066CC; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">� Пружина</a>
+                    <a href="experiments/kit2/experiment-2-friction.html" style="padding: 8px 16px; background: #E53E3E; color: white; text-decoration: none; border-radius: 5px; font-size: 13px;">📦 Трение</a>
                 </div>
             </div>
         </div>
@@ -389,7 +390,7 @@
                         </span>
                         <span class="meta-tag free-tag">
                             <span class="meta-icon">🎁</span>
-                            1 бесплатно / 6 всего
+                            2 бесплатно / 6 всего
                         </span>
                     </div>
                 </div>
@@ -419,27 +420,24 @@
                             </button>
                         </div>
                         
-                        <!-- ОПЫТЫ #2-6 - ПРЕМИУМ -->
-                        <div class="experiment-card-mini locked" data-exp-id="2-2" data-status="premium">
-                            <div class="card-premium-overlay">
-                                <div class="premium-lock">🔒</div>
-                                <div class="premium-label">PRO</div>
-                            </div>
+                        <!-- ОПЫТ #2 - ТРЕНИЕ (NEW!) -->
+                        <div class="experiment-card-mini free" data-exp-id="2-2" data-status="free">
+                            <div class="card-free-badge">🆕 НОВОЕ</div>
                             <div class="card-mini-number">02</div>
-                            <div class="card-mini-photo blurred">
+                            <div class="card-mini-photo">
                                 <img src="фото оборудования/брусок деревянный с крючками масса бруска m = (50 ± 5) г.png" 
                                      alt="Брусок" 
                                      onerror="this.parentElement.innerHTML='📦'">
                             </div>
-                            <h4 class="card-mini-title">Измерение коэффициента трения скольжения</h4>
+                            <h4 class="card-mini-title">Измерение силы трения скольжения</h4>
                             <p class="card-mini-desc">μ = F_тр / N</p>
                             <div class="card-mini-meta">
                                 <span>⏱️ 25 мин</span>
                                 <span>⭐ Средне</span>
                             </div>
-                            <button class="btn-mini-start premium" onclick="showUpgradeModal()">
-                                <span>💎</span> Разблокировать
-                            </button>
+                            <a href="experiments/kit2/experiment-2-friction.html" class="btn-mini-start free" style="text-decoration: none;">
+                                <span>🚀</span> Начать
+                            </a>
                         </div>
                         
                         <div class="experiment-card-mini locked" data-exp-id="2-3" data-status="premium">

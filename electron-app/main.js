@@ -8,7 +8,6 @@ function createWindow() {
     const mainWindow = new BrowserWindow({
         width: 1280,
         height: 800,
-        fullscreen: true, // Запуск в полноэкранном режиме для интерактивных панелей
         // icon: path.join(__dirname, 'icon.png'),
         webPreferences: {
             nodeIntegration: false, // Безопасность: запрещаем Node.js в браузере
