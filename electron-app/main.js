@@ -1,8 +1,20 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, protocol } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
-// Отключаем аппаратное ускорение, если есть проблемы с рендерингом на старых панелях
-// app.disableHardwareAcceleration();
+// ===================================================================
+// КОНФИГУРАЦИЯ: Загрузка из родительской директории
+// ===================================================================
+// Вместо копирования файлов, загружаем их напрямую из корня проекта.
+// Это устраняет дублирование кода и гарантирует актуальность.
+// ===================================================================
+
+const PROJECT_ROOT = path.resolve(__dirname, '..');
+
+// Проверяем режим работы:
+// - Development: загружаем из родительской папки
+// - Production (после сборки): файлы будут скопированы в app.asar
+const isDevelopment = fs.existsSync(path.join(PROJECT_ROOT, 'index.html'));
 
 function createWindow() {
     const mainWindow = new BrowserWindow({
@@ -16,8 +28,16 @@ function createWindow() {
         }
     });
 
-    // Загружаем index.html из текущей папки (куда мы скопируем файлы)
-    mainWindow.loadFile('index.html');
+    // Загружаем index.html
+    // В development режиме - из родительской папки
+    // В production (после упаковки) - из текущей папки (файлы копируются при сборке)
+    if (isDevelopment) {
+        mainWindow.loadFile(path.join(PROJECT_ROOT, 'index.html'));
+        console.log('[Electron] Loading from project root:', PROJECT_ROOT);
+    } else {
+        mainWindow.loadFile('index.html');
+        console.log('[Electron] Loading from packaged app');
+    }
 
     // Разворачиваем на весь экран при запуске
     mainWindow.maximize();
@@ -25,8 +45,10 @@ function createWindow() {
     // Убираем стандартное меню (Файл, Правка и т.д.) для чистого вида
     mainWindow.setMenuBarVisibility(false);
     
-    // Открываем DevTools только если это не продакшн (можно раскомментировать для отладки)
-    // mainWindow.webContents.openDevTools();
+    // Открываем DevTools только в development режиме
+    if (isDevelopment && process.env.DEBUG) {
+        mainWindow.webContents.openDevTools();
+    }
 }
 
 app.whenReady().then(() => {

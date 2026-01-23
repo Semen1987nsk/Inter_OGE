@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Опыт 2: Измерение силы трения скольжения | Labosfera</title>
+    <title>Опыт 2: Измерение коэффициента трения скольжения | Labosfera</title>
     
     <!-- Error Handler -->
     <script>
@@ -19,7 +19,7 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="../styles/experiment-common.css?v=1445">
-    <link rel="stylesheet" href="experiment-2-friction.css?v=2">
+    <link rel="stylesheet" href="experiment-2-friction.css?v=4.0-dragfix">
     
     <!-- Libraries (LOCAL - avoid CDN blocking) -->
     <script src="../vendor/chart.umd.js" defer></script>
@@ -27,7 +27,7 @@
     <script src="../vendor/anime.min.js" defer></script>
 
     <!-- Experiment Scripts -->
-    <script src="experiment-2-friction.js?v=2" type="module"></script>
+    <script src="experiment-2-friction.js?v=4.0-dragfix" type="module"></script>
 </head>
 <body>
     <!-- Header -->
@@ -37,7 +37,7 @@
         </button>
         <h1 class="experiment-title">
             <span class="experiment-number">ОПЫТ 2</span>
-            Измерение силы трения скольжения <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v1.0</span>
+            Измерение коэффициента трения скольжения <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v1.0</span>
         </h1>
         <div class="header-actions">
             <button class="btn-icon" id="btn-reset" title="Сбросить эксперимент">
@@ -68,7 +68,6 @@
                     <label>Поверхность:</label>
                     <select id="surface-select">
                         <option value="wood">Дерево</option>
-                        <option value="plastic">Пластик</option>
                         <option value="rubber">Резина</option>
                     </select>
                 </div>
@@ -77,11 +76,11 @@
             <!-- Canvas Container -->
             <div class="canvas-container" id="canvas-container">
                 <!-- Multi-layer canvas system -->
-                <canvas id="canvas-background" width="900" height="600"></canvas>
-                <canvas id="canvas-equipment" width="900" height="600"></canvas>
-                <canvas id="canvas-dynamic" width="900" height="600"></canvas>
-                <canvas id="canvas-particles" width="900" height="600"></canvas>
-                <canvas id="canvas-ui" width="900" height="600"></canvas>
+                <canvas id="canvas-background" width="1200" height="700"></canvas>
+                <canvas id="canvas-equipment" width="1200" height="700"></canvas>
+                <canvas id="canvas-dynamic" width="1200" height="700"></canvas>
+                <canvas id="canvas-particles" width="1200" height="700"></canvas>
+                <canvas id="canvas-ui" width="1200" height="700"></canvas>
                 <div id="drag-drop-overlay"></div>
                 
                 <!-- Loading overlay -->
@@ -111,15 +110,7 @@
             <div class="panel-section">
                 <h3>Оборудование</h3>
                 <div class="equipment-grid" id="equipment-container">
-                    <div class="equipment-item" data-equipment="dynamometer5" draggable="true">
-                        <span class="equipment-icon">⚖️</span>
-                        <span class="equipment-name">Динамометр 5Н</span>
-                    </div>
-                    <div class="equipment-item" data-equipment="block" draggable="true">
-                        <span class="equipment-icon">📦</span>
-                        <span class="equipment-name">Брусок</span>
-                        <span class="equipment-mass">100 г</span>
-                    </div>
+                    <!-- Оборудование будет добавлено программно -->
                 </div>
             </div>
 
@@ -133,88 +124,94 @@
 
             <!-- Measurement Window -->
             <div class="panel-section">
-                <h3>Измерения</h3>
+                <h3>Измерения и расчёт</h3>
                 <div class="measurement-window">
                     <!-- Formula -->
                     <div class="formula-display">
-                        F<sub>тр</sub> = μ × N = μ × mg
+                        μ = F<sub>тр</sub> / N
                     </div>
-                    
-                    <!-- Current values -->
-                    <div class="current-values">
-                        <div class="value-row">
-                            <span class="label">Масса бруска + грузы:</span>
-                            <span class="value" id="total-mass">100 г</span>
+
+                    <!-- Variable N (Normal Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">N</div>
+                        <div class="var-input-group">
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-normal-input"
+                                placeholder="Сила давления N (Н)"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-normal">
+                                Записать N
+                            </button>
+                            <span class="var-current-value" id="current-normal" style="display:none;">—</span>
                         </div>
-                        <div class="value-row">
-                            <span class="label">Сила тяжести (N):</span>
-                            <span class="value" id="normal-force">0.98 Н</span>
+                    </div>
+
+                    <!-- Variable Fтр (Friction Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">F<sub>тр</sub></div>
+                        <div class="var-input-group">
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-friction-input"
+                                placeholder="Сила трения F_тр (Н)"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-friction">
+                                Записать F<sub>тр</sub>
+                            </button>
+                            <span class="var-current-value" id="current-friction" style="display:none;">—</span>
                         </div>
-                        <div class="value-row highlight">
-                            <span class="label">Сила трения (F<sub>тр</sub>):</span>
-                            <span class="value" id="friction-force">— Н</span>
+                    </div>
+
+                    <!-- Recorded Values -->
+                    <div class="recorded-values" id="recorded-values">
+                        <div class="recorded-item" id="recorded-normal-display" style="display: none;">
+                            <span class="recorded-label">N =</span>
+                            <span class="recorded-value" id="recorded-normal-value">—</span>
+                            <span class="recorded-unit">Н</span>
                         </div>
-                        <div class="value-row">
-                            <span class="label">Состояние:</span>
-                            <span class="value" id="motion-state">Покой</span>
+                        <div class="recorded-item" id="recorded-friction-display" style="display: none;">
+                            <span class="recorded-label">F<sub>тр</sub> =</span>
+                            <span class="recorded-value" id="recorded-friction-value">—</span>
+                            <span class="recorded-unit">Н</span>
                         </div>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <div class="action-buttons-group">
+                        <button class="btn-reset-measurement" id="btn-reset-measurement">
+                            🔄 Сбросить
+                        </button>
+                        <button class="btn-calculate-stiffness" id="btn-calculate-coefficient" disabled>
+                            Рассчитать μ
+                        </button>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="calculation-result" id="calculation-result" style="display: none;">
+                        <div class="result-formula">μ = F<sub>тр</sub> / N</div>
+                        <div class="result-calculation" id="result-calculation-text"></div>
+                        <div class="result-final">
+                            <span class="result-label">μ =</span>
+                            <span class="result-value" id="result-coefficient-value">—</span>
+                            <span class="result-unit"></span>
+                        </div>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin-top: 8px;">
+                            где g = 9,8 м/с²
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <!-- Data Table -->
+            <!-- Action Buttons -->
             <div class="panel-section">
-                <h3>Таблица измерений</h3>
-                <div class="data-table-container">
-                    <table class="data-table" id="measurements-table">
-                        <thead>
-                            <tr>
-                                <th>№</th>
-                                <th>m, г</th>
-                                <th>N, Н</th>
-                                <th>F<sub>тр</sub>, Н</th>
-                                <th>μ</th>
-                            </tr>
-                        </thead>
-                        <tbody id="measurements-tbody">
-                            <!-- Данные добавляются программно -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="table-actions">
-                    <button class="btn-secondary" id="btn-record">
-                        📝 Записать измерение
-                    </button>
-                    <button class="btn-secondary" id="btn-clear-table">
-                        🗑️ Очистить
-                    </button>
-                </div>
-            </div>
-
-            <!-- Results -->
-            <div class="panel-section">
-                <h3>Результаты</h3>
-                <div class="results-window">
-                    <div class="result-row">
-                        <span class="label">Коэффициент трения μ:</span>
-                        <span class="value" id="friction-coefficient">—</span>
-                    </div>
-                    <div class="result-row">
-                        <span class="label">Погрешность:</span>
-                        <span class="value" id="result-error">—</span>
-                    </div>
-                    <button class="btn-primary" id="btn-calculate">
-                        📊 Рассчитать μ
-                    </button>
-                </div>
-            </div>
-
-            <!-- Chart -->
-            <div class="panel-section">
-                <h3>График F<sub>тр</sub>(N)</h3>
-                <div class="chart-container">
-                    <canvas id="friction-chart"></canvas>
-                </div>
+                <button class="btn-success" id="btn-complete" disabled>
+                    <span class="icon">✓</span> Завершить опыт
+                </button>
             </div>
         </aside>
     </main>

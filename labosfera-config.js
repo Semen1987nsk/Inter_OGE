@@ -124,7 +124,7 @@ const LabosfераEquipment = {
             },
             {
                 id: 'friction',
-                title: 'Измерение силы трения',
+                title: 'Измерение коэффициента трения',
                 equipment: ['dynamometer', 'block', 'weights'],
                 description: 'Исследование силы трения скольжения',
                 duration: 25

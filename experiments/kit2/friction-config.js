@@ -8,11 +8,10 @@ export const PHYSICS_CONFIG = {
     pixelsPerCm: 20, // scale for horizontal setup
     noisePercentage: 0.0, // No noise for cleaner readings
     
-    // Friction coefficients for different surfaces
+    // Friction coefficients for different surfaces (по ФИПИ для ОГЭ)
     frictionCoefficients: {
-        wood: { static: 0.40, kinetic: 0.30, name: 'Дерево', color: '#8B4513' },
-        plastic: { static: 0.30, kinetic: 0.25, name: 'Пластик', color: '#4169E1' },
-        rubber: { static: 0.70, kinetic: 0.55, name: 'Резина', color: '#2F4F4F' }
+        wood: { static: 0.25, kinetic: 0.20, name: 'Дерево', color: '#8B4513' },
+        rubber: { static: 0.70, kinetic: 0.60, name: 'Резина', color: '#2F4F4F' }
     },
     
     // Motion thresholds
@@ -23,27 +22,27 @@ export const PHYSICS_CONFIG = {
 
 export const VISUAL_CONFIG = {
     scale: 1,
-    canvasWidth: 900,
-    canvasHeight: 600,
-    surfaceY: 400, // Y position of the surface
-    blockStartX: 200, // Initial X position of the block
+    canvasWidth: 1200,
+    canvasHeight: 700,
+    surfaceY: 480, // Y position of the surface (adjusted for larger canvas)
+    blockStartX: 350, // Initial X position of the block (centered)
     measurementParticles: true,
     showForceVectors: true
 };
 
 export const LAYOUT_CONFIG = {
     surface: {
-        x: 50,
-        y: 380,
-        width: 700,
+        x: 200,
+        y: 480,
+        width: 850,
         height: 20
     },
     block: {
         width: 120,
         height: 60,
         color: '#DEB887', // Burlywood - wooden block
-        startX: 200,
-        startY: 320 // Above surface
+        startX: 350,
+        startY: 420 // Above surface
     },
     dynamometer: {
         width: 150,
@@ -58,6 +57,16 @@ export const LAYOUT_CONFIG = {
 };
 
 export const EQUIPMENT_CONFIG = {
+    dynamometer1: {
+        id: 'dynamometer1',
+        name: 'Динамометр 1Н',
+        maxForce: 1,
+        divisions: 10, // 0.1N per division
+        icon: '⚖️',
+        type: 'dynamometer',
+        description: 'Для точных измерений малых сил',
+        scale: 0.1
+    },
     dynamometer5: {
         id: 'dynamometer5',
         name: 'Динамометр 5Н',
@@ -71,7 +80,7 @@ export const EQUIPMENT_CONFIG = {
     block: {
         id: 'block',
         name: 'Деревянный брусок',
-        mass: 100, // grams
+        mass: 50, // grams (по ФИПИ ОГЭ)
         icon: '📦',
         type: 'block',
         description: 'Брусок для исследования трения',
@@ -84,38 +93,29 @@ export const WEIGHTS_INVENTORY = [
     {
         id: 'load_weight_100_1',
         mass: 100,
-        name: 'Груз 100 г №1',
+        name: 'Груз №1',
         description: 'Для увеличения нормальной силы',
-        icon: '../../assets/equipment/weight-100g-double-hook.svg',
+        icon: '../../assets/equipment/weight-100g-no-label.svg',
         color: '#CD853F',
         targetSize: 80
     },
     {
         id: 'load_weight_100_2',
         mass: 100,
-        name: 'Груз 100 г №2',
+        name: 'Груз №2',
         description: 'Для увеличения нормальной силы',
-        icon: '../../assets/equipment/weight-100g-double-hook.svg',
+        icon: '../../assets/equipment/weight-100g-no-label.svg',
         color: '#CD853F',
         targetSize: 80
     },
     {
         id: 'load_weight_100_3',
         mass: 100,
-        name: 'Груз 100 г №3',
+        name: 'Груз №3',
         description: 'Для увеличения нормальной силы',
-        icon: '../../assets/equipment/weight-100g-double-hook.svg',
+        icon: '../../assets/equipment/weight-100g-no-label.svg',
         color: '#CD853F',
         targetSize: 80
-    },
-    {
-        id: 'load_weight_200',
-        mass: 200,
-        name: 'Груз 200 г',
-        description: 'Большой груз',
-        icon: '../../assets/equipment/weight-100g-double-hook.svg',
-        color: '#8B4513',
-        targetSize: 100
     }
 ];
 
@@ -125,11 +125,6 @@ export const SURFACE_TEXTURES = {
         baseColor: '#DEB887',
         lineColor: '#8B4513',
         pattern: 'grain'
-    },
-    plastic: {
-        baseColor: '#E0E0E0',
-        lineColor: '#B0B0B0',
-        pattern: 'smooth'
     },
     rubber: {
         baseColor: '#2F2F2F',
