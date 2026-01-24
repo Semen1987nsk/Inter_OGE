@@ -90,6 +90,9 @@ class FrictionExperiment {
             currentWeight: null,
             usedWeightIds: new Set(),
             
+            // 🆕 Свободные грузы на canvas (не прикреплённые к оборудованию)
+            freeWeights: [], // Array of {id, weightId, mass, x, y, width, height, isDragging, stackedWeights?}
+            
             // Drag position for snap zone visualization
             dragPosition: null,        // {x, y} - текущая позиция перетаскивания
             draggingItemType: null,    // 'weight' или 'block' или 'dynamometer'
@@ -306,6 +309,14 @@ class FrictionExperiment {
             this.state.draggingItemType = 'block';
             this.state.draggingItemId = 'block';
             this.state.draggingItemMass = EQUIPMENT_CONFIG.block.mass;
+        } else if (equipmentType === 'dynamometer1' || equipmentType === 'dynamometer5') {
+            // Динамометр - отдельный тип для отображения snap zones
+            this.state.draggingItemType = 'dynamometer';
+            this.state.draggingItemId = equipmentType;
+        } else if (equipmentType === 'surface') {
+            // Направляющая - отдельный тип для отображения snap zone
+            this.state.draggingItemType = 'surface';
+            this.state.draggingItemId = 'surface';
         } else {
             this.state.draggingItemType = 'equipment';
             this.state.draggingItemId = equipmentType;
@@ -343,6 +354,9 @@ class FrictionExperiment {
         event.target.classList.remove('dragging');
         event.target.style.opacity = '';
         
+        // СОХРАНЯЕМ последнюю позицию перед сбросом для использования в placeEquipment
+        const lastDragPosition = this.state.dragPosition ? { ...this.state.dragPosition } : null;
+        
         // Очищаем состояние перетаскивания
         this.state.dragPosition = null;
         this.state.draggingItemType = null;
@@ -363,14 +377,14 @@ class FrictionExperiment {
         // Check if dropped on canvas
         const wasDropped = event.target.dataset.wasDropped === 'true';
         if (wasDropped) {
-            // Place equipment on canvas
-            this.placeEquipment(equipmentType, event.target);
+            // Place equipment on canvas - передаём сохранённую позицию
+            this.placeEquipment(equipmentType, event.target, lastDragPosition);
         }
         
         event.target.dataset.wasDropped = 'false';
     }
     
-    placeEquipment(equipmentType, element) {
+    placeEquipment(equipmentType, element, dropPosition) {
         console.log('[PLACE-EQUIPMENT]', equipmentType);
         
         if (equipmentType === 'surface' && !this.state.surfacePlaced) {
@@ -414,17 +428,27 @@ class FrictionExperiment {
             this.state.dynamometerPlaced = true;
             this.state.activeDynamometer = equipmentType;
             
-            // Получаем позицию drop относительно canvas
-            const canvasRect = this.canvases.dynamic.getBoundingClientRect();
-            const dropX = (event.dragEvent?.clientX || 0) - canvasRect.left;
-            const dropY = (event.dragEvent?.clientY || 0) - canvasRect.top;
+            // Используем переданную позицию drop (уже в координатах canvas)
+            const dropX = dropPosition?.x || 0;
+            const dropY = dropPosition?.y || 0;
+            
+            console.log('[DYNAMOMETER DROP] dropX:', dropX, 'dropY:', dropY);
+            console.log('[DYNAMOMETER DROP] blockX:', this.state.blockX, 'blockY:', this.state.blockY);
+            console.log('[DYNAMOMETER DROP] blockPlaced:', this.state.blockPlaced);
             
             // Проверяем: если брусок размещён И drop рядом с правой стороной бруска → горизонтальный режим
             const blockRight = this.state.blockX + this.layout.block.width;
             const blockCenterY = this.state.blockY + this.layout.block.height / 2;
-            const isNearBlock = this.state.blockPlaced && 
-                dropX > blockRight - 30 && dropX < blockRight + 150 &&
-                Math.abs(dropY - blockCenterY) < 80;
+            
+            // Snap zone для горизонтального режима
+            const snapX = blockRight + 60;
+            const snapY = blockCenterY;
+            const distanceToBlock = Math.hypot(dropX - snapX, dropY - snapY);
+            
+            console.log('[DYNAMOMETER DROP] snapX:', snapX, 'snapY:', snapY, 'distance:', distanceToBlock);
+            
+            // Радиус 150 пикселей для срабатывания
+            const isNearBlock = this.state.blockPlaced && distanceToBlock < 150;
             
             if (isNearBlock) {
                 // Горизонтальный режим - для измерения трения
@@ -721,15 +745,24 @@ class FrictionExperiment {
         
         // Иначе пробуем положить на брусок
         if (!this.state.blockPlaced) {
-            this.showStatus('Сначала разместите брусок!', 'warning');
+            // 🆕 Если брусок не размещён - кладём груз свободно на canvas
+            this.placeFreeWeight(weightId, mass, dropX, dropY);
             return;
         }
         
-        // Add weight to block
-        this.addWeightToBlock(weightId, mass);
+        // Проверяем, бросили ли рядом с бруском
+        const blockCenterX = this.state.blockX + this.layout.block.width / 2;
+        const blockCenterY = this.state.blockY + this.layout.block.height / 2;
+        const distanceToBlock = Math.hypot(dropX - blockCenterX, dropY - blockCenterY);
         
-        // Mark as used
-        this.state.usedWeightIds.add(weightId);
+        // Если далеко от бруска - кладём как свободный груз
+        if (distanceToBlock > 200) {
+            this.placeFreeWeight(weightId, mass, dropX, dropY);
+            return;
+        }
+        
+        // Add weight to block (usedWeightIds добавляется внутри addWeightToBlock)
+        this.addWeightToBlock(weightId, mass);
         
         // Update inventory display
         this.renderWeightsInventory();
@@ -770,6 +803,9 @@ class FrictionExperiment {
         container.addEventListener('mousedown', (e) => this.handlePullStart(e));
         container.addEventListener('touchstart', (e) => this.handlePullStart(e), { passive: false });
         
+        // 🆕 Double-click для разъединения стопки грузов
+        container.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+        
         // Cursor change on hover
         container.addEventListener('mousemove', (e) => {
             if (this.state.isPulling) return;
@@ -806,6 +842,13 @@ class FrictionExperiment {
             } else {
                 container.style.cursor = 'default';
             }
+            
+            // 🆕 Проверяем наведение на свободный груз
+            const freeWeight = this.findFreeWeightAtPosition(pos.x, pos.y);
+            if (freeWeight) {
+                container.style.cursor = 'grab';
+                return;
+            }
         });
     }
     
@@ -834,6 +877,15 @@ class FrictionExperiment {
     
     handlePullStart(e) {
         const pos = this.getCanvasPosition(e);
+        
+        // 🆕 Проверяем клик на свободный груз для перетаскивания
+        const clickedFreeWeight = this.findFreeWeightAtPosition(pos.x, pos.y);
+        if (clickedFreeWeight) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.startFreeWeightDrag(clickedFreeWeight, pos);
+            return;
+        }
         
         // Проверяем клик на кнопку "Записать N" (для вертикального динамометра)
         if (this.recordButtonArea && this.state.dynamometerMode === 'vertical') {
@@ -1028,7 +1080,7 @@ class FrictionExperiment {
         // Проверяем snap к бруску
         if (this.state.blockPlaced && this.state.surfacePlaced) {
             const blockRight = this.state.blockX + this.layout.block.width;
-            const blockCenterY = this.layout.surface.y - this.layout.block.height/2;
+            const blockCenterY = this.state.blockY + this.layout.block.height / 2;
             
             // Расстояние от центра динамометра до snap точки
             const dynCenterX = this.state.dynamometerX;
@@ -1275,6 +1327,7 @@ class FrictionExperiment {
         }
         
         this.state.weightsOnBlock.push({ id: weightId, mass: mass });
+        this.state.usedWeightIds.add(weightId); // Помечаем как использованный
         this.state.blockMass = this.calculateTotalMass();
         
         // Обновляем отображение и перерисовываем
@@ -1283,6 +1336,430 @@ class FrictionExperiment {
         this.drawDynamic();
         
         this.showStatus(`Добавлен груз ${mass} г`, 'success');
+    }
+    
+    // ==================== FREE WEIGHTS (СВОБОДНЫЕ ГРУЗЫ НА CANVAS) ====================
+    
+    /**
+     * 🆕 Разместить груз свободно на canvas (не прикреплённый к оборудованию)
+     */
+    placeFreeWeight(weightId, mass, canvasX, canvasY) {
+        console.log('[FREE-WEIGHT] Размещение свободного груза:', weightId, 'at', canvasX, canvasY);
+        
+        // Найти определение груза
+        const weightDef = this.weightsInventory.find(w => w.id === weightId);
+        const targetSize = weightDef?.targetSize || 80;
+        
+        // Проверяем, можно ли соединить с существующим свободным грузом
+        const nearbyWeight = this.findNearbyFreeWeight(canvasX, canvasY, 100);
+        if (nearbyWeight) {
+            // Соединяем грузы в стопку
+            this.stackFreeWeights(nearbyWeight, weightId, mass);
+            return;
+        }
+        
+        const freeWeight = {
+            id: `free-${Date.now()}`,
+            weightId: weightId,
+            mass: mass,
+            x: canvasX,
+            y: canvasY,
+            width: targetSize,
+            height: targetSize,
+            isDragging: false,
+            stackedWeights: [] // Грузы сверху этого груза
+        };
+        
+        this.state.freeWeights.push(freeWeight);
+        this.state.usedWeightIds.add(weightId);
+        
+        this.renderWeightsInventory();
+        this.drawDynamic();
+        
+        this.showStatus(`Груз ${mass} г размещён на столе`, 'info');
+        console.log('[FREE-WEIGHT] Создан:', freeWeight);
+    }
+    
+    /**
+     * 🔍 Найти свободный груз рядом с указанной позицией
+     */
+    findNearbyFreeWeight(x, y, radius = 100) {
+        for (const fw of this.state.freeWeights) {
+            const distance = Math.hypot(fw.x - x, fw.y - y);
+            if (distance < radius) {
+                return fw;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 🔗 Соединить грузы в стопку (новый груз кладётся сверху существующего)
+     */
+    stackFreeWeights(baseWeight, newWeightId, newMass) {
+        console.log('[STACK] Соединение грузов:', baseWeight.weightId, '+', newWeightId);
+        
+        // Добавляем новый груз в стопку базового
+        baseWeight.stackedWeights.push({
+            weightId: newWeightId,
+            mass: newMass
+        });
+        
+        // Пересчитываем общую массу стопки
+        baseWeight.totalMass = baseWeight.mass + baseWeight.stackedWeights.reduce((sum, w) => sum + w.mass, 0);
+        
+        this.state.usedWeightIds.add(newWeightId);
+        
+        this.renderWeightsInventory();
+        this.drawDynamic();
+        
+        this.showStatus(`Грузы соединены! Общая масса: ${baseWeight.totalMass} г`, 'success');
+    }
+    
+    /**
+     * 🔓 Разъединить верхний груз из стопки
+     */
+    unstackTopWeight(baseWeight) {
+        if (!baseWeight.stackedWeights || baseWeight.stackedWeights.length === 0) {
+            console.log('[UNSTACK] Нет грузов для разъединения');
+            return null;
+        }
+        
+        const topWeight = baseWeight.stackedWeights.pop();
+        console.log('[UNSTACK] Снят верхний груз:', topWeight.weightId);
+        
+        // Создаём новый свободный груз рядом
+        const newFreeWeight = {
+            id: `free-${Date.now()}`,
+            weightId: topWeight.weightId,
+            mass: topWeight.mass,
+            x: baseWeight.x + 100, // Немного сбоку
+            y: baseWeight.y,
+            width: 80,
+            height: 80,
+            isDragging: false,
+            stackedWeights: []
+        };
+        
+        this.state.freeWeights.push(newFreeWeight);
+        
+        // Пересчитываем массу базового
+        baseWeight.totalMass = baseWeight.mass + baseWeight.stackedWeights.reduce((sum, w) => sum + w.mass, 0);
+        
+        this.drawDynamic();
+        this.showStatus(`Груз отсоединён`, 'info');
+        
+        return newFreeWeight;
+    }
+    
+    /**
+     * 🗑️ Удалить свободный груз с canvas и вернуть в инвентарь
+     */
+    removeFreeWeight(freeWeightId) {
+        const index = this.state.freeWeights.findIndex(fw => fw.id === freeWeightId);
+        if (index === -1) return;
+        
+        const removed = this.state.freeWeights[index];
+        console.log('[FREE-WEIGHT] Удаление:', removed);
+        
+        // Возвращаем основной груз в инвентарь
+        this.state.usedWeightIds.delete(removed.weightId);
+        
+        // Возвращаем все грузы из стопки
+        if (removed.stackedWeights) {
+            removed.stackedWeights.forEach(sw => {
+                this.state.usedWeightIds.delete(sw.weightId);
+            });
+        }
+        
+        this.state.freeWeights.splice(index, 1);
+        
+        this.renderWeightsInventory();
+        this.drawDynamic();
+        
+        this.showStatus('Груз возвращён в инвентарь', 'info');
+    }
+    
+    /**
+     * 🗑️ Удалить груз из стопки другого свободного груза
+     */
+    removeFreeWeightFromStack(weightId) {
+        for (const fw of this.state.freeWeights) {
+            if (!fw.stackedWeights) continue;
+            
+            const idx = fw.stackedWeights.findIndex(sw => sw.weightId === weightId);
+            if (idx !== -1) {
+                console.log('[FREE-WEIGHT] Удаление из стопки:', weightId, 'из', fw.weightId);
+                fw.stackedWeights.splice(idx, 1);
+                this.state.usedWeightIds.delete(weightId);
+                
+                // Пересчитываем массу
+                fw.totalMass = fw.mass + fw.stackedWeights.reduce((sum, w) => sum + w.mass, 0);
+                
+                this.renderWeightsInventory();
+                this.drawDynamic();
+                this.showStatus('Груз возвращён в инвентарь', 'info');
+                return;
+            }
+        }
+    }
+    
+    /**
+     * 🎯 Переместить свободный груз на брусок
+     */
+    moveFreeWeightToBlock(freeWeight) {
+        if (!this.state.blockPlaced) {
+            this.showStatus('Сначала разместите брусок!', 'warning');
+            return;
+        }
+        
+        console.log('[MOVE-TO-BLOCK] Перемещение на брусок:', freeWeight.weightId);
+        
+        // Добавляем основной груз на брусок
+        this.addWeightToBlock(freeWeight.weightId, freeWeight.mass);
+        
+        // Добавляем все грузы из стопки
+        if (freeWeight.stackedWeights) {
+            freeWeight.stackedWeights.forEach(sw => {
+                this.addWeightToBlock(sw.weightId, sw.mass);
+            });
+        }
+        
+        // Удаляем из свободных
+        const index = this.state.freeWeights.findIndex(fw => fw.id === freeWeight.id);
+        if (index !== -1) {
+            this.state.freeWeights.splice(index, 1);
+        }
+        
+        this.drawDynamic();
+    }
+    
+    /**
+     * 🎯 Переместить свободный груз на динамометр
+     */
+    moveFreeWeightToDynamometer(freeWeight) {
+        if (!this.state.dynamometerPlaced || this.state.dynamometerMode !== 'vertical') {
+            this.showStatus('Динамометр не готов для взвешивания!', 'warning');
+            return;
+        }
+        
+        console.log('[MOVE-TO-DYNAMOMETER] Перемещение на динамометр:', freeWeight.weightId);
+        
+        // Добавляем основной груз на динамометр
+        this.addWeightToDynamometer(freeWeight.weightId, freeWeight.mass);
+        
+        // Добавляем все грузы из стопки
+        if (freeWeight.stackedWeights) {
+            freeWeight.stackedWeights.forEach(sw => {
+                this.addWeightToDynamometer(sw.weightId, sw.mass);
+            });
+        }
+        
+        // Удаляем из свободных
+        const index = this.state.freeWeights.findIndex(fw => fw.id === freeWeight.id);
+        if (index !== -1) {
+            this.state.freeWeights.splice(index, 1);
+        }
+        
+        this.drawDynamic();
+    }
+    
+    // ==================== FREE WEIGHT DRAGGING ====================
+    
+    /**
+     * 🔍 Найти свободный груз в указанной позиции
+     */
+    findFreeWeightAtPosition(x, y) {
+        if (!this.state.freeWeights || this.state.freeWeights.length === 0) return null;
+        
+        // Проверяем в обратном порядке (последний добавленный сверху)
+        for (let i = this.state.freeWeights.length - 1; i >= 0; i--) {
+            const fw = this.state.freeWeights[i];
+            const halfSize = (fw.width || 80) / 2;
+            
+            // Проверяем попадание в базовый груз
+            if (x >= fw.x - halfSize && x <= fw.x + halfSize &&
+                y >= fw.y - halfSize && y <= fw.y + halfSize) {
+                return fw;
+            }
+            
+            // Проверяем попадание в стопку сверху
+            if (fw.stackedWeights && fw.stackedWeights.length > 0) {
+                let offsetY = -halfSize * 1.6;
+                for (const sw of fw.stackedWeights) {
+                    const stackHalfSize = 35;
+                    if (x >= fw.x - stackHalfSize && x <= fw.x + stackHalfSize &&
+                        y >= fw.y + offsetY - stackHalfSize && y <= fw.y + offsetY + stackHalfSize) {
+                        return fw; // Возвращаем базовый груз (всю стопку)
+                    }
+                    offsetY -= 60;
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 🎬 Начать перетаскивание свободного груза
+     */
+    startFreeWeightDrag(freeWeight, pos) {
+        console.log('[FREE-DRAG] Начало перетаскивания:', freeWeight.weightId);
+        
+        freeWeight.isDragging = true;
+        freeWeight.dragOffsetX = pos.x - freeWeight.x;
+        freeWeight.dragOffsetY = pos.y - freeWeight.y;
+        
+        this.state.draggingFreeWeight = freeWeight;
+        document.body.style.cursor = 'grabbing';
+        
+        // Bind events
+        this.boundFreeWeightMove = (e) => this.handleFreeWeightMove(e);
+        this.boundFreeWeightEnd = () => this.handleFreeWeightEnd();
+        
+        window.addEventListener('mousemove', this.boundFreeWeightMove);
+        window.addEventListener('mouseup', this.boundFreeWeightEnd);
+        window.addEventListener('touchmove', this.boundFreeWeightMove, { passive: false });
+        window.addEventListener('touchend', this.boundFreeWeightEnd);
+        
+        this.drawDynamic();
+    }
+    
+    /**
+     * 🔄 Обработка движения при перетаскивании свободного груза
+     */
+    handleFreeWeightMove(e) {
+        e.preventDefault();
+        const pos = this.getCanvasPosition(e);
+        const fw = this.state.draggingFreeWeight;
+        if (!fw) return;
+        
+        fw.x = pos.x - (fw.dragOffsetX || 0);
+        fw.y = pos.y - (fw.dragOffsetY || 0);
+        
+        this.drawDynamic();
+    }
+    
+    /**
+     * 🏁 Окончание перетаскивания свободного груза
+     */
+    handleFreeWeightEnd() {
+        const fw = this.state.draggingFreeWeight;
+        if (!fw) return;
+        
+        console.log('[FREE-DRAG] Окончание перетаскивания:', fw.weightId, 'at', fw.x, fw.y);
+        
+        fw.isDragging = false;
+        this.state.draggingFreeWeight = null;
+        document.body.style.cursor = 'default';
+        
+        // Remove events
+        window.removeEventListener('mousemove', this.boundFreeWeightMove);
+        window.removeEventListener('mouseup', this.boundFreeWeightEnd);
+        window.removeEventListener('touchmove', this.boundFreeWeightMove);
+        window.removeEventListener('touchend', this.boundFreeWeightEnd);
+        
+        // Проверяем, куда бросили груз
+        
+        // 1. На брусок?
+        if (this.state.blockPlaced) {
+            const blockCenterX = this.state.blockX + this.layout.block.width / 2;
+            const blockCenterY = this.state.blockY + this.layout.block.height / 2;
+            const distanceToBlock = Math.hypot(fw.x - blockCenterX, fw.y - blockCenterY);
+            
+            if (distanceToBlock < 150) {
+                this.moveFreeWeightToBlock(fw);
+                return;
+            }
+        }
+        
+        // 2. На вертикальный динамометр?
+        if (this.state.dynamometerPlaced && this.state.dynamometerMode === 'vertical') {
+            const hookX = 100;
+            const hookY = 350;
+            const distanceToHook = Math.hypot(fw.x - hookX, fw.y - hookY);
+            
+            if (distanceToHook < 150) {
+                this.moveFreeWeightToDynamometer(fw);
+                return;
+            }
+        }
+        
+        // 3. Соединение с другим свободным грузом?
+        const nearbyWeight = this.findNearbyFreeWeightExcept(fw.x, fw.y, 100, fw);
+        if (nearbyWeight) {
+            // Соединяем: перемещаем текущий груз в стопку другого
+            this.mergeFreeWeights(nearbyWeight, fw);
+            return;
+        }
+        
+        // 4. Двойной клик = разъединение стопки
+        // (это обрабатывается отдельно через dblclick)
+        
+        this.drawDynamic();
+    }
+    
+    /**
+     * 🔍 Найти свободный груз рядом (исключая указанный)
+     */
+    findNearbyFreeWeightExcept(x, y, radius, excludeWeight) {
+        for (const fw of this.state.freeWeights) {
+            if (fw === excludeWeight) continue;
+            const distance = Math.hypot(fw.x - x, fw.y - y);
+            if (distance < radius) {
+                return fw;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * 🔗 Объединить два свободных груза (перемещённый добавляется в стопку базового)
+     */
+    mergeFreeWeights(baseWeight, movedWeight) {
+        console.log('[MERGE] Объединение:', baseWeight.weightId, '+', movedWeight.weightId);
+        
+        // Добавляем основной груз movedWeight в стопку base
+        baseWeight.stackedWeights.push({
+            weightId: movedWeight.weightId,
+            mass: movedWeight.mass
+        });
+        
+        // Добавляем все грузы из стопки movedWeight
+        if (movedWeight.stackedWeights) {
+            movedWeight.stackedWeights.forEach(sw => {
+                baseWeight.stackedWeights.push(sw);
+            });
+        }
+        
+        // Пересчитываем массу
+        baseWeight.totalMass = baseWeight.mass + baseWeight.stackedWeights.reduce((sum, w) => sum + w.mass, 0);
+        
+        // Удаляем перемещённый груз из списка свободных
+        const index = this.state.freeWeights.findIndex(fw => fw.id === movedWeight.id);
+        if (index !== -1) {
+            this.state.freeWeights.splice(index, 1);
+        }
+        
+        this.drawDynamic();
+        this.showStatus(`Грузы соединены! Σ ${baseWeight.totalMass} г`, 'success');
+    }
+    
+    /**
+     * 🖱️ Обработка двойного клика - разъединение стопки грузов
+     */
+    handleDoubleClick(e) {
+        const pos = this.getCanvasPosition(e);
+        
+        // Ищем свободный груз со стопкой
+        const clickedWeight = this.findFreeWeightAtPosition(pos.x, pos.y);
+        if (clickedWeight && clickedWeight.stackedWeights && clickedWeight.stackedWeights.length > 0) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('[DBLCLICK] Разъединение стопки:', clickedWeight.weightId);
+            this.unstackTopWeight(clickedWeight);
+            return;
+        }
     }
     
     removeWeightFromBlock(weightId) {
@@ -1592,28 +2069,61 @@ class FrictionExperiment {
             
             // Кнопка "Вернуть в комплект" для использованных грузов
             if (isUsed) {
-                // Определяем где находится груз: на бруске или на динамометре
+                // Определяем где находится груз: на бруске, динамометре или свободно на canvas
                 const isOnBlock = this.state.weightsOnBlock.some(w => w.id === weight.id);
                 const isOnDynamometer = this.state.weighingItems.some(item => item.type === 'weight' && item.id === weight.id);
                 
+                // 🆕 Проверяем, является ли груз свободным на canvas
+                const freeWeight = this.state.freeWeights?.find(fw => fw.weightId === weight.id);
+                const isInStack = this.state.freeWeights?.some(fw => 
+                    fw.stackedWeights?.some(sw => sw.weightId === weight.id)
+                );
+                const isFree = freeWeight || isInStack;
+                
                 const status = document.createElement('div');
                 status.className = 'weight-status';
-                status.textContent = isOnDynamometer ? 'На динамометре' : 'На бруске';
+                if (isOnDynamometer) {
+                    status.textContent = 'На динамометре';
+                } else if (isOnBlock) {
+                    status.textContent = 'На бруске';
+                } else if (isFree) {
+                    status.textContent = 'На столе';
+                } else {
+                    status.textContent = 'Использован';
+                }
                 item.appendChild(status);
                 
                 const action = document.createElement('button');
                 action.type = 'button';
                 action.className = 'weight-action';
-                action.textContent = 'Вернуть';
-                action.addEventListener('click', (evt) => {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    if (isOnDynamometer) {
-                        this.removeWeightFromDynamometer(weight.id);
-                    } else {
-                        this.removeWeightFromBlock(weight.id);
-                    }
-                });
+                
+                // Проверяем: если это база стопки с грузами сверху - нельзя вернуть
+                const hasStackedWeights = freeWeight && freeWeight.stackedWeights && freeWeight.stackedWeights.length > 0;
+                
+                if (hasStackedWeights) {
+                    action.textContent = 'Снимите грузы сверху';
+                    action.disabled = true;
+                    action.style.fontSize = '10px';
+                    action.style.opacity = '0.6';
+                    action.style.cursor = 'not-allowed';
+                } else {
+                    action.textContent = 'ВЕРНУТЬ';
+                    action.addEventListener('click', (evt) => {
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        if (isOnDynamometer) {
+                            this.removeWeightFromDynamometer(weight.id);
+                        } else if (isOnBlock) {
+                            this.removeWeightFromBlock(weight.id);
+                        } else if (freeWeight) {
+                            // Удаляем свободный груз с canvas (только если нет стопки)
+                            this.removeFreeWeight(freeWeight.id);
+                        } else if (isInStack) {
+                            // Груз в стопке - нужно найти и удалить из стопки
+                            this.removeFreeWeightFromStack(weight.id);
+                        }
+                    });
+                }
                 item.appendChild(action);
             } else {
                 const hint = document.createElement('div');
@@ -2474,6 +2984,24 @@ class FrictionExperiment {
         
         // Не рисуем основное оборудование, пока оно не размещено на canvas
         if (!this.state.surfacePlaced) {
+            // === ЗЕЛЁНАЯ SNAP ZONE ПРИ ПЕРЕТАСКИВАНИИ НАПРАВЛЯЮЩЕЙ ===
+            if (this.state.isDragging && this.state.draggingItemType === 'surface' && this.state.dragPosition) {
+                this.drawSurfaceSnapZone(ctx);
+            }
+            
+            // === ЗЕЛЁНЫЕ SNAP ZONES ПРИ ПЕРЕТАСКИВАНИИ ДИНАМОМЕТРА (до размещения направляющей) ===
+            if (this.state.isDragging && this.state.draggingItemType === 'dynamometer' && this.state.dragPosition) {
+                this.drawDynamometerSnapZones(ctx);
+            }
+            
+            // === 🆕 ЗЕЛЁНЫЕ SNAP ZONES ПРИ ПЕРЕТАСКИВАНИИ ГРУЗА (до размещения направляющей) ===
+            if (this.state.isDragging && this.state.draggingItemType === 'weight' && this.state.dragPosition) {
+                this.drawWeightSnapZones(ctx);
+            }
+            
+            // 🆕 Рисуем свободные грузы даже когда направляющая не размещена
+            this.drawFreeWeights(ctx);
+            
             // Показываем подсказку о перетаскивании поверхности
             this.drawPlacementHint(ctx, 'Перетащите направляющую на рабочую область', 'Направляющая → из панели "Оборудование" справа');
             return;
@@ -2484,6 +3012,19 @@ class FrictionExperiment {
             if (this.state.isDragging && this.state.draggingItemType === 'block' && this.state.dragPosition) {
                 this.drawBlockSnapZones(ctx);
             }
+            
+            // === ЗЕЛЁНЫЕ SNAP ZONES ПРИ ПЕРЕТАСКИВАНИИ ДИНАМОМЕТРА (до размещения бруска) ===
+            if (this.state.isDragging && this.state.draggingItemType === 'dynamometer' && this.state.dragPosition) {
+                this.drawDynamometerSnapZones(ctx);
+            }
+            
+            // === 🆕 ЗЕЛЁНЫЕ SNAP ZONES ПРИ ПЕРЕТАСКИВАНИИ ГРУЗА (до размещения бруска) ===
+            if (this.state.isDragging && this.state.draggingItemType === 'weight' && this.state.dragPosition) {
+                this.drawWeightSnapZones(ctx);
+            }
+            
+            // 🆕 Рисуем свободные грузы даже когда брусок не размещён
+            this.drawFreeWeights(ctx);
             
             // Показываем подсказку о перетаскивании бруска
             this.drawPlacementHint(ctx, 'Перетащите брусок на направляющую', 'Брусок → из панели "Оборудование" справа');
@@ -2501,6 +3042,11 @@ class FrictionExperiment {
             this.drawWeightSnapZones(ctx);
         }
         
+        // === ЗЕЛЁНЫЕ SNAP ZONES ПРИ ПЕРЕТАСКИВАНИИ ДИНАМОМЕТРА ===
+        if (this.state.isDragging && this.state.draggingItemType === 'dynamometer' && this.state.dragPosition) {
+            this.drawDynamometerSnapZones(ctx);
+        }
+        
         // Draw dynamometer (горизонтальный режим - прикреплён к бруску)
         if (this.state.dynamometerPlaced && this.state.dynamometerMode === 'horizontal') {
             this.drawDynamometer(ctx);
@@ -2514,6 +3060,238 @@ class FrictionExperiment {
             if (!this.state.isPulling) {
                 this.drawPullHint(ctx);
             }
+        }
+        
+        // 🆕 Draw free weights (свободные грузы на canvas)
+        this.drawFreeWeights(ctx);
+    }
+    
+    /**
+     * Рисует зелёную snap zone при перетаскивании направляющей
+     */
+    drawSurfaceSnapZone(ctx) {
+        const dragX = this.state.dragPosition.x;
+        const dragY = this.state.dragPosition.y;
+        
+        // Центр canvas - место для размещения направляющей
+        const snapX = 450;
+        const snapY = 480;
+        
+        const distance = Math.hypot(dragX - snapX, dragY - snapY);
+        const snapRadius = 300;
+        const isNear = distance < snapRadius;
+        
+        ctx.save();
+        
+        if (isNear) {
+            ctx.strokeStyle = 'rgba(50, 255, 50, 1.0)';
+            ctx.lineWidth = 4;
+            ctx.fillStyle = 'rgba(50, 255, 50, 0.15)';
+        } else {
+            ctx.strokeStyle = 'rgba(50, 255, 50, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 8]);
+            ctx.fillStyle = 'rgba(50, 255, 50, 0.05)';
+        }
+        
+        // Рисуем прямоугольную область для направляющей
+        const rectW = 700;
+        const rectH = 120;
+        ctx.beginPath();
+        ctx.roundRect(snapX - rectW/2, snapY - rectH/2, rectW, rectH, 15);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Убираем эмодзи - оставляем только зелёную зону
+        
+        ctx.restore();
+    }
+    
+    /**
+     * 🆕 Рисует свободные грузы на canvas (не прикреплённые к оборудованию)
+     */
+    drawFreeWeights(ctx) {
+        if (!this.state.freeWeights || this.state.freeWeights.length === 0) return;
+        
+        this.state.freeWeights.forEach(weight => {
+            const weightDef = this.weightsInventory.find(w => w.id === weight.weightId);
+            if (!weightDef) return;
+            
+            const img = this.weightImages ? this.weightImages[weight.weightId] : null;
+            const targetSize = weightDef.targetSize || 80;
+            
+            ctx.save();
+            
+            // Подсветка при перетаскивании
+            if (weight.isDragging) {
+                ctx.shadowColor = 'rgba(0, 150, 255, 0.8)';
+                ctx.shadowBlur = 25;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            } else {
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 3;
+                ctx.shadowOffsetY = 5;
+            }
+            
+            // Рисуем груз
+            if (img && img.complete) {
+                const scale = targetSize / Math.max(img.width, img.height);
+                ctx.translate(weight.x, weight.y);
+                ctx.scale(scale, scale);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+            } else {
+                // Fallback: плейсхолдер
+                ctx.fillStyle = weightDef.color || '#CD853F';
+                ctx.fillRect(weight.x - targetSize/2, weight.y - targetSize/2, targetSize, targetSize * 0.9);
+                
+                ctx.fillStyle = '#FFF';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${weight.mass}г`, weight.x, weight.y);
+            }
+            
+            ctx.restore();
+            
+            // Рисуем стопку грузов сверху
+            if (weight.stackedWeights && weight.stackedWeights.length > 0) {
+                let offsetY = -targetSize * 0.8;
+                
+                weight.stackedWeights.forEach(stackedWeight => {
+                    ctx.save();
+                    
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                    ctx.shadowBlur = 5;
+                    
+                    const stackImg = this.weightImages ? this.weightImages[stackedWeight.weightId] : null;
+                    const stackDef = this.weightsInventory.find(w => w.id === stackedWeight.weightId);
+                    const stackSize = stackDef?.targetSize || 70;
+                    
+                    if (stackImg && stackImg.complete) {
+                        const scale = stackSize / Math.max(stackImg.width, stackImg.height);
+                        ctx.translate(weight.x, weight.y + offsetY);
+                        ctx.scale(scale, scale);
+                        ctx.drawImage(stackImg, -stackImg.width / 2, -stackImg.height / 2);
+                    } else {
+                        ctx.fillStyle = stackDef?.color || '#CD853F';
+                        ctx.fillRect(weight.x - stackSize/2, weight.y + offsetY - stackSize/2, stackSize, stackSize * 0.9);
+                        
+                        ctx.fillStyle = '#FFF';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(`${stackedWeight.mass}г`, weight.x, weight.y + offsetY);
+                    }
+                    
+                    ctx.restore();
+                    
+                    offsetY -= stackSize * 0.75;
+                });
+            }
+            
+            // Индикатор общей массы стопки - УБРАН по запросу пользователя
+            // if (weight.stackedWeights && weight.stackedWeights.length > 0) {
+            //     const totalMass = weight.mass + weight.stackedWeights.reduce((sum, w) => sum + w.mass, 0);
+            //     ctx.save();
+            //     ctx.fillStyle = 'rgba(0, 100, 200, 0.9)';
+            //     ctx.font = 'bold 12px Arial';
+            //     ctx.textAlign = 'center';
+            //     ctx.fillText(`Σ ${totalMass}г`, weight.x, weight.y + targetSize/2 + 15);
+            //     ctx.restore();
+            // }
+            
+            // 🆕 Рисуем snap zones при перетаскивании этого груза
+            if (weight.isDragging) {
+                this.drawFreeWeightSnapZones(ctx, weight);
+            }
+        });
+    }
+    
+    /**
+     * 🆕 Рисует snap zones для свободного груза при перетаскивании
+     */
+    drawFreeWeightSnapZones(ctx, draggedWeight) {
+        // 1. Snap zone на брусок (если размещён)
+        if (this.state.blockPlaced) {
+            const blockCenterX = this.state.blockX + this.layout.block.width / 2;
+            const blockCenterY = this.state.blockY + this.layout.block.height / 2;
+            const distanceToBlock = Math.hypot(draggedWeight.x - blockCenterX, draggedWeight.y - blockCenterY);
+            const isNearBlock = distanceToBlock < 150;
+            
+            ctx.save();
+            if (isNearBlock) {
+                ctx.strokeStyle = 'rgba(50, 255, 50, 1.0)';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.3)';
+            } else {
+                ctx.strokeStyle = 'rgba(50, 255, 50, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.1)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(blockCenterX, blockCenterY - 40, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        // 2. Snap zone на вертикальный динамометр (если в режиме взвешивания)
+        if (this.state.dynamometerPlaced && this.state.dynamometerMode === 'vertical') {
+            const hookX = 100;
+            const hookY = 350;
+            const distanceToHook = Math.hypot(draggedWeight.x - hookX, draggedWeight.y - hookY);
+            const isNearHook = distanceToHook < 150;
+            
+            ctx.save();
+            if (isNearHook) {
+                ctx.strokeStyle = 'rgba(50, 200, 255, 1.0)';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = 'rgba(50, 200, 255, 0.3)';
+            } else {
+                ctx.strokeStyle = 'rgba(50, 200, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.fillStyle = 'rgba(50, 200, 255, 0.1)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(hookX, hookY, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        // 3. Snap zones на другие свободные грузы (для соединения)
+        for (const otherWeight of this.state.freeWeights) {
+            if (otherWeight === draggedWeight) continue;
+            
+            const distance = Math.hypot(draggedWeight.x - otherWeight.x, draggedWeight.y - otherWeight.y);
+            const isNear = distance < 100;
+            
+            ctx.save();
+            if (isNear) {
+                ctx.strokeStyle = 'rgba(255, 200, 50, 1.0)';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = 'rgba(255, 200, 50, 0.3)';
+            } else {
+                ctx.strokeStyle = 'rgba(255, 200, 50, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.fillStyle = 'rgba(255, 200, 50, 0.05)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(otherWeight.x, otherWeight.y, 60, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.restore();
         }
     }
     
@@ -2554,14 +3332,6 @@ class FrictionExperiment {
             ctx.fill();
             ctx.stroke();
             
-            if (isNear) {
-                ctx.fillStyle = 'rgba(50, 255, 50, 0.9)';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('📦', snapX, snapY);
-            }
-            
             ctx.restore();
         }
         
@@ -2596,22 +3366,16 @@ class FrictionExperiment {
             ctx.fill();
             ctx.stroke();
             
-            if (isNear) {
-                ctx.fillStyle = 'rgba(50, 255, 50, 0.9)';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('⚖️', centerX, hookCenterY);
-            }
-            
             ctx.restore();
         }
     }
     
     /**
-     * Рисует зелёные snap zones при перетаскивании груза:
+     * Рисует зелёные snap zones при перетаскивании груза из инвентаря:
      * 1. На брусок (для добавления груза)
      * 2. На динамометр (для взвешивания)
+     * 3. На свободные грузы на canvas (для соединения)
+     * 4. На пустую область canvas (для свободного размещения)
      */
     drawWeightSnapZones(ctx) {
         const dragX = this.state.dragPosition.x;
@@ -2620,7 +3384,7 @@ class FrictionExperiment {
         // === SNAP ZONE НА БРУСОК ===
         if (this.state.blockPlaced) {
             const blockX = this.state.blockX;
-            const blockY = this.layout.surface.y - this.layout.block.height;
+            const blockY = this.state.blockY;
             const blockW = this.layout.block.width;
             const blockH = this.layout.block.height;
             const snapX = blockX + blockW / 2;
@@ -2647,14 +3411,6 @@ class FrictionExperiment {
             ctx.arc(snapX, snapY, 40, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
-            
-            if (isNear) {
-                ctx.fillStyle = 'rgba(50, 255, 50, 0.9)';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('📦', snapX, snapY);
-            }
             
             ctx.restore();
         }
@@ -2690,13 +3446,144 @@ class FrictionExperiment {
             ctx.fill();
             ctx.stroke();
             
-            if (isNear) {
-                ctx.fillStyle = 'rgba(50, 255, 50, 0.9)';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('⚖️', centerX, hookCenterY);
+            ctx.restore();
+        }
+        
+        // === 🆕 SNAP ZONES НА СВОБОДНЫЕ ГРУЗЫ (для соединения в стопку) ===
+        if (this.state.freeWeights && this.state.freeWeights.length > 0) {
+            for (const freeWeight of this.state.freeWeights) {
+                const distance = Math.hypot(dragX - freeWeight.x, dragY - freeWeight.y);
+                const isNear = distance < 100;
+                
+                ctx.save();
+                if (isNear) {
+                    ctx.strokeStyle = 'rgba(255, 200, 50, 1.0)';
+                    ctx.lineWidth = 3;
+                    ctx.fillStyle = 'rgba(255, 200, 50, 0.3)';
+                } else {
+                    ctx.strokeStyle = 'rgba(255, 200, 50, 0.4)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]);
+                    ctx.fillStyle = 'rgba(255, 200, 50, 0.05)';
+                }
+                
+                ctx.beginPath();
+                ctx.arc(freeWeight.x, freeWeight.y, 60, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.restore();
             }
+        }
+        
+        // === 🆕 SNAP ZONE ДЛЯ СВОБОДНОГО РАЗМЕЩЕНИЯ НА CANVAS ===
+        // Показываем зону для размещения груза на пустую область справа
+        const freeZoneX = 800;
+        const freeZoneY = 450;
+        const distanceToFreeZone = Math.hypot(dragX - freeZoneX, dragY - freeZoneY);
+        const isNearFreeZone = distanceToFreeZone < 200;
+        
+        // Не показываем если рядом с бруском, динамометром или свободными грузами
+        const nearOtherTarget = (this.state.blockPlaced && Math.hypot(dragX - (this.state.blockX + 100), dragY - this.state.blockY) < 150) ||
+            (this.state.dynamometerPlaced && this.state.dynamometerMode === 'vertical') ||
+            (this.state.freeWeights?.some(fw => Math.hypot(dragX - fw.x, dragY - fw.y) < 100));
+        
+        if (!nearOtherTarget) {
+            ctx.save();
+            if (isNearFreeZone) {
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.15)';
+            } else {
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([10, 8]);
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.03)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(freeZoneX, freeZoneY, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Подпись
+            ctx.fillStyle = isNearFreeZone ? 'rgba(100, 200, 255, 0.9)' : 'rgba(100, 200, 255, 0.4)';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('На стол', freeZoneX, freeZoneY + 100);
+            
+            ctx.restore();
+        }
+    }
+    
+    /**
+     * Рисует зелёные snap zones при перетаскивании динамометра:
+     * 1. На брусок (горизонтальный режим - для измерения трения)
+     * 2. Свободная область (вертикальный режим - для взвешивания)
+     */
+    drawDynamometerSnapZones(ctx) {
+        const dragX = this.state.dragPosition.x;
+        const dragY = this.state.dragPosition.y;
+        
+        // === SNAP ZONE НА БРУСОК (для горизонтального режима) ===
+        if (this.state.blockPlaced && this.state.surfacePlaced) {
+            const blockRight = this.state.blockX + this.layout.block.width;
+            const blockCenterY = this.state.blockY + this.layout.block.height / 2;
+            const snapX = blockRight + 60;
+            const snapY = blockCenterY;
+            
+            const distance = Math.hypot(dragX - snapX, dragY - snapY);
+            const snapRadius = 150;
+            const isNear = distance < snapRadius;
+            
+            ctx.save();
+            
+            if (isNear) {
+                ctx.strokeStyle = 'rgba(50, 255, 50, 1.0)';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.25)';
+            } else {
+                ctx.strokeStyle = 'rgba(50, 255, 50, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.fillStyle = 'rgba(50, 255, 50, 0.08)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(snapX, snapY, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        // === SNAP ZONE ДЛЯ ВЕРТИКАЛЬНОГО РЕЖИМА (взвешивание) ===
+        // Показываем зону слева для вертикального динамометра - доступна всегда
+        {
+            const snapX = 120;
+            const snapY = 200;
+            
+            const distance = Math.hypot(dragX - snapX, dragY - snapY);
+            const snapRadius = 180;
+            const isNear = distance < snapRadius && dragX < 280; // Только если слева
+            
+            ctx.save();
+            
+            if (isNear) {
+                ctx.strokeStyle = 'rgba(100, 200, 255, 1.0)';
+                ctx.lineWidth = 4;
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.25)';
+            } else {
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.fillStyle = 'rgba(100, 200, 255, 0.08)';
+            }
+            
+            ctx.beginPath();
+            ctx.arc(snapX, snapY, 50, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
             
             ctx.restore();
         }
@@ -2944,7 +3831,7 @@ class FrictionExperiment {
         // === ЗЕЛЁНАЯ SNAP ZONE К БРУСКУ (при перетаскивании динамометра) ===
         if (this.state.isDraggingDynamometer && this.state.blockPlaced && this.state.surfacePlaced) {
             const blockRight = this.state.blockX + this.layout.block.width;
-            const blockCenterY = this.layout.surface.y - this.layout.block.height/2;
+            const blockCenterY = this.state.blockY + this.layout.block.height / 2;
             const snapX = blockRight + 30; // Рядом с правым краем бруска
             const snapY = blockCenterY;
             
@@ -2974,15 +3861,6 @@ class FrictionExperiment {
             ctx.arc(snapX, snapY, 40, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
-            
-            if (isNear) {
-                // Иконка сцепления
-                ctx.fillStyle = 'rgba(50, 255, 50, 0.9)';
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🔗', snapX, snapY);
-            }
             
             ctx.restore();
         }
@@ -3931,6 +4809,7 @@ class FrictionExperiment {
         this.state.blockX = LAYOUT_CONFIG.block.startX;
         this.state.weightsOnBlock = [];
         this.state.usedWeightIds.clear();
+        this.state.freeWeights = []; // 🆕 Сброс свободных грузов
         this.state.blockMass = EQUIPMENT_CONFIG.block.mass;
         this.state.pullingForce = 0;
         this.state.isPulling = false;

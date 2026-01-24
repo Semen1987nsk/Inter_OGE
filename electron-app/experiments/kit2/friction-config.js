@@ -80,7 +80,7 @@ export const EQUIPMENT_CONFIG = {
     block: {
         id: 'block',
         name: 'Деревянный брусок',
-        mass: 50, // grams (по ФИПИ ОГЭ)
+        mass: 80, // grams (по ФИПИ ОГЭ - 80±1г)
         icon: '📦',
         type: 'block',
         description: 'Брусок для исследования трения',
