@@ -1191,6 +1191,9 @@
         }
 
         animatePrecipitate(tube, color) {
+            // ВАЖНО: устанавливаем цвет осадка в объект пробирки!
+            tube.precipitate = color;
+            
             const startTime = performance.now();
             const duration = 1500;
 
