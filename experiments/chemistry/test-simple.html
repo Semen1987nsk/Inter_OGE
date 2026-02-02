@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Химия ОГЭ - Тест</title>
+    <link rel="stylesheet" href="experiment-23-chemistry.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="experiment-header">
+        <div class="header-content">
+            <div class="experiment-info">
+                <span class="badge badge-chemistry">🧪 Химия</span>
+                <span class="badge badge-oge">ОГЭ 2025</span>
+                <span class="badge badge-task">Задание 23</span>
+            </div>
+            <h1>Качественный анализ веществ</h1>
+            <p class="subtitle">Распознавание неизвестных веществ</p>
+        </div>
+    </header>
+
+    <section class="task-condition">
+        <div class="condition-header">
+            <span class="step-indicator">Шаг 1</span>
+            <h2>Условие задания</h2>
+        </div>
+        <div class="condition-content">
+            <p>
+                Выданы склянки <strong>№ 1</strong> и <strong>№ 2</strong> 
+                с растворами <span class="highlight">двух неизвестных веществ</span>.
+            </p>
+            <div class="task-requirements">
+                <p><strong>Ваша задача:</strong></p>
+                <ol>
+                    <li>Выбрать 2 реактива для определения каждого вещества</li>
+                    <li>Провести эксперименты и записать наблюдения</li>
+                    <li>Составить ионные уравнения реакций</li>
+                    <li>Сделать вывод о содержимом склянок</li>
+                </ol>
+            </div>
+        </div>
+        <div class="kit-selector">
+            <label for="kit-selector">Комплект:</label>
+            <select id="kit-selector">
+                <option value="kit1">Комплект 1: Cu²⁺, Fe³⁺</option>
+                <option value="kit2">Комплект 2: Na₂CO₃, Na₂SO₄</option>
+            </select>
+        </div>
+    </section>
+
+    <main class="laboratory">
+        <aside class="reagents-panel">
+            <h3>🧪 Реактивы</h3>
+            <div class="reagents-shelf" id="reagents-shelf">
+                <div class="reagent-bottle" data-reagent="NaOH">
+                    <div class="bottle-icon">
+                        <div class="bottle-liquid colorless"></div>
+                    </div>
+                    <div class="bottle-info">
+                        <span class="bottle-formula">NaOH</span>
+                        <span class="bottle-name">Гидроксид натрия</span>
+                    </div>
+                </div>
+                <div class="reagent-bottle" data-reagent="H2SO4">
+                    <div class="bottle-icon">
+                        <div class="bottle-liquid colorless"></div>
+                    </div>
+                    <div class="bottle-info">
+                        <span class="bottle-formula">H₂SO₄</span>
+                        <span class="bottle-name">Серная кислота</span>
+                    </div>
+                </div>
+                <div class="reagent-bottle" data-reagent="BaCl2">
+                    <div class="bottle-icon">
+                        <div class="bottle-liquid colorless"></div>
+                    </div>
+                    <div class="bottle-info">
+                        <span class="bottle-formula">BaCl₂</span>
+                        <span class="bottle-name">Хлорид бария</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="indicators-shelf">
+                <h4>Индикаторы</h4>
+                <div class="indicator-item" data-indicator="phenolphthalein">
+                    <div class="indicator-dots">
+                        <span class="indicator-dot" style="background: transparent; border: 1px solid #888;"></span>
+                        <span class="indicator-dot" style="background: #E91E63;"></span>
+                    </div>
+                    <span>Фенолфталеин</span>
+                </div>
+                <div class="indicator-item" data-indicator="litmus">
+                    <div class="indicator-dots">
+                        <span class="indicator-dot" style="background: #F44336;"></span>
+                        <span class="indicator-dot" style="background: #9C27B0;"></span>
+                        <span class="indicator-dot" style="background: #2196F3;"></span>
+                    </div>
+                    <span>Лакмус</span>
+                </div>
+            </div>
+        </aside>
+
+        <section class="lab-workspace">
+            <div class="canvas-container" id="canvas-container" style="min-height: 350px; background: linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 70%, #8D6E63 70%, #5D4037 100%);">
+                <div style="padding: 20px; text-align: center;">
+                    <p style="color: #1B5E20; font-size: 1.2rem;">🔬 Рабочая область лаборатории</p>
+                    <p style="color: #666; font-size: 0.9rem;">Перетащите реактивы в пробирки для проведения эксперимента</p>
+                </div>
+            </div>
+        </section>
+
+        <aside class="workbench-panel">
+            <h3>🧫 Рабочий стол</h3>
+            
+            <div class="unknown-bottles">
+                <h4>Неизвестные вещества</h4>
+                <div class="bottle-row">
+                    <div class="bottle bottle-unknown" id="bottle-1">
+                        <div class="bottle-label">№ 1</div>
+                        <div class="bottle-content" style="background: rgba(65, 105, 225, 0.5);"></div>
+                    </div>
+                    <div class="bottle bottle-unknown" id="bottle-2">
+                        <div class="bottle-label">№ 2</div>
+                        <div class="bottle-content" style="background: rgba(184, 134, 11, 0.6);"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-tube-rack">
+                <h4>Штатив для пробирок</h4>
+                <div class="rack">
+                    <div class="tube-slot">
+                        <div class="test-tube" id="tube-1">
+                            <div class="tube-liquid" style="height: 40%; background: rgba(65, 105, 225, 0.6);"></div>
+                        </div>
+                        <span class="slot-label">1</span>
+                    </div>
+                    <div class="tube-slot">
+                        <div class="test-tube" id="tube-2">
+                            <div class="tube-liquid" style="height: 50%; background: rgba(65, 105, 225, 0.6);"></div>
+                            <div class="tube-precipitate" style="height: 20%; background: rgba(0, 150, 200, 0.9);"></div>
+                        </div>
+                        <span class="slot-label">2</span>
+                    </div>
+                    <div class="tube-slot">
+                        <div class="test-tube" id="tube-3">
+                            <div class="tube-liquid" style="height: 30%; background: rgba(184, 134, 11, 0.6);"></div>
+                        </div>
+                        <span class="slot-label">3</span>
+                    </div>
+                    <div class="tube-slot">
+                        <div class="test-tube" id="tube-4">
+                            <div class="tube-liquid" style="height: 45%; background: rgba(184, 134, 11, 0.5);"></div>
+                            <div class="tube-precipitate" style="height: 25%; background: rgba(139, 69, 19, 0.9);"></div>
+                        </div>
+                        <span class="slot-label">4</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <section class="results-section">
+        <div class="results-header">
+            <span class="step-indicator">Шаг 2</span>
+            <h2>📋 Таблица результатов</h2>
+        </div>
+        
+        <div class="results-table-container">
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Реактив</th>
+                        <th>Склянка № 1</th>
+                        <th>Склянка № 2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>
+                            <select class="reagent-select">
+                                <option value="">— Выберите —</option>
+                                <option value="NaOH">NaOH</option>
+                                <option value="H2SO4">H₂SO₄</option>
+                                <option value="BaCl2">BaCl₂</option>
+                            </select>
+                        </td>
+                        <td><textarea class="observation-input" placeholder="Наблюдения...">Выпадает голубой осадок Cu(OH)₂</textarea></td>
+                        <td><textarea class="observation-input" placeholder="Наблюдения...">Выпадает бурый осадок Fe(OH)₃</textarea></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>
+                            <select class="reagent-select">
+                                <option value="">— Выберите —</option>
+                                <option value="NaOH">NaOH</option>
+                                <option value="H2SO4">H₂SO₄</option>
+                                <option value="BaCl2">BaCl₂</option>
+                            </select>
+                        </td>
+                        <td><textarea class="observation-input" placeholder="Наблюдения..."></textarea></td>
+                        <td><textarea class="observation-input" placeholder="Наблюдения..."></textarea></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="conclusion-row">
+                        <td colspan="2"><strong>ВЫВОД:</strong></td>
+                        <td>
+                            <select class="conclusion-select">
+                                <option value="">— Вещество № 1 —</option>
+                                <option value="CuSO4">CuSO₄ — сульфат меди</option>
+                                <option value="FeCl3">FeCl₃ — хлорид железа (III)</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="conclusion-select">
+                                <option value="">— Вещество № 2 —</option>
+                                <option value="CuSO4">CuSO₄ — сульфат меди</option>
+                                <option value="FeCl3">FeCl₃ — хлорид железа (III)</option>
+                            </select>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+
+    <section class="equations-section">
+        <div class="equations-header">
+            <span class="step-indicator">Шаг 3</span>
+            <h2>⚗️ Уравнения реакций</h2>
+        </div>
+        
+        <div class="equations-container">
+            <div class="equation-block">
+                <h4>Реакция для склянки № 1 (CuSO₄ + NaOH)</h4>
+                <div class="equation-row">
+                    <label>Молекулярное:</label>
+                    <input type="text" class="equation-input" value="CuSO₄ + 2NaOH → Cu(OH)₂↓ + Na₂SO₄">
+                </div>
+                <div class="equation-row">
+                    <label>Сокращённое ионное:</label>
+                    <input type="text" class="equation-input" value="Cu²⁺ + 2OH⁻ → Cu(OH)₂↓">
+                </div>
+            </div>
+            
+            <div class="equation-block">
+                <h4>Реакция для склянки № 2 (FeCl₃ + NaOH)</h4>
+                <div class="equation-row">
+                    <label>Молекулярное:</label>
+                    <input type="text" class="equation-input" value="FeCl₃ + 3NaOH → Fe(OH)₃↓ + 3NaCl">
+                </div>
+                <div class="equation-row">
+                    <label>Сокращённое ионное:</label>
+                    <input type="text" class="equation-input" value="Fe³⁺ + 3OH⁻ → Fe(OH)₃↓">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="verification-section">
+        <div class="verification-controls">
+            <button class="btn btn-large btn-success">
+                <span class="icon">✅</span> Проверить ответ
+            </button>
+            <button class="btn btn-large btn-secondary">
+                <span class="icon">💡</span> Подсказка
+            </button>
+            <button class="btn btn-large btn-secondary">
+                <span class="icon">🔄</span> Начать заново
+            </button>
+        </div>
+        
+        <div class="score-display" style="display: block;">
+            <div class="score-header">
+                <h3>Результат проверки</h3>
+            </div>
+            <div class="score-breakdown">
+                <div class="score-item correct">
+                    <span>Идентификация вещества №1 (CuSO₄)</span>
+                    <span>✓</span>
+                </div>
+                <div class="score-item correct">
+                    <span>Идентификация вещества №2 (FeCl₃)</span>
+                    <span>✓</span>
+                </div>
+                <div class="score-item correct">
+                    <span>Описание наблюдений</span>
+                    <span>+1</span>
+                </div>
+            </div>
+            <div class="total-score">
+                <span>Итого:</span>
+                <span class="score-value">5</span>
+                <span>из 5 баллов</span>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        console.log('🧪 Химическая лаборатория загружена!');
+        
+        // Простая интерактивность
+        document.querySelectorAll('.reagent-bottle').forEach(bottle => {
+            bottle.addEventListener('click', function() {
+                this.classList.toggle('selected');
+                console.log('Выбран реактив:', this.dataset.reagent);
+            });
+        });
+        
+        document.querySelectorAll('.test-tube').forEach(tube => {
+            tube.addEventListener('click', function() {
+                document.querySelectorAll('.test-tube').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                console.log('Выбрана пробирка:', this.id);
+            });
+        });
+        
+        document.querySelectorAll('.indicator-item').forEach(item => {
+            item.addEventListener('click', function() {
+                console.log('Выбран индикатор:', this.dataset.indicator);
+            });
+        });
+    </script>
+</body>
+</html>

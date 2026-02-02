@@ -1,0 +1,1114 @@
+/**
+ * 🧪 CSS стили для виртуальной химической лаборатории ОГЭ
+ * Задание 23 — Качественный анализ веществ
+ */
+
+/* ============================================
+   🎨 CSS Variables (Переменные)
+   ============================================ */
+:root {
+    /* Цвета химической темы */
+    --chemistry-primary: #2E7D32;
+    --chemistry-secondary: #4CAF50;
+    --chemistry-accent: #81C784;
+    --chemistry-dark: #1B5E20;
+    --chemistry-light: #E8F5E9;
+    
+    /* Цвета веществ */
+    --acid-color: #FF5722;
+    --base-color: #2196F3;
+    --salt-color: #9C27B0;
+    --metal-color: #607D8B;
+    --indicator-color: #E91E63;
+    
+    /* Нейтральные цвета */
+    --bg-primary: #F5F5F5;
+    --bg-secondary: #FAFAFA;
+    --bg-card: #FFFFFF;
+    --text-primary: #212121;
+    --text-secondary: #757575;
+    --border-color: #E0E0E0;
+    
+    /* Стеклоэффект */
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    
+    /* Размеры */
+    --header-height: 80px;
+    --sidebar-width: 280px;
+    --canvas-min-height: 400px;
+    
+    /* Анимации */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+    --transition-slow: 0.5s ease;
+}
+
+/* ============================================
+   🌐 Base Styles
+   ============================================ */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, var(--chemistry-light) 0%, var(--bg-primary) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* ============================================
+   🎯 Header
+   ============================================ */
+.experiment-header {
+    background: linear-gradient(135deg, var(--chemistry-primary) 0%, var(--chemistry-dark) 100%);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-content h1 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 0.25rem 0;
+}
+
+.subtitle {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+.experiment-info {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-chemistry {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.badge-oge {
+    background: #FF9800;
+    color: #212121;
+}
+
+.badge-task {
+    background: #E91E63;
+}
+
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ============================================
+   📋 Task Condition
+   ============================================ */
+.task-condition {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    margin: 1rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+}
+
+.condition-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.step-indicator {
+    background: var(--chemistry-primary);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.condition-header h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.condition-content p {
+    margin-bottom: 1rem;
+}
+
+.highlight {
+    background: linear-gradient(120deg, var(--chemistry-light) 0%, transparent 100%);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.reagent-list {
+    color: var(--chemistry-primary);
+    font-weight: 500;
+}
+
+.task-requirements {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--chemistry-primary);
+}
+
+.task-requirements ol {
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.task-requirements li {
+    margin-bottom: 0.3rem;
+}
+
+.kit-selector {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.kit-selector label {
+    font-weight: 500;
+}
+
+.kit-selector select {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.kit-selector select:focus {
+    outline: none;
+    border-color: var(--chemistry-primary);
+}
+
+/* ============================================
+   🔬 Laboratory Layout
+   ============================================ */
+.laboratory {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
+    gap: 1rem;
+    padding: 0 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 1200px) {
+    .laboratory {
+        grid-template-columns: 1fr;
+    }
+    
+    .reagents-panel, .workbench-panel {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+/* Панели */
+.reagents-panel, .workbench-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    padding: 1rem;
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+}
+
+.reagents-panel h3, .workbench-panel h3 {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--chemistry-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--chemistry-light);
+}
+
+.reagents-panel h4, .workbench-panel h4 {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 1rem 0 0.5rem;
+}
+
+/* ============================================
+   🧫 Reagent Bottles
+   ============================================ */
+.reagents-shelf {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.reagent-bottle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    cursor: grab;
+    transition: var(--transition-fast);
+    border: 2px solid transparent;
+}
+
+.reagent-bottle:hover {
+    background: var(--chemistry-light);
+    border-color: var(--chemistry-secondary);
+    transform: translateX(4px);
+}
+
+.reagent-bottle:active {
+    cursor: grabbing;
+}
+
+.reagent-bottle.selected {
+    background: var(--chemistry-light);
+    border-color: var(--chemistry-primary);
+}
+
+.bottle-icon {
+    width: 32px;
+    height: 40px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(200,200,200,0.8) 100%);
+    border-radius: 4px 4px 8px 8px;
+    border: 2px solid #888;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.bottle-icon::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 6px;
+    background: #666;
+    border-radius: 2px 2px 0 0;
+}
+
+.bottle-liquid {
+    width: 100%;
+    height: 60%;
+    border-radius: 0 0 6px 6px;
+}
+
+.bottle-liquid.colorless { background: rgba(200, 220, 255, 0.5); }
+.bottle-liquid.blue { background: rgba(65, 105, 225, 0.7); }
+.bottle-liquid.blue-green { background: rgba(74, 155, 142, 0.7); }
+.bottle-liquid.yellow-brown { background: rgba(184, 134, 11, 0.7); }
+.bottle-liquid.pale-green { background: rgba(144, 238, 144, 0.7); }
+.bottle-liquid.black { background: rgba(30, 30, 30, 0.9); }
+.bottle-liquid.white { background: rgba(255, 255, 255, 0.9); border: 1px solid #ddd; }
+
+.bottle-info {
+    flex: 1;
+}
+
+.bottle-formula {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.bottle-name {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   🎨 Indicators
+   ============================================ */
+.indicators-shelf {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border-color);
+}
+
+.indicator-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.indicator-item:hover {
+    background: var(--indicator-color);
+    color: white;
+}
+
+.indicator-dots {
+    display: flex;
+    gap: 3px;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+/* ============================================
+   🖼️ Canvas Container
+   ============================================ */
+.lab-workspace {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+    overflow: hidden;
+}
+
+.canvas-container {
+    position: relative;
+    width: 100%;
+    min-height: var(--canvas-min-height);
+    background: linear-gradient(180deg, #E3F2FD 0%, #BBDEFB 100%);
+}
+
+.lab-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#canvas-background { z-index: 1; }
+#canvas-equipment { z-index: 2; }
+#canvas-liquids { z-index: 3; }
+#canvas-effects { z-index: 4; }
+#canvas-ui { z-index: 5; pointer-events: none; }
+
+/* Action Bar */
+.action-bar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* ============================================
+   🧫 Test Tubes & Bottles
+   ============================================ */
+.unknown-bottles, .test-tube-rack, .equipment-tray {
+    margin-bottom: 1rem;
+}
+
+.bottle-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.bottle {
+    width: 50px;
+    height: 80px;
+    background: linear-gradient(180deg, 
+        rgba(255,255,255,0.95) 0%, 
+        rgba(240,240,240,0.9) 100%);
+    border-radius: 8px 8px 16px 16px;
+    border: 3px solid #888;
+    position: relative;
+    cursor: grab;
+    transition: var(--transition-fast);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+}
+
+.bottle::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 10px;
+    background: #555;
+    border-radius: 4px 4px 0 0;
+}
+
+.bottle-unknown {
+    border-color: var(--chemistry-primary);
+}
+
+.bottle-label {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--chemistry-dark);
+    border: 1px solid var(--chemistry-primary);
+    z-index: 2;
+}
+
+.bottle-content {
+    width: 100%;
+    height: 50%;
+    border-radius: 0 0 13px 13px;
+    background: rgba(200, 220, 255, 0.5);
+}
+
+.bottle:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* Test Tube Rack */
+.rack {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 1rem;
+    background: linear-gradient(180deg, #8D6E63 0%, #6D4C41 100%);
+    border-radius: 8px;
+    position: relative;
+}
+
+.rack::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 8px;
+    background: #5D4037;
+    border-radius: 4px;
+}
+
+.tube-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.test-tube {
+    width: 24px;
+    height: 80px;
+    background: linear-gradient(90deg, 
+        rgba(255,255,255,0.3) 0%,
+        rgba(255,255,255,0.8) 30%,
+        rgba(255,255,255,0.8) 70%,
+        rgba(200,200,200,0.5) 100%);
+    border-radius: 4px 4px 12px 12px;
+    border: 2px solid rgba(150,150,150,0.5);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    z-index: 1;
+}
+
+.test-tube:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.test-tube.active {
+    border-color: var(--chemistry-primary);
+    box-shadow: 0 0 10px var(--chemistry-secondary);
+}
+
+.tube-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    background: rgba(200, 220, 255, 0.6);
+    transition: height 0.5s ease, background-color 0.5s ease;
+    border-radius: 0 0 10px 10px;
+}
+
+.tube-precipitate {
+    position: absolute;
+    bottom: 0;
+    left: 2px;
+    right: 2px;
+    height: 0;
+    border-radius: 0 0 8px 8px;
+    transition: height 0.8s ease, background-color 0.3s ease;
+}
+
+.slot-label {
+    font-size: 0.7rem;
+    color: white;
+    font-weight: 500;
+}
+
+/* ============================================
+   📊 Results Table
+   ============================================ */
+.results-section, .equations-section, .verification-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    margin: 1rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+}
+
+.results-header, .equations-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.results-header h2, .equations-header h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.results-table-container {
+    overflow-x: auto;
+}
+
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.results-table th, .results-table td {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+    vertical-align: top;
+}
+
+.results-table th {
+    background: var(--chemistry-light);
+    color: var(--chemistry-dark);
+    font-weight: 500;
+}
+
+.results-table th:first-child {
+    width: 60px;
+    text-align: center;
+}
+
+.reagent-select, .conclusion-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.reagent-select:focus, .conclusion-select:focus {
+    outline: none;
+    border-color: var(--chemistry-primary);
+}
+
+.observation-input {
+    width: 100%;
+    min-height: 60px;
+    padding: 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.observation-input:focus {
+    outline: none;
+    border-color: var(--chemistry-primary);
+}
+
+.observation-input.correct {
+    border-color: #4CAF50;
+    background: #E8F5E9;
+}
+
+.observation-input.incorrect {
+    border-color: #F44336;
+    background: #FFEBEE;
+}
+
+.conclusion-row {
+    background: var(--chemistry-light);
+}
+
+/* ============================================
+   ⚗️ Equations Section
+   ============================================ */
+.equations-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.5rem;
+}
+
+.equation-block {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 10px;
+    border-left: 4px solid var(--chemistry-primary);
+}
+
+.equation-block h4 {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--chemistry-dark);
+    margin-bottom: 1rem;
+}
+
+.equation-row {
+    margin-bottom: 0.75rem;
+}
+
+.equation-row label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.equation-input {
+    width: 100%;
+    padding: 0.6rem;
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9rem;
+}
+
+.equation-input:focus {
+    outline: none;
+    border-color: var(--chemistry-primary);
+}
+
+/* ============================================
+   ✅ Verification Section
+   ============================================ */
+.verification-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.score-display {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--bg-secondary);
+    border-radius: 12px;
+}
+
+.score-header h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.score-breakdown {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border-radius: 6px;
+}
+
+.score-item.correct {
+    border-left: 4px solid #4CAF50;
+}
+
+.score-item.incorrect {
+    border-left: 4px solid #F44336;
+}
+
+.total-score {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+    padding-top: 1rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.score-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--chemistry-primary);
+}
+
+/* ============================================
+   🎛️ Buttons
+   ============================================ */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+}
+
+.btn-icon:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.btn-primary {
+    background: var(--chemistry-primary);
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--chemistry-dark);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--chemistry-light);
+    border-color: var(--chemistry-primary);
+}
+
+.btn-success {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #388E3C;
+}
+
+.btn-action {
+    background: white;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+    flex-direction: column;
+    padding: 0.75rem 1rem;
+    min-width: 80px;
+}
+
+.btn-action .icon {
+    font-size: 1.2rem;
+}
+
+.btn-action:hover:not(:disabled) {
+    background: var(--chemistry-light);
+    border-color: var(--chemistry-primary);
+}
+
+.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+}
+
+/* ============================================
+   📚 Reference Panel
+   ============================================ */
+.reference-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 400px;
+    height: 100vh;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+    z-index: 200;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.reference-panel.open {
+    transform: translateX(0);
+}
+
+.reference-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--chemistry-primary);
+    color: white;
+    position: sticky;
+    top: 0;
+}
+
+.reference-header h3 {
+    font-size: 1rem;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+}
+
+.reference-content {
+    padding: 1rem;
+}
+
+.reference-section {
+    margin-bottom: 1.5rem;
+}
+
+.reference-section h4 {
+    font-size: 0.9rem;
+    color: var(--chemistry-dark);
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--chemistry-light);
+}
+
+.reference-table {
+    width: 100%;
+    font-size: 0.8rem;
+    border-collapse: collapse;
+}
+
+.reference-table th, .reference-table td {
+    padding: 0.4rem;
+    border: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.reference-table th {
+    background: var(--chemistry-light);
+}
+
+/* ============================================
+   🎉 Modal
+   ============================================ */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 400px;
+    animation: modalPop 0.3s ease;
+}
+
+@keyframes modalPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.modal-content h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.modal-score {
+    margin: 1.5rem 0;
+}
+
+.modal-score .score {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--chemistry-primary);
+}
+
+/* ============================================
+   📱 Equipment Items
+   ============================================ */
+.equipment-items {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.equipment-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    flex: 1;
+}
+
+.equipment-item:hover {
+    background: var(--chemistry-light);
+}
+
+.equipment-item .icon {
+    font-size: 1.5rem;
+}
+
+.equipment-item .label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* ============================================
+   🎬 Animations
+   ============================================ */
+@keyframes bubbles {
+    0%, 100% { transform: translateY(0); opacity: 1; }
+    50% { transform: translateY(-10px); opacity: 0.5; }
+}
+
+@keyframes precipitate {
+    0% { height: 0; }
+    100% { height: 30%; }
+}
+
+@keyframes colorChange {
+    0% { background-color: rgba(200, 220, 255, 0.6); }
+    100% { background-color: var(--target-color); }
+}
+
+.bubbling .tube-liquid::after {
+    content: '○ ○ ○';
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bubbles 0.5s ease infinite;
+    font-size: 8px;
+    color: rgba(255,255,255,0.8);
+}
+
+/* ============================================
+   📱 Responsive
+   ============================================ */
+@media (max-width: 768px) {
+    .experiment-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    
+    .header-content h1 {
+        font-size: 1.2rem;
+    }
+    
+    .laboratory {
+        grid-template-columns: 1fr;
+        padding: 0.5rem;
+    }
+    
+    .results-table {
+        font-size: 0.8rem;
+    }
+    
+    .equations-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .btn-large {
+        width: 100%;
+    }
+}

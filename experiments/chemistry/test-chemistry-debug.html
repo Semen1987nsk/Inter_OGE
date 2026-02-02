@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 ТЕСТ: Химическая лаборатория - Debug</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Segoe UI', Roboto, sans-serif; 
+            background: #f0f4f8; 
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        h1 { color: #2e7d32; margin-bottom: 10px; }
+        h2 { color: #1565c0; margin: 20px 0 10px; font-size: 1.2em; }
+        
+        /* Консоль тестов */
+        #test-console {
+            background: #1a1a2e;
+            color: #0f0;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .test-pass { color: #4caf50; }
+        .test-fail { color: #f44336; }
+        .test-info { color: #2196f3; }
+        .test-warn { color: #ff9800; }
+        
+        /* Layout */
+        .lab-container {
+            display: grid;
+            grid-template-columns: 220px 1fr 280px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        /* Панели */
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        /* Реагенты */
+        .reagent-bottle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .reagent-bottle:hover {
+            transform: translateX(5px);
+            border-color: #2196f3;
+        }
+        .reagent-bottle.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .reagent-bottle.selected {
+            border-color: #4caf50;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+        }
+        
+        .bottle-icon {
+            width: 40px;
+            height: 50px;
+            background: white;
+            border-radius: 5px 5px 10px 10px;
+            border: 2px solid #90a4ae;
+            position: relative;
+            overflow: hidden;
+        }
+        .bottle-liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            border-radius: 0 0 8px 8px;
+        }
+        .bottle-liquid.colorless { background: rgba(200,220,255,0.5); }
+        .bottle-liquid.blue { background: rgba(33,150,243,0.7); }
+        .bottle-liquid.yellow-brown { background: rgba(255,152,0,0.7); }
+        
+        .bottle-formula { font-weight: bold; font-size: 14px; }
+        .bottle-name { font-size: 11px; color: #666; display: block; }
+        
+        /* Рабочая область */
+        .workspace {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 12px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border: 3px dashed transparent;
+            transition: all 0.3s;
+        }
+        .workspace.drag-over {
+            border-color: #4caf50;
+            background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+        .workspace-hint {
+            color: #666;
+            font-size: 18px;
+            text-align: center;
+        }
+        
+        /* Пробирки */
+        .test-tube-rack {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background: linear-gradient(180deg, #37474f, #263238);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .tube-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .test-tube {
+            width: 35px;
+            height: 120px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 0 0 17px 17px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .test-tube:hover, .test-tube.active {
+            transform: scale(1.05);
+            border-color: #4caf50;
+            box-shadow: 0 0 15px rgba(76,175,80,0.5);
+        }
+        .tube-liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            background: rgba(200,220,255,0.6);
+            transition: all 0.5s;
+            border-radius: 0 0 15px 15px;
+        }
+        .tube-precipitate {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            transition: all 0.8s;
+            border-radius: 0 0 15px 15px;
+        }
+        .slot-label {
+            color: white;
+            margin-top: 8px;
+            font-weight: bold;
+        }
+        
+        /* Неизвестные склянки */
+        .unknown-bottles {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .bottle-unknown {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
+            border: 3px solid #78909c;
+            border-radius: 10px 10px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            position: relative;
+            font-weight: bold;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        .bottle-unknown:hover {
+            transform: scale(1.1);
+            border-color: #4caf50;
+        }
+        .bottle-unknown::after {
+            content: attr(data-label);
+            position: absolute;
+            bottom: -25px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Кнопки */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #4caf50; color: white; }
+        .btn-primary:hover { background: #388e3c; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #d32f2f; }
+        .btn-info { background: #2196f3; color: white; }
+        .btn-info:hover { background: #1976d2; }
+        
+        .controls { 
+            display: flex; 
+            gap: 10px; 
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        /* Статусы */
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-ok { background: #c8e6c9; color: #2e7d32; }
+        .status-error { background: #ffcdd2; color: #c62828; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Тестирование химической лаборатории</h1>
+    <p>Пошаговая проверка всех функций с консольным выводом</p>
+    
+    <!-- Консоль тестов -->
+    <div id="test-console">
+        <div class="test-info">🔧 Инициализация тестовой среды...</div>
+    </div>
+    
+    <!-- Кнопки управления -->
+    <div class="controls">
+        <button class="btn btn-primary" onclick="runAllTests()">▶️ Запустить все тесты</button>
+        <button class="btn btn-info" onclick="testDragDrop()">🖱️ Тест Drag&Drop</button>
+        <button class="btn btn-info" onclick="testReactions()">⚗️ Тест реакций</button>
+        <button class="btn btn-danger" onclick="resetLab()">🔄 Сброс</button>
+    </div>
+    
+    <!-- Лаборатория -->
+    <div class="lab-container">
+        <!-- Левая панель: Реагенты -->
+        <div class="panel" id="reagents-panel">
+            <h3>🧪 Реагенты</h3>
+            <div id="reagents-shelf">
+                <!-- Заполняется JS -->
+            </div>
+        </div>
+        
+        <!-- Центр: Рабочая область -->
+        <div class="panel">
+            <h3>🔬 Рабочая область</h3>
+            <div class="workspace" id="workspace">
+                <div class="workspace-hint">
+                    <p>🎯 Перетащите реагент сюда</p>
+                    <p>или кликните на пробирку</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Правая панель: Пробирки -->
+        <div class="panel">
+            <h3>🧫 Рабочий стол</h3>
+            
+            <h4 style="margin: 10px 0;">Неизвестные вещества</h4>
+            <div class="unknown-bottles">
+                <div class="bottle-unknown" id="bottle-1" draggable="true" data-label="Склянка №1">№1</div>
+                <div class="bottle-unknown" id="bottle-2" draggable="true" data-label="Склянка №2">№2</div>
+            </div>
+            
+            <h4 style="margin: 10px 0;">Штатив с пробирками</h4>
+            <div class="test-tube-rack">
+                <div class="tube-slot">
+                    <div class="test-tube" id="tube-1" data-tube="1">
+                        <div class="tube-liquid"></div>
+                        <div class="tube-precipitate"></div>
+                    </div>
+                    <span class="slot-label">1</span>
+                </div>
+                <div class="tube-slot">
+                    <div class="test-tube" id="tube-2" data-tube="2">
+                        <div class="tube-liquid"></div>
+                        <div class="tube-precipitate"></div>
+                    </div>
+                    <span class="slot-label">2</span>
+                </div>
+                <div class="tube-slot">
+                    <div class="test-tube" id="tube-3" data-tube="3">
+                        <div class="tube-liquid"></div>
+                        <div class="tube-precipitate"></div>
+                    </div>
+                    <span class="slot-label">3</span>
+                </div>
+                <div class="tube-slot">
+                    <div class="test-tube" id="tube-4" data-tube="4">
+                        <div class="tube-liquid"></div>
+                        <div class="tube-precipitate"></div>
+                    </div>
+                    <span class="slot-label">4</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // 📊 ТЕСТОВАЯ КОНСОЛЬ
+    // ============================================
+    const testConsole = document.getElementById('test-console');
+    
+    function log(msg, type = 'info') {
+        const div = document.createElement('div');
+        div.className = `test-${type}`;
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        testConsole.appendChild(div);
+        testConsole.scrollTop = testConsole.scrollHeight;
+        console.log(`[${type.toUpperCase()}] ${msg}`);
+    }
+    
+    function logPass(msg) { log(`✅ PASS: ${msg}`, 'pass'); }
+    function logFail(msg) { log(`❌ FAIL: ${msg}`, 'fail'); }
+    function logInfo(msg) { log(`ℹ️ ${msg}`, 'info'); }
+    function logWarn(msg) { log(`⚠️ ${msg}`, 'warn'); }
+
+    // ============================================
+    // 🧪 ДАННЫЕ
+    // ============================================
+    const SUBSTANCES = {
+        'NaOH': { id: 'NaOH', formula: 'NaOH', name: 'Гидроксид натрия', color: 'colorless', type: 'base' },
+        'H2SO4': { id: 'H2SO4', formula: 'H₂SO₄', name: 'Серная кислота', color: 'colorless', type: 'acid' },
+        'BaCl2': { id: 'BaCl2', formula: 'BaCl₂', name: 'Хлорид бария', color: 'colorless', type: 'salt' },
+        'CuSO4': { id: 'CuSO4', formula: 'CuSO₄', name: 'Сульфат меди', color: 'blue', type: 'salt' },
+        'FeCl3': { id: 'FeCl3', formula: 'FeCl₃', name: 'Хлорид железа (III)', color: 'yellow-brown', type: 'salt' }
+    };
+
+    const REACTIONS = {
+        'CuSO4_NaOH': {
+            precipitate: { color: 'blue', name: 'Cu(OH)₂', desc: 'голубой осадок' },
+            equation: 'Cu²⁺ + 2OH⁻ → Cu(OH)₂↓'
+        },
+        'FeCl3_NaOH': {
+            precipitate: { color: 'brown', name: 'Fe(OH)₃', desc: 'бурый осадок' },
+            equation: 'Fe³⁺ + 3OH⁻ → Fe(OH)₃↓'
+        },
+        'CuSO4_BaCl2': {
+            precipitate: { color: 'white', name: 'BaSO₄', desc: 'белый осадок' },
+            equation: 'Ba²⁺ + SO₄²⁻ → BaSO₄↓'
+        }
+    };
+
+    const CURRENT_KIT = {
+        unknowns: ['CuSO4', 'FeCl3'],
+        reagents: ['NaOH', 'H2SO4', 'BaCl2']
+    };
+
+    // Состояние пробирок
+    const tubeState = {
+        1: { unknown: null, reagent: null },
+        2: { unknown: null, reagent: null },
+        3: { unknown: null, reagent: null },
+        4: { unknown: null, reagent: null }
+    };
+
+    let selectedReagent = null;
+    let draggedItem = null;
+
+    // ============================================
+    // 🔧 ИНИЦИАЛИЗАЦИЯ
+    // ============================================
+    function init() {
+        logInfo('Начало инициализации...');
+        
+        // 1. Рендер реагентов
+        renderReagents();
+        
+        // 2. Настройка drag-and-drop
+        setupDragDrop();
+        
+        // 3. Настройка пробирок
+        setupTestTubes();
+        
+        logPass('Инициализация завершена!');
+    }
+
+    function renderReagents() {
+        const shelf = document.getElementById('reagents-shelf');
+        shelf.innerHTML = '';
+        
+        CURRENT_KIT.reagents.forEach(id => {
+            const sub = SUBSTANCES[id];
+            const bottle = document.createElement('div');
+            bottle.className = 'reagent-bottle';
+            bottle.draggable = true;
+            bottle.dataset.reagent = id;
+            bottle.innerHTML = `
+                <div class="bottle-icon">
+                    <div class="bottle-liquid ${sub.color}"></div>
+                </div>
+                <div>
+                    <span class="bottle-formula">${sub.formula}</span>
+                    <span class="bottle-name">${sub.name}</span>
+                </div>
+            `;
+            shelf.appendChild(bottle);
+        });
+        
+        logPass(`Отрендерено ${CURRENT_KIT.reagents.length} реагентов`);
+    }
+
+    // ============================================
+    // 🖱️ DRAG AND DROP
+    // ============================================
+    function setupDragDrop() {
+        // Реагенты - dragstart
+        document.querySelectorAll('.reagent-bottle').forEach(bottle => {
+            bottle.addEventListener('dragstart', (e) => {
+                draggedItem = { type: 'reagent', id: bottle.dataset.reagent };
+                bottle.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', JSON.stringify(draggedItem));
+                e.dataTransfer.effectAllowed = 'copy';
+                logInfo(`Начат drag: реагент ${draggedItem.id}`);
+            });
+            
+            bottle.addEventListener('dragend', () => {
+                bottle.classList.remove('dragging');
+                draggedItem = null;
+            });
+            
+            // Клик для выбора
+            bottle.addEventListener('click', () => {
+                document.querySelectorAll('.reagent-bottle').forEach(b => b.classList.remove('selected'));
+                bottle.classList.add('selected');
+                selectedReagent = bottle.dataset.reagent;
+                logInfo(`Выбран реагент: ${selectedReagent}`);
+            });
+        });
+
+        // Неизвестные склянки - dragstart
+        ['bottle-1', 'bottle-2'].forEach((id, idx) => {
+            const bottle = document.getElementById(id);
+            bottle.addEventListener('dragstart', (e) => {
+                draggedItem = { type: 'unknown', bottleNum: idx + 1 };
+                e.dataTransfer.setData('text/plain', JSON.stringify(draggedItem));
+                e.dataTransfer.effectAllowed = 'copy';
+                logInfo(`Начат drag: склянка №${idx + 1}`);
+            });
+        });
+
+        logPass('Drag events для реагентов настроены');
+    }
+
+    function setupTestTubes() {
+        document.querySelectorAll('.test-tube').forEach(tube => {
+            const tubeNum = parseInt(tube.dataset.tube);
+            
+            // Drop events
+            tube.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                tube.classList.add('active');
+            });
+            
+            tube.addEventListener('dragleave', () => {
+                tube.classList.remove('active');
+            });
+            
+            tube.addEventListener('drop', (e) => {
+                e.preventDefault();
+                tube.classList.remove('active');
+                
+                try {
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    handleDrop(tube, tubeNum, data);
+                } catch (err) {
+                    logFail(`Ошибка парсинга drop data: ${err.message}`);
+                }
+            });
+            
+            // Клик
+            tube.addEventListener('click', () => {
+                if (selectedReagent) {
+                    handleDrop(tube, tubeNum, { type: 'reagent', id: selectedReagent });
+                } else {
+                    logWarn('Сначала выберите реагент!');
+                }
+            });
+        });
+        
+        logPass('Пробирки настроены как drop-зоны');
+    }
+
+    // ============================================
+    // ⚗️ ОБРАБОТКА РЕАКЦИЙ
+    // ============================================
+    function handleDrop(tube, tubeNum, data) {
+        logInfo(`Drop в пробирку ${tubeNum}: ${JSON.stringify(data)}`);
+        
+        const liquid = tube.querySelector('.tube-liquid');
+        const precipitate = tube.querySelector('.tube-precipitate');
+        
+        if (data.type === 'unknown') {
+            // Добавляем неизвестное вещество
+            const unknownId = CURRENT_KIT.unknowns[data.bottleNum - 1];
+            tubeState[tubeNum].unknown = unknownId;
+            
+            const sub = SUBSTANCES[unknownId];
+            liquid.style.height = '40%';
+            liquid.style.backgroundColor = getSubstanceColor(sub.color);
+            
+            logPass(`Пробирка ${tubeNum}: добавлено ${unknownId} из склянки №${data.bottleNum}`);
+            
+        } else if (data.type === 'reagent') {
+            // Добавляем реагент
+            if (!tubeState[tubeNum].unknown) {
+                logWarn(`Пробирка ${tubeNum} пуста! Сначала добавьте неизвестное вещество.`);
+                return;
+            }
+            
+            tubeState[tubeNum].reagent = data.id;
+            
+            // Проверяем реакцию
+            const reactionKey = `${tubeState[tubeNum].unknown}_${data.id}`;
+            const reaction = REACTIONS[reactionKey];
+            
+            if (reaction) {
+                logPass(`Реакция найдена: ${reactionKey}`);
+                
+                liquid.style.height = '50%';
+                precipitate.style.height = '25%';
+                precipitate.style.backgroundColor = getPrecipitateColor(reaction.precipitate.color);
+                
+                logInfo(`Наблюдение: ${reaction.precipitate.desc}`);
+                logInfo(`Уравнение: ${reaction.equation}`);
+            } else {
+                liquid.style.height = '50%';
+                logInfo(`Нет видимой реакции: ${reactionKey}`);
+            }
+        }
+    }
+
+    function getSubstanceColor(colorName) {
+        const colors = {
+            'colorless': 'rgba(200, 220, 255, 0.5)',
+            'blue': 'rgba(33, 150, 243, 0.7)',
+            'yellow-brown': 'rgba(255, 152, 0, 0.7)'
+        };
+        return colors[colorName] || colors['colorless'];
+    }
+
+    function getPrecipitateColor(colorName) {
+        const colors = {
+            'white': 'rgba(255, 255, 255, 0.95)',
+            'blue': 'rgba(0, 150, 200, 0.9)',
+            'brown': 'rgba(139, 69, 19, 0.9)'
+        };
+        return colors[colorName] || colors['white'];
+    }
+
+    // ============================================
+    // 🧪 ТЕСТЫ
+    // ============================================
+    function runAllTests() {
+        logInfo('═══════════════════════════════════════');
+        logInfo('ЗАПУСК ВСЕХ ТЕСТОВ');
+        logInfo('═══════════════════════════════════════');
+        
+        let passed = 0;
+        let failed = 0;
+        
+        // Test 1: Реагенты отрендерены
+        const reagents = document.querySelectorAll('.reagent-bottle');
+        if (reagents.length === 3) {
+            logPass('Test 1: Реагенты отрендерены (3 шт)');
+            passed++;
+        } else {
+            logFail(`Test 1: Ожидалось 3 реагента, найдено ${reagents.length}`);
+            failed++;
+        }
+        
+        // Test 2: Пробирки существуют
+        const tubes = document.querySelectorAll('.test-tube');
+        if (tubes.length === 4) {
+            logPass('Test 2: Пробирки существуют (4 шт)');
+            passed++;
+        } else {
+            logFail(`Test 2: Ожидалось 4 пробирки, найдено ${tubes.length}`);
+            failed++;
+        }
+        
+        // Test 3: Склянки неизвестных существуют
+        const unknowns = document.querySelectorAll('.bottle-unknown');
+        if (unknowns.length === 2) {
+            logPass('Test 3: Склянки неизвестных (2 шт)');
+            passed++;
+        } else {
+            logFail(`Test 3: Ожидалось 2 склянки, найдено ${unknowns.length}`);
+            failed++;
+        }
+        
+        // Test 4: Реагенты draggable
+        let allDraggable = true;
+        reagents.forEach(r => {
+            if (!r.draggable) allDraggable = false;
+        });
+        if (allDraggable) {
+            logPass('Test 4: Все реагенты имеют draggable=true');
+            passed++;
+        } else {
+            logFail('Test 4: Не все реагенты draggable');
+            failed++;
+        }
+        
+        // Test 5: Данные веществ корректны
+        if (SUBSTANCES['CuSO4'] && SUBSTANCES['FeCl3'] && SUBSTANCES['NaOH']) {
+            logPass('Test 5: Данные веществ загружены');
+            passed++;
+        } else {
+            logFail('Test 5: Данные веществ отсутствуют');
+            failed++;
+        }
+        
+        // Test 6: Реакции определены
+        if (REACTIONS['CuSO4_NaOH'] && REACTIONS['FeCl3_NaOH']) {
+            logPass('Test 6: Реакции определены');
+            passed++;
+        } else {
+            logFail('Test 6: Реакции не определены');
+            failed++;
+        }
+        
+        logInfo('═══════════════════════════════════════');
+        logInfo(`ИТОГО: ${passed} passed, ${failed} failed`);
+        logInfo('═══════════════════════════════════════');
+    }
+
+    function testDragDrop() {
+        logInfo('═══════════════════════════════════════');
+        logInfo('ТЕСТ DRAG & DROP');
+        logInfo('═══════════════════════════════════════');
+        
+        // Симуляция drag склянки №1 в пробирку 1
+        const tube1 = document.getElementById('tube-1');
+        handleDrop(tube1, 1, { type: 'unknown', bottleNum: 1 });
+        
+        if (tubeState[1].unknown === 'CuSO4') {
+            logPass('Drag склянки №1 → пробирка 1: OK');
+        } else {
+            logFail('Drag склянки №1 не работает');
+        }
+        
+        // Симуляция добавления NaOH
+        handleDrop(tube1, 1, { type: 'reagent', id: 'NaOH' });
+        
+        if (tubeState[1].reagent === 'NaOH') {
+            logPass('Добавление NaOH в пробирку 1: OK');
+        } else {
+            logFail('Добавление реагента не работает');
+        }
+        
+        // Проверяем визуальный эффект
+        const precipitate = tube1.querySelector('.tube-precipitate');
+        if (precipitate.style.height && precipitate.style.height !== '0px') {
+            logPass('Осадок отображается визуально');
+        } else {
+            logFail('Осадок не отображается');
+        }
+    }
+
+    function testReactions() {
+        logInfo('═══════════════════════════════════════');
+        logInfo('ТЕСТ РЕАКЦИЙ');
+        logInfo('═══════════════════════════════════════');
+        
+        const testCases = [
+            { unknown: 'CuSO4', reagent: 'NaOH', expected: 'blue' },
+            { unknown: 'FeCl3', reagent: 'NaOH', expected: 'brown' },
+            { unknown: 'CuSO4', reagent: 'BaCl2', expected: 'white' }
+        ];
+        
+        testCases.forEach((tc, idx) => {
+            const key = `${tc.unknown}_${tc.reagent}`;
+            const reaction = REACTIONS[key];
+            
+            if (reaction && reaction.precipitate.color === tc.expected) {
+                logPass(`Реакция ${idx + 1}: ${key} → ${tc.expected} осадок`);
+            } else if (reaction) {
+                logFail(`Реакция ${idx + 1}: ожидался ${tc.expected}, получен ${reaction.precipitate.color}`);
+            } else {
+                logFail(`Реакция ${idx + 1}: ${key} не найдена`);
+            }
+        });
+    }
+
+    function resetLab() {
+        logInfo('Сброс лаборатории...');
+        
+        // Сброс состояния
+        for (let i = 1; i <= 4; i++) {
+            tubeState[i] = { unknown: null, reagent: null };
+        }
+        
+        // Сброс визуала пробирок
+        document.querySelectorAll('.test-tube').forEach(tube => {
+            const liquid = tube.querySelector('.tube-liquid');
+            const precipitate = tube.querySelector('.tube-precipitate');
+            liquid.style.height = '0';
+            liquid.style.backgroundColor = 'rgba(200,220,255,0.6)';
+            precipitate.style.height = '0';
+        });
+        
+        // Сброс выбора
+        selectedReagent = null;
+        document.querySelectorAll('.reagent-bottle').forEach(b => b.classList.remove('selected'));
+        
+        logPass('Лаборатория сброшена');
+    }
+
+    // Запуск
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

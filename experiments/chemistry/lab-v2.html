@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ОГЭ Химия — Задание 23: Качественный анализ</title>
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #e8f5e9;
+            --secondary: #1565c0;
+            --secondary-light: #e3f2fd;
+            --accent: #ff6f00;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --text-light: #666666;
+            --border: #e0e0e0;
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #1b5e20 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.3em;
+            font-weight: 500;
+        }
+
+        .badges {
+            display: flex;
+            gap: 8px;
+        }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* ===== MAIN LAYOUT ===== */
+        .main-container {
+            display: grid;
+            grid-template-columns: 200px 1fr 260px;
+            gap: 15px;
+            padding: 15px;
+            max-height: calc(100vh - 70px);
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: var(--secondary-light);
+            padding: 12px 15px;
+            font-weight: 600;
+            color: var(--secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-content {
+            padding: 15px;
+        }
+
+        /* ===== REAGENTS PANEL ===== */
+        .reagent-bottle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: var(--secondary-light);
+            border-radius: 8px;
+            cursor: grab;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .reagent-bottle:hover {
+            transform: translateX(5px);
+            border-color: var(--secondary);
+        }
+
+        .reagent-bottle.selected {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .reagent-bottle.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .bottle-icon {
+            width: 30px;
+            height: 38px;
+            background: linear-gradient(180deg, #fff 0%, #e0e0e0 100%);
+            border-radius: 4px 4px 8px 8px;
+            border: 2px solid #90a4ae;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bottle-icon::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 5px;
+            background: #607d8b;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .bottle-liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 55%;
+            border-radius: 0 0 6px 6px;
+        }
+
+        .liquid-colorless { background: rgba(200, 220, 255, 0.5); }
+        .liquid-blue { background: rgba(33, 150, 243, 0.7); }
+        .liquid-yellow { background: rgba(255, 152, 0, 0.7); }
+
+        .bottle-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bottle-formula {
+            font-weight: 600;
+            font-size: 0.9em;
+            display: block;
+        }
+
+        .bottle-name {
+            font-size: 0.7em;
+            color: var(--text-light);
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ===== WORKSPACE ===== */
+        .workspace {
+            background: linear-gradient(180deg, #e3f2fd 0%, #bbdefb 100%);
+            min-height: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed transparent;
+            border-radius: var(--radius);
+            transition: all 0.3s;
+            padding: 20px;
+        }
+
+        .workspace.drag-over {
+            border-color: var(--primary);
+            background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%);
+        }
+
+        .workspace-instructions {
+            text-align: center;
+            color: var(--text-light);
+        }
+
+        .workspace-instructions h3 {
+            margin-bottom: 10px;
+            color: var(--secondary);
+        }
+
+        .workspace-instructions ol {
+            text-align: left;
+            padding-left: 25px;
+        }
+
+        .workspace-instructions li {
+            margin: 5px 0;
+        }
+
+        /* ===== TEST TUBES ===== */
+        .workbench-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .unknown-bottles {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .unknown-bottle {
+            width: 55px;
+            height: 70px;
+            background: linear-gradient(180deg, #fff 0%, #e8e8e8 100%);
+            border: 3px solid #78909c;
+            border-radius: 8px 8px 16px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .unknown-bottle:hover {
+            transform: scale(1.08);
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .unknown-bottle.dragging {
+            opacity: 0.5;
+        }
+
+        .tube-rack {
+            background: linear-gradient(180deg, #455a64 0%, #37474f 100%);
+            border-radius: 8px;
+            padding: 15px 10px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .tube-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .test-tube {
+            width: 32px;
+            height: 100px;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0.4) 0%, 
+                rgba(255,255,255,0.15) 50%,
+                rgba(255,255,255,0.4) 100%);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 0 0 16px 16px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .test-tube:hover,
+        .test-tube.active {
+            transform: scale(1.08);
+            border-color: #4caf50;
+            box-shadow: 0 0 15px rgba(76,175,80,0.6);
+        }
+
+        .tube-liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            background: rgba(200, 220, 255, 0.6);
+            transition: all 0.5s ease;
+            border-radius: 0 0 14px 14px;
+        }
+
+        .tube-precipitate {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            transition: all 0.7s ease;
+            border-radius: 0 0 14px 14px;
+        }
+
+        .tube-label {
+            color: white;
+            font-size: 0.85em;
+            margin-top: 6px;
+            font-weight: 500;
+        }
+
+        /* ===== RESULTS SECTION ===== */
+        .results-panel {
+            background: var(--primary-light);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+
+        .results-title {
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .result-row label {
+            font-size: 0.85em;
+            min-width: 70px;
+        }
+
+        .result-row select {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1b5e20;
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #bdbdbd;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        /* ===== LOG CONSOLE ===== */
+        .log-console {
+            background: #263238;
+            color: #aed581;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.75em;
+            padding: 10px;
+            border-radius: 6px;
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .log-console .log-entry {
+            padding: 2px 0;
+        }
+
+        .log-success { color: #81c784; }
+        .log-error { color: #e57373; }
+        .log-info { color: #64b5f6; }
+        .log-warn { color: #ffb74d; }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="header">
+        <div class="badges">
+            <span class="badge">🧪 Химия</span>
+            <span class="badge">ОГЭ 2025</span>
+            <span class="badge">Задание 23</span>
+        </div>
+        <h1>Качественный анализ веществ</h1>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-container">
+        <!-- LEFT: Reagents -->
+        <div class="panel">
+            <div class="panel-header">🧪 Реактивы</div>
+            <div class="panel-content" id="reagents-shelf">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+
+        <!-- CENTER: Workspace -->
+        <div class="panel">
+            <div class="panel-header">🔬 Рабочая область</div>
+            <div class="panel-content">
+                <div class="workspace" id="workspace">
+                    <div class="workspace-instructions">
+                        <h3>Порядок работы</h3>
+                        <ol>
+                            <li>Перетащите <strong>склянку №1 или №2</strong> в пробирку</li>
+                            <li>Добавьте <strong>реактив</strong> из левой панели</li>
+                            <li>Наблюдайте результат реакции</li>
+                            <li>Сделайте вывод о составе веществ</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Log Console -->
+                <div class="log-console" id="log-console">
+                    <div class="log-entry log-info">🔧 Лаборатория готова к работе</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Workbench -->
+        <div class="panel">
+            <div class="panel-header">🧫 Рабочий стол</div>
+            <div class="panel-content">
+                <!-- Unknown Bottles -->
+                <div class="workbench-section">
+                    <div class="section-title">Неизвестные вещества</div>
+                    <div class="unknown-bottles">
+                        <div class="unknown-bottle" id="unknown-1" draggable="true" data-bottle="1">№1</div>
+                        <div class="unknown-bottle" id="unknown-2" draggable="true" data-bottle="2">№2</div>
+                    </div>
+                </div>
+
+                <!-- Test Tube Rack -->
+                <div class="workbench-section">
+                    <div class="section-title">Штатив с пробирками</div>
+                    <div class="tube-rack" id="tube-rack">
+                        <div class="tube-slot">
+                            <div class="test-tube" data-tube="1">
+                                <div class="tube-liquid"></div>
+                                <div class="tube-precipitate"></div>
+                            </div>
+                            <span class="tube-label">1</span>
+                        </div>
+                        <div class="tube-slot">
+                            <div class="test-tube" data-tube="2">
+                                <div class="tube-liquid"></div>
+                                <div class="tube-precipitate"></div>
+                            </div>
+                            <span class="tube-label">2</span>
+                        </div>
+                        <div class="tube-slot">
+                            <div class="test-tube" data-tube="3">
+                                <div class="tube-liquid"></div>
+                                <div class="tube-precipitate"></div>
+                            </div>
+                            <span class="tube-label">3</span>
+                        </div>
+                        <div class="tube-slot">
+                            <div class="test-tube" data-tube="4">
+                                <div class="tube-liquid"></div>
+                                <div class="tube-precipitate"></div>
+                            </div>
+                            <span class="tube-label">4</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="results-panel">
+                    <div class="results-title">📝 Вывод</div>
+                    <div class="result-row">
+                        <label>Склянка №1:</label>
+                        <select id="conclusion-1">
+                            <option value="">— выберите —</option>
+                        </select>
+                    </div>
+                    <div class="result-row">
+                        <label>Склянка №2:</label>
+                        <select id="conclusion-2">
+                            <option value="">— выберите —</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="btn-check">✓ Проверить</button>
+                    <button class="btn btn-secondary" id="btn-reset">↺ Сброс</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ============================================
+    // 🧪 ДАННЫЕ
+    // ============================================
+    const SUBSTANCES = {
+        'NaOH': { formula: 'NaOH', name: 'Гидроксид натрия', color: 'colorless' },
+        'H2SO4': { formula: 'H₂SO₄', name: 'Серная кислота', color: 'colorless' },
+        'BaCl2': { formula: 'BaCl₂', name: 'Хлорид бария', color: 'colorless' },
+        'CuSO4': { formula: 'CuSO₄', name: 'Сульфат меди (II)', color: 'blue' },
+        'FeCl3': { formula: 'FeCl₃', name: 'Хлорид железа (III)', color: 'yellow' }
+    };
+
+    const REACTIONS = {
+        'CuSO4_NaOH': { precipitate: '#4fc3f7', desc: 'голубой осадок Cu(OH)₂' },
+        'CuSO4_BaCl2': { precipitate: '#ffffff', desc: 'белый осадок BaSO₄' },
+        'FeCl3_NaOH': { precipitate: '#8d6e63', desc: 'бурый осадок Fe(OH)₃' }
+    };
+
+    const KIT = {
+        unknowns: ['CuSO4', 'FeCl3'],
+        reagents: ['NaOH', 'H2SO4', 'BaCl2']
+    };
+
+    // Состояние
+    const tubes = {
+        1: { unknown: null, reagent: null },
+        2: { unknown: null, reagent: null },
+        3: { unknown: null, reagent: null },
+        4: { unknown: null, reagent: null }
+    };
+
+    let selectedReagent = null;
+    let dragData = null;
+
+    // ============================================
+    // 📊 КОНСОЛЬ
+    // ============================================
+    function log(msg, type = 'info') {
+        const console = document.getElementById('log-console');
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        console.appendChild(entry);
+        console.scrollTop = console.scrollHeight;
+    }
+
+    // ============================================
+    // 🔧 ИНИЦИАЛИЗАЦИЯ
+    // ============================================
+    function init() {
+        log('Инициализация...', 'info');
+        
+        renderReagents();
+        setupDragDrop();
+        setupButtons();
+        populateSelects();
+        
+        log('✅ Готово! Перетащите склянку в пробирку', 'success');
+    }
+
+    function renderReagents() {
+        const shelf = document.getElementById('reagents-shelf');
+        shelf.innerHTML = '';
+        
+        KIT.reagents.forEach(id => {
+            const sub = SUBSTANCES[id];
+            const bottle = document.createElement('div');
+            bottle.className = 'reagent-bottle';
+            bottle.draggable = true;
+            bottle.dataset.reagent = id;
+            bottle.innerHTML = `
+                <div class="bottle-icon">
+                    <div class="bottle-liquid liquid-${sub.color}"></div>
+                </div>
+                <div class="bottle-info">
+                    <span class="bottle-formula">${sub.formula}</span>
+                    <span class="bottle-name">${sub.name}</span>
+                </div>
+            `;
+            shelf.appendChild(bottle);
+        });
+        
+        log(`Загружено ${KIT.reagents.length} реагентов`, 'info');
+    }
+
+    function populateSelects() {
+        const options = KIT.unknowns.map(id => {
+            const sub = SUBSTANCES[id];
+            return `<option value="${id}">${sub.formula} — ${sub.name}</option>`;
+        }).join('');
+        
+        document.getElementById('conclusion-1').innerHTML = '<option value="">— выберите —</option>' + options;
+        document.getElementById('conclusion-2').innerHTML = '<option value="">— выберите —</option>' + options;
+    }
+
+    // ============================================
+    // 🖱️ DRAG AND DROP
+    // ============================================
+    function setupDragDrop() {
+        // --- Reagent bottles ---
+        document.querySelectorAll('.reagent-bottle').forEach(bottle => {
+            bottle.addEventListener('dragstart', e => {
+                dragData = { type: 'reagent', id: bottle.dataset.reagent };
+                e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+                e.dataTransfer.effectAllowed = 'copy';
+                bottle.classList.add('dragging');
+                log(`Взят реагент: ${SUBSTANCES[dragData.id].formula}`, 'info');
+            });
+            
+            bottle.addEventListener('dragend', () => {
+                bottle.classList.remove('dragging');
+                dragData = null;
+            });
+            
+            bottle.addEventListener('click', () => {
+                document.querySelectorAll('.reagent-bottle').forEach(b => b.classList.remove('selected'));
+                bottle.classList.add('selected');
+                selectedReagent = bottle.dataset.reagent;
+                log(`Выбран: ${SUBSTANCES[selectedReagent].formula}`, 'info');
+            });
+        });
+
+        // --- Unknown bottles ---
+        document.querySelectorAll('.unknown-bottle').forEach(bottle => {
+            bottle.addEventListener('dragstart', e => {
+                const num = parseInt(bottle.dataset.bottle);
+                dragData = { type: 'unknown', bottleNum: num };
+                e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+                e.dataTransfer.effectAllowed = 'copy';
+                bottle.classList.add('dragging');
+                log(`Взята склянка №${num}`, 'info');
+            });
+            
+            bottle.addEventListener('dragend', () => {
+                bottle.classList.remove('dragging');
+                dragData = null;
+            });
+        });
+
+        // --- Test tubes as drop targets ---
+        document.querySelectorAll('.test-tube').forEach(tube => {
+            const tubeNum = parseInt(tube.dataset.tube);
+            
+            tube.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                tube.classList.add('active');
+            });
+            
+            tube.addEventListener('dragleave', () => {
+                tube.classList.remove('active');
+            });
+            
+            tube.addEventListener('drop', e => {
+                e.preventDefault();
+                tube.classList.remove('active');
+                
+                try {
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    processAction(tubeNum, data);
+                } catch (err) {
+                    log('Ошибка: ' + err.message, 'error');
+                }
+            });
+            
+            // Click to add selected reagent
+            tube.addEventListener('click', () => {
+                if (selectedReagent) {
+                    processAction(tubeNum, { type: 'reagent', id: selectedReagent });
+                }
+            });
+        });
+
+        log('Drag & Drop настроен', 'success');
+    }
+
+    // ============================================
+    // ⚗️ ПРОЦЕСС РЕАКЦИИ
+    // ============================================
+    function processAction(tubeNum, data) {
+        const tube = document.querySelector(`.test-tube[data-tube="${tubeNum}"]`);
+        const liquid = tube.querySelector('.tube-liquid');
+        const precipitate = tube.querySelector('.tube-precipitate');
+        
+        if (data.type === 'unknown') {
+            const unknownId = KIT.unknowns[data.bottleNum - 1];
+            tubes[tubeNum].unknown = unknownId;
+            
+            const sub = SUBSTANCES[unknownId];
+            liquid.style.height = '40%';
+            liquid.style.backgroundColor = getColor(sub.color);
+            
+            log(`Пробирка ${tubeNum}: + склянка №${data.bottleNum} (${sub.formula})`, 'success');
+            
+        } else if (data.type === 'reagent') {
+            if (!tubes[tubeNum].unknown) {
+                log(`⚠️ Сначала добавьте вещество из склянки!`, 'warn');
+                return;
+            }
+            
+            tubes[tubeNum].reagent = data.id;
+            const reagent = SUBSTANCES[data.id];
+            
+            // Check reaction
+            const key = `${tubes[tubeNum].unknown}_${data.id}`;
+            const reaction = REACTIONS[key];
+            
+            liquid.style.height = '50%';
+            
+            if (reaction) {
+                precipitate.style.height = '25%';
+                precipitate.style.backgroundColor = reaction.precipitate;
+                log(`⚗️ Реакция! ${reaction.desc}`, 'success');
+            } else {
+                log(`Пробирка ${tubeNum}: + ${reagent.formula} — нет реакции`, 'info');
+            }
+        }
+    }
+
+    function getColor(colorName) {
+        const map = {
+            'colorless': 'rgba(200, 220, 255, 0.5)',
+            'blue': 'rgba(33, 150, 243, 0.6)',
+            'yellow': 'rgba(255, 193, 7, 0.6)'
+        };
+        return map[colorName] || map['colorless'];
+    }
+
+    // ============================================
+    // 🎯 КНОПКИ
+    // ============================================
+    function setupButtons() {
+        document.getElementById('btn-check').addEventListener('click', checkAnswers);
+        document.getElementById('btn-reset').addEventListener('click', resetLab);
+    }
+
+    function checkAnswers() {
+        const ans1 = document.getElementById('conclusion-1').value;
+        const ans2 = document.getElementById('conclusion-2').value;
+        
+        let score = 0;
+        if (ans1 === KIT.unknowns[0]) score++;
+        if (ans2 === KIT.unknowns[1]) score++;
+        
+        if (score === 2) {
+            log('🎉 Отлично! Оба вещества определены верно!', 'success');
+            alert('🎉 Отлично! Оба вещества определены правильно!\n\nСклянка №1: ' + SUBSTANCES[KIT.unknowns[0]].name + '\nСклянка №2: ' + SUBSTANCES[KIT.unknowns[1]].name);
+        } else if (score === 1) {
+            log('👍 Одно вещество определено верно', 'warn');
+            alert('Одно вещество определено правильно. Попробуйте ещё раз!');
+        } else {
+            log('❌ Ни одно вещество не определено', 'error');
+            alert('Попробуйте провести больше экспериментов!');
+        }
+    }
+
+    function resetLab() {
+        // Reset state
+        for (let i = 1; i <= 4; i++) {
+            tubes[i] = { unknown: null, reagent: null };
+        }
+        
+        // Reset visuals
+        document.querySelectorAll('.test-tube').forEach(tube => {
+            tube.querySelector('.tube-liquid').style.height = '0';
+            tube.querySelector('.tube-precipitate').style.height = '0';
+        });
+        
+        // Reset selects
+        document.getElementById('conclusion-1').value = '';
+        document.getElementById('conclusion-2').value = '';
+        
+        // Reset selected reagent
+        selectedReagent = null;
+        document.querySelectorAll('.reagent-bottle').forEach(b => b.classList.remove('selected'));
+        
+        log('🔄 Лаборатория сброшена', 'info');
+    }
+
+    // Start
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
