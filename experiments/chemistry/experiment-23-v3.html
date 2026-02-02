@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ОГЭ Химия — Задание 23: Качественный анализ v3</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f4f8;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+            color: white;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 1rem; }
+        .badges { display: flex; gap: 8px; }
+        .badge {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            background: rgba(255,255,255,0.2);
+        }
+        .btn-reset {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+        }
+        .btn-reset:hover { background: rgba(255,255,255,0.3); }
+
+        .main {
+            display: grid;
+            grid-template-columns: 180px 1fr 220px;
+            gap: 10px;
+            padding: 10px;
+            height: calc(100vh - 44px);
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-title {
+            background: #e3f2fd;
+            padding: 10px;
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #1565c0;
+        }
+        .panel-body {
+            padding: 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 0.65em;
+            color: #666;
+            text-transform: uppercase;
+            margin: 10px 0 5px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            margin: 4px 0;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: grab;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        .item:hover {
+            background: #e3f2fd;
+            border-color: #1565c0;
+        }
+        .item.used {
+            opacity: 0.35;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .item-icon {
+            font-size: 1.2em;
+        }
+        .item-text {
+            font-size: 0.75em;
+            font-weight: 500;
+        }
+        .item-sub {
+            font-size: 0.6em;
+            color: #666;
+        }
+
+        .canvas-wrap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        #canvas-bg { z-index: 1; }
+        #canvas-main { z-index: 2; }
+
+        .results {
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .results-title {
+            font-weight: 600;
+            font-size: 0.8em;
+            color: #2e7d32;
+            margin-bottom: 8px;
+        }
+        .result-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 6px 0;
+            font-size: 0.75em;
+        }
+        .result-row select {
+            flex: 1;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .btn {
+            width: 100%;
+            padding: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8em;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        .btn-check { background: #2e7d32; color: white; }
+        .btn-check:hover { background: #1b5e20; }
+        .btn-clear { background: #ddd; }
+        .btn-clear:hover { background: #ccc; }
+
+        .log {
+            background: #1a1a2e;
+            border-radius: 6px;
+            padding: 8px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.6em;
+        }
+        .log div { padding: 2px 0; }
+        .log-success { color: #81c784; }
+        .log-info { color: #64b5f6; }
+        .log-warn { color: #ffb74d; }
+        .log-error { color: #e57373; }
+
+        /* Debug panel */
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.8);
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            border-radius: 6px;
+            z-index: 9999;
+            max-width: 300px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="badges">
+            <span class="badge">🧪 Химия</span>
+            <span class="badge">ОГЭ 2025</span>
+            <span class="badge">Задание 23</span>
+        </div>
+        <h1>Качественный анализ веществ</h1>
+        <button class="btn-reset" id="btn-reset">🔄 Сброс</button>
+    </header>
+
+    <div class="main">
+        <!-- LEFT -->
+        <div class="panel">
+            <div class="panel-title">🧪 Оборудование</div>
+            <div class="panel-body" id="inventory"></div>
+        </div>
+
+        <!-- CENTER -->
+        <div class="panel" style="padding:0">
+            <div class="canvas-wrap">
+                <canvas id="canvas-bg"></canvas>
+                <canvas id="canvas-main"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT -->
+        <div class="panel">
+            <div class="panel-title">📝 Результаты</div>
+            <div class="panel-body">
+                <div class="results">
+                    <div class="results-title">Ваш вывод:</div>
+                    <div class="result-row">
+                        <span>№1:</span>
+                        <select id="ans1"><option value="">—</option></select>
+                    </div>
+                    <div class="result-row">
+                        <span>№2:</span>
+                        <select id="ans2"><option value="">—</option></select>
+                    </div>
+                    <button class="btn btn-check" id="btn-check">✓ Проверить</button>
+                    <button class="btn btn-clear" id="btn-clear">↺ Очистить</button>
+                </div>
+                <div class="section-title">Журнал</div>
+                <div class="log" id="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="debug">DEBUG</div>
+
+    <script>
+    // =============================================
+    // 🧪 CHEMISTRY LAB v3 - WORKING CANVAS VERSION
+    // =============================================
+
+    const DEBUG = document.getElementById('debug');
+    function dbg(msg) {
+        DEBUG.innerHTML = msg;
+        console.log(msg);
+    }
+
+    class ChemLab {
+        constructor() {
+            dbg('ChemLab init...');
+            
+            // Canvas
+            this.bgCanvas = document.getElementById('canvas-bg');
+            this.mainCanvas = document.getElementById('canvas-main');
+            this.bgCtx = this.bgCanvas.getContext('2d');
+            this.ctx = this.mainCanvas.getContext('2d');
+
+            // Data
+            this.substances = {
+                'CuSO4': { formula: 'CuSO₄', name: 'Сульфат меди', color: '#2196f3' },
+                'FeCl3': { formula: 'FeCl₃', name: 'Хлорид железа III', color: '#ff9800' },
+                'NaOH': { formula: 'NaOH', name: 'Гидроксид натрия', color: '#cce5ff' },
+                'H2SO4': { formula: 'H₂SO₄', name: 'Серная кислота', color: '#e0e0e0' },
+                'BaCl2': { formula: 'BaCl₂', name: 'Хлорид бария', color: '#e0e0e0' }
+            };
+
+            this.reactions = {
+                'CuSO4+NaOH': { precipitate: '#03a9f4', text: 'Голубой осадок Cu(OH)₂' },
+                'CuSO4+BaCl2': { precipitate: '#ffffff', text: 'Белый осадок BaSO₄' },
+                'FeCl3+NaOH': { precipitate: '#795548', text: 'Бурый осадок Fe(OH)₃' },
+                'FeCl3+BaCl2': { precipitate: null, text: 'Нет реакции' },
+                'CuSO4+H2SO4': { precipitate: null, text: 'Нет реакции' },
+                'FeCl3+H2SO4': { precipitate: null, text: 'Нет реакции' }
+            };
+
+            this.unknowns = ['CuSO4', 'FeCl3'];
+            this.reagents = ['NaOH', 'H2SO4', 'BaCl2'];
+
+            // State - объекты на canvas
+            this.tubes = [];  // Пробирки на столе
+            this.draggingFromInventory = null;
+            this.draggingOnCanvas = null;
+            this.dragOffset = { x: 0, y: 0 };
+
+            this.init();
+        }
+
+        init() {
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+
+            this.buildInventory();
+            this.setupEvents();
+            this.setupButtons();
+            this.fillSelects();
+
+            this.draw();
+            this.log('✅ Лаборатория готова', 'success');
+            dbg('Init complete. Drag items to canvas!');
+        }
+
+        resize() {
+            const wrap = this.mainCanvas.parentElement;
+            const rect = wrap.getBoundingClientRect();
+            this.W = rect.width;
+            this.H = rect.height;
+
+            this.bgCanvas.width = this.mainCanvas.width = this.W;
+            this.bgCanvas.height = this.mainCanvas.height = this.H;
+
+            this.drawBackground();
+            this.draw();
+        }
+
+        // ========== INVENTORY ==========
+        buildInventory() {
+            const inv = document.getElementById('inventory');
+            inv.innerHTML = '';
+
+            // Tubes
+            inv.innerHTML += '<div class="section-title">ПРОБИРКИ</div>';
+            for (let i = 1; i <= 4; i++) {
+                inv.appendChild(this.createItem('tube', i, '🧪', `Пробирка ${i}`));
+            }
+
+            // Unknowns
+            inv.innerHTML += '<div class="section-title">НЕИЗВЕСТНЫЕ ВЕЩЕСТВА</div>';
+            inv.appendChild(this.createItem('unknown', 1, '🧴', 'Склянка №1'));
+            inv.appendChild(this.createItem('unknown', 2, '🧴', 'Склянка №2'));
+
+            // Reagents
+            inv.innerHTML += '<div class="section-title">РЕАКТИВЫ</div>';
+            this.reagents.forEach(id => {
+                const s = this.substances[id];
+                inv.appendChild(this.createItem('reagent', id, '🧪', s.formula, s.name));
+            });
+        }
+
+        createItem(type, id, icon, text, sub = '') {
+            const el = document.createElement('div');
+            el.className = 'item';
+            el.dataset.type = type;
+            el.dataset.id = id;
+            el.draggable = true;
+            el.innerHTML = `
+                <span class="item-icon">${icon}</span>
+                <div>
+                    <div class="item-text">${text}</div>
+                    ${sub ? `<div class="item-sub">${sub}</div>` : ''}
+                </div>
+            `;
+
+            el.addEventListener('dragstart', (e) => {
+                this.draggingFromInventory = { type, id };
+                e.dataTransfer.setData('text/plain', JSON.stringify({ type, id }));
+                e.dataTransfer.effectAllowed = 'copy';
+                dbg(`Drag start: ${type} ${id}`);
+            });
+
+            el.addEventListener('dragend', () => {
+                this.draggingFromInventory = null;
+            });
+
+            return el;
+        }
+
+        markUsed(type, id) {
+            const el = document.querySelector(`.item[data-type="${type}"][data-id="${id}"]`);
+            if (el) el.classList.add('used');
+        }
+
+        // ========== CANVAS EVENTS ==========
+        setupEvents() {
+            const canvas = this.mainCanvas;
+
+            // Drop from inventory
+            canvas.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+
+            canvas.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                dbg(`Drop at ${Math.round(x)}, ${Math.round(y)}`);
+
+                if (this.draggingFromInventory) {
+                    this.handleDrop(this.draggingFromInventory, x, y);
+                    this.draggingFromInventory = null;
+                }
+            });
+
+            // Mouse events for dragging on canvas
+            canvas.addEventListener('mousedown', (e) => {
+                const pos = this.getMousePos(e);
+                const tube = this.getTubeAt(pos.x, pos.y);
+                if (tube) {
+                    this.draggingOnCanvas = tube;
+                    this.dragOffset = { x: pos.x - tube.x, y: pos.y - tube.y };
+                    dbg(`Grabbed tube ${tube.num}`);
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                const pos = this.getMousePos(e);
+
+                if (this.draggingOnCanvas) {
+                    this.draggingOnCanvas.x = pos.x - this.dragOffset.x;
+                    this.draggingOnCanvas.y = pos.y - this.dragOffset.y;
+                    this.draw();
+                }
+
+                // Cursor
+                const tube = this.getTubeAt(pos.x, pos.y);
+                canvas.style.cursor = tube ? 'grab' : 'default';
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                if (this.draggingOnCanvas) {
+                    dbg(`Released tube ${this.draggingOnCanvas.num}`);
+                    this.draggingOnCanvas = null;
+                }
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                this.draggingOnCanvas = null;
+            });
+        }
+
+        getMousePos(e) {
+            const rect = this.mainCanvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        getTubeAt(x, y) {
+            for (let i = this.tubes.length - 1; i >= 0; i--) {
+                const t = this.tubes[i];
+                if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) {
+                    return t;
+                }
+            }
+            return null;
+        }
+
+        // ========== DROP HANDLING ==========
+        handleDrop(data, x, y) {
+            const { type, id } = data;
+
+            if (type === 'tube') {
+                // Check if already placed
+                if (this.tubes.find(t => t.num === id)) {
+                    this.log(`⚠️ Пробирка ${id} уже на столе`, 'warn');
+                    return;
+                }
+
+                // Create new tube on canvas
+                const tube = {
+                    num: id,
+                    x: x - 25,
+                    y: y - 70,
+                    w: 50,
+                    h: 140,
+                    liquid: null,      // substance id
+                    liquidNum: null,   // bottle number
+                    reagent: null,
+                    liquidLevel: 0,
+                    precipitate: null
+                };
+                this.tubes.push(tube);
+                this.markUsed('tube', id);
+                this.log(`🧪 Пробирка ${id} на столе`, 'info');
+                dbg(`Tube ${id} placed at ${Math.round(x)}, ${Math.round(y)}`);
+
+            } else if (type === 'unknown') {
+                // Pour into tube under cursor
+                const tube = this.getTubeAt(x, y);
+                if (!tube) {
+                    this.log('⚠️ Наведите на пробирку!', 'warn');
+                    return;
+                }
+                if (tube.liquid) {
+                    this.log(`⚠️ Пробирка ${tube.num} уже заполнена`, 'warn');
+                    return;
+                }
+
+                const substanceId = this.unknowns[id - 1];
+                tube.liquid = substanceId;
+                tube.liquidNum = id;
+                tube.liquidLevel = 0.4;
+
+                this.markUsed('unknown', id);
+                this.log(`✅ Склянка №${id} → пробирка ${tube.num}`, 'success');
+                dbg(`Unknown ${id} (${substanceId}) -> tube ${tube.num}`);
+                this.animatePour(tube, 0.4);
+
+            } else if (type === 'reagent') {
+                const tube = this.getTubeAt(x, y);
+                if (!tube) {
+                    this.log('⚠️ Наведите на пробирку!', 'warn');
+                    return;
+                }
+                if (!tube.liquid) {
+                    this.log('⚠️ Сначала добавьте вещество из склянки!', 'warn');
+                    return;
+                }
+                if (tube.reagent) {
+                    this.log(`⚠️ Реагент уже добавлен`, 'warn');
+                    return;
+                }
+
+                tube.reagent = id;
+                tube.liquidLevel = 0.6;
+
+                const key = `${tube.liquid}+${id}`;
+                const reaction = this.reactions[key];
+
+                if (reaction) {
+                    if (reaction.precipitate) {
+                        tube.precipitate = reaction.precipitate;
+                        this.log(`⚗️ ${reaction.text}`, 'success');
+                    } else {
+                        this.log(`🔬 ${reaction.text}`, 'info');
+                    }
+                } else {
+                    this.log(`🔬 Нет видимой реакции`, 'info');
+                }
+
+                dbg(`Reagent ${id} -> tube ${tube.num}: ${reaction?.text || 'no reaction'}`);
+            }
+
+            this.draw();
+        }
+
+        animatePour(tube, target) {
+            let level = 0;
+            const step = () => {
+                level += 0.02;
+                tube.liquidLevel = Math.min(level, target);
+                this.draw();
+                if (level < target) requestAnimationFrame(step);
+            };
+            step();
+        }
+
+        // ========== DRAWING ==========
+        drawBackground() {
+            const ctx = this.bgCtx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            // Sky gradient
+            const grad = ctx.createLinearGradient(0, 0, 0, this.H);
+            grad.addColorStop(0, '#e3f2fd');
+            grad.addColorStop(0.7, '#bbdefb');
+            grad.addColorStop(1, '#90caf9');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, this.W, this.H);
+
+            // Table
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(0, this.H - 40, this.W, 40);
+            ctx.fillStyle = '#4e342e';
+            ctx.fillRect(0, this.H - 40, this.W, 3);
+
+            // Instructions
+            ctx.fillStyle = '#1565c0';
+            ctx.font = 'bold 14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('Перетащите оборудование из левой панели на стол', this.W / 2, 22);
+        }
+
+        draw() {
+            const ctx = this.ctx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            // Draw all tubes
+            for (const tube of this.tubes) {
+                this.drawTube(ctx, tube);
+            }
+        }
+
+        drawTube(ctx, tube) {
+            const { x, y, w, h, num, liquid, liquidNum, liquidLevel, precipitate, reagent } = tube;
+
+            ctx.save();
+
+            // Glass effect
+            const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+            grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+            grad.addColorStop(0.3, 'rgba(255,255,255,0.2)');
+            grad.addColorStop(0.7, 'rgba(255,255,255,0.2)');
+            grad.addColorStop(1, 'rgba(255,255,255,0.6)');
+
+            // Tube body
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y + h - w/2);
+            ctx.arc(x + w/2, y + h - w/2, w/2, Math.PI, 0, true);
+            ctx.lineTo(x + w, y);
+            ctx.closePath();
+            ctx.fill();
+
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Liquid
+            if (liquidLevel > 0) {
+                const lh = h * liquidLevel;
+                const ly = y + h - lh - w/2;
+
+                let color = 'rgba(180,200,255,0.5)';
+                if (liquid && this.substances[liquid]) {
+                    color = this.substances[liquid].color;
+                }
+
+                ctx.globalAlpha = 0.7;
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x + 3, ly);
+                ctx.lineTo(x + 3, y + h - w/2);
+                ctx.arc(x + w/2, y + h - w/2, w/2 - 3, Math.PI, 0, true);
+                ctx.lineTo(x + w - 3, ly);
+                ctx.closePath();
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            // Precipitate
+            if (precipitate) {
+                const ph = h * 0.15;
+                const py = y + h - ph - w/2;
+
+                ctx.fillStyle = precipitate;
+                ctx.beginPath();
+                ctx.moveTo(x + 4, py);
+                ctx.lineTo(x + 4, y + h - w/2);
+                ctx.arc(x + w/2, y + h - w/2, w/2 - 4, Math.PI, 0, true);
+                ctx.lineTo(x + w - 4, py);
+                ctx.closePath();
+                ctx.fill();
+
+                // Precipitate border
+                ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Labels
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${num}`, x + w/2, y - 8);
+
+            if (liquidNum) {
+                ctx.fillStyle = '#666';
+                ctx.font = '10px Segoe UI';
+                ctx.fillText(`№${liquidNum}`, x + w/2, y + h + 18);
+            }
+
+            if (reagent) {
+                const r = this.substances[reagent];
+                ctx.fillStyle = '#1565c0';
+                ctx.font = '9px Segoe UI';
+                ctx.fillText(`+${r.formula}`, x + w/2, y + h + 30);
+            }
+        }
+
+        // ========== BUTTONS ==========
+        setupButtons() {
+            document.getElementById('btn-check').onclick = () => this.check();
+            document.getElementById('btn-clear').onclick = () => this.clear();
+            document.getElementById('btn-reset').onclick = () => this.clear();
+        }
+
+        fillSelects() {
+            const opts = this.unknowns.map(id => {
+                const s = this.substances[id];
+                return `<option value="${id}">${s.formula} — ${s.name}</option>`;
+            }).join('');
+
+            document.getElementById('ans1').innerHTML = '<option value="">—</option>' + opts;
+            document.getElementById('ans2').innerHTML = '<option value="">—</option>' + opts;
+        }
+
+        check() {
+            const a1 = document.getElementById('ans1').value;
+            const a2 = document.getElementById('ans2').value;
+
+            let score = 0;
+            if (a1 === this.unknowns[0]) score++;
+            if (a2 === this.unknowns[1]) score++;
+
+            if (score === 2) {
+                this.log('🎉 Отлично! Оба верно!', 'success');
+                alert('🎉 Правильно!\n\n' +
+                      `№1: ${this.substances[this.unknowns[0]].name}\n` +
+                      `№2: ${this.substances[this.unknowns[1]].name}`);
+            } else if (score === 1) {
+                this.log('👍 Одно верно', 'warn');
+                alert('Одно вещество определено верно.');
+            } else {
+                this.log('❌ Проведите больше опытов', 'error');
+                alert('Проведите больше экспериментов!');
+            }
+        }
+
+        clear() {
+            this.tubes = [];
+            document.querySelectorAll('.item.used').forEach(el => el.classList.remove('used'));
+            document.getElementById('ans1').value = '';
+            document.getElementById('ans2').value = '';
+            this.draw();
+            this.log('🔄 Стол очищен', 'info');
+            dbg('Cleared');
+        }
+
+        log(msg, type = 'info') {
+            const el = document.getElementById('log');
+            const div = document.createElement('div');
+            div.className = `log-${type}`;
+            div.textContent = msg;
+            el.appendChild(div);
+            el.scrollTop = el.scrollHeight;
+        }
+    }
+
+    // START
+    window.addEventListener('DOMContentLoaded', () => {
+        window.lab = new ChemLab();
+    });
+    </script>
+</body>
+</html>
