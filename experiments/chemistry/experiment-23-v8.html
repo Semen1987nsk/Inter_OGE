@@ -1118,25 +1118,79 @@
         startPourStream(source, tube, color, isDrops = false) {
             const duration = isDrops ? 800 : 1000;
             const startTime = performance.now();
-            const interval = isDrops ? 80 : 30;
+            const interval = isDrops ? 60 : 20;
+            
+            // Точка выхода струи (из горлышка наклонённой бутылки)
+            const pourOffsetX = source.w * 0.85;
+            const pourOffsetY = 10;
+            
+            // Целевая точка - центр пробирки
+            const targetX = tube.x + tube.w / 2;
+            const targetY = tube.y + 25; // Горлышко пробирки
             
             const addParticle = () => {
                 if (performance.now() - startTime > duration) return;
                 
-                const sourceX = source.x + source.w * 0.7;
-                const sourceY = source.y + 15;
+                // Начальная позиция с учётом наклона
+                const angle = source.angle || 0;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
                 
+                // Pivot point для вращения
+                const pivotX = source.x + source.w * 0.3;
+                const pivotY = source.y + source.h * 0.3;
+                
+                // Точка выхода относительно pivot
+                const localX = pourOffsetX - source.w * 0.3;
+                const localY = pourOffsetY - source.h * 0.3;
+                
+                // Повернутая точка выхода
+                const startX = pivotX + localX * cosA - localY * sinA;
+                const startY = pivotY + localX * sinA + localY * cosA;
+                
+                // Рассчитываем скорость чтобы попасть в пробирку
+                const dx = targetX - startX;
+                const dy = targetY - startY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const speed = isDrops ? 8 : 10;
+                
+                // Нормализуем направление и добавляем небольшой разброс
+                const spread = isDrops ? 0.08 : 0.05;
+                const vx = (dx / distance) * speed + (Math.random() - 0.5) * spread * speed;
+                const vy = (dy / distance) * speed + (Math.random() - 0.5) * spread * speed;
+                
+                // Создаём частицу струи
                 this.particles.push({
-                    x: sourceX + (Math.random() - 0.5) * 6,
-                    y: sourceY,
-                    vx: 1 + Math.random() * 2,
-                    vy: 2 + Math.random() * 2,
-                    radius: isDrops ? 3 + Math.random() * 2 : 2 + Math.random() * 2,
+                    x: startX + (Math.random() - 0.5) * 3,
+                    y: startY,
+                    vx: vx,
+                    vy: vy,
+                    radius: isDrops ? 4 + Math.random() * 2 : 2.5 + Math.random() * 1.5,
                     color,
                     alpha: 1,
-                    life: 50,
-                    targetY: tube.y + tube.h - 40
+                    life: 40,
+                    gravity: 0.3, // Добавляем гравитацию
+                    targetTube: tube,
+                    isStream: true
                 });
+                
+                // Добавляем "хвост" струи для непрерывности
+                if (!isDrops) {
+                    for (let i = 1; i <= 2; i++) {
+                        this.particles.push({
+                            x: startX - vx * 0.1 * i,
+                            y: startY - vy * 0.1 * i,
+                            vx: vx * 0.95,
+                            vy: vy * 0.95,
+                            radius: 2 + Math.random(),
+                            color,
+                            alpha: 0.7,
+                            life: 35,
+                            gravity: 0.3,
+                            isStream: true
+                        });
+                    }
+                }
                 
                 setTimeout(addParticle, interval);
             };
@@ -1637,20 +1691,78 @@
                 
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.2; // gravity
+                
+                // Применяем гравитацию
+                const gravity = p.gravity || 0.2;
+                p.vy += gravity;
+                
                 p.life--;
-                p.alpha = Math.min(1, p.life / 25);
+                
+                // Проверяем попадание в пробирку (для частиц струи)
+                if (p.isStream && p.targetTube) {
+                    const tube = p.targetTube;
+                    const tubeLeft = tube.x + 10;
+                    const tubeRight = tube.x + tube.w - 10;
+                    const tubeTop = tube.y + 20;
+                    
+                    if (p.x >= tubeLeft && p.x <= tubeRight && p.y >= tubeTop) {
+                        // Попали в пробирку! Создаём всплеск
+                        for (let j = 0; j < 3; j++) {
+                            this.particles.push({
+                                x: p.x,
+                                y: p.y,
+                                vx: (Math.random() - 0.5) * 3,
+                                vy: -1 - Math.random() * 2,
+                                radius: 1.5 + Math.random(),
+                                color: p.color,
+                                alpha: 0.8,
+                                life: 15,
+                                gravity: 0.4
+                            });
+                        }
+                        // Удаляем частицу
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+                }
+                
+                p.alpha = Math.min(1, p.life / 20);
 
                 if (p.life <= 0) {
                     this.particles.splice(i, 1);
                     continue;
                 }
 
+                // Рисуем частицу
                 ctx.globalAlpha = p.alpha;
-                ctx.fillStyle = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fill();
+                
+                // Для струи добавляем эффект "капли"
+                if (p.isStream && p.radius > 2) {
+                    // Основная капля
+                    const gradient = ctx.createRadialGradient(
+                        p.x - p.radius * 0.3, p.y - p.radius * 0.3, 0,
+                        p.x, p.y, p.radius
+                    );
+                    gradient.addColorStop(0, 'rgba(255,255,255,0.5)');
+                    gradient.addColorStop(0.5, p.color);
+                    gradient.addColorStop(1, p.color);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Блик на капле
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.beginPath();
+                    ctx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
             ctx.globalAlpha = 1;
         }
