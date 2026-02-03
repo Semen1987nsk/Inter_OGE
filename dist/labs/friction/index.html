@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Опыт 2: Измерение коэффициента трения скольжения | Labosfera</title>
+    
+    <!-- Error Handler -->
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            alert('Ошибка запуска: ' + msg + '\nСтрока: ' + line);
+            console.error('Global Error:', error);
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            alert('Ошибка Promise: ' + event.reason);
+            console.error('Unhandled Rejection:', event.reason);
+        });
+    </script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="../styles/experiment-common.css?v=1445">
+    <link rel="stylesheet" href="experiment-2-friction.css?v=4.0-dragfix">
+    
+    <!-- Libraries (LOCAL - avoid CDN blocking) -->
+    <script src="../vendor/chart.umd.js" defer></script>
+    <script src="../vendor/interact.min.js" defer></script>
+    <script src="../vendor/anime.min.js" defer></script>
+
+    <!-- Experiment Scripts -->
+    <script src="experiment-2-friction.js?v=4.0-dragfix" type="module"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="experiment-header">
+        <button class="btn-back" onclick="window.location.href='/'">
+            <span class="icon">◀</span> На главную
+        </button>
+        <h1 class="experiment-title">
+            <span class="experiment-number">ОПЫТ 2</span>
+            Измерение коэффициента трения скольжения <span style="font-size: 0.6em; opacity: 0.5; margin-left: 10px;">v1.0</span>
+        </h1>
+        <div class="header-actions">
+            <button class="btn-icon" id="btn-reset" title="Сбросить эксперимент">
+                <span class="icon">🔄</span>
+            </button>
+            <button class="btn-icon" id="btn-magnifier" title="Лупа">
+                <span class="icon">🔍</span>
+            </button>
+            <button class="btn-icon" id="btn-fullscreen" title="На весь экран">
+                <span class="icon">⛶</span>
+            </button>
+            <button class="btn-icon" id="btn-help" title="Помощь">
+                <span class="icon">?</span>
+            </button>
+            <button class="btn-icon" id="btn-tour" title="Показать обучение">
+                <span class="icon">📖</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="experiment-container">
+        <!-- Left Panel: Simulator -->
+        <section class="simulator-panel">
+            <div class="simulator-header">
+                <h2>Экспериментальная установка</h2>
+                <div class="surface-selector">
+                    <label>Поверхность:</label>
+                    <select id="surface-select">
+                        <option value="wood">Дерево</option>
+                        <option value="rubber">Резина</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="canvas-container" id="canvas-container">
+                <!-- Multi-layer canvas system -->
+                <canvas id="canvas-background" width="1200" height="700"></canvas>
+                <canvas id="canvas-equipment" width="1200" height="700"></canvas>
+                <canvas id="canvas-dynamic" width="1200" height="700"></canvas>
+                <canvas id="canvas-particles" width="1200" height="700"></canvas>
+                <canvas id="canvas-ui" width="1200" height="700"></canvas>
+                <div id="drag-drop-overlay"></div>
+                
+                <!-- Loading overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Загрузка оборудования...</p>
+                </div>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="experiment-instructions">
+                <h3>📋 Порядок выполнения</h3>
+                <ol>
+                    <li><strong>Подготовка:</strong> Перетащите динамометр на рабочую область (он появится в режиме взвешивания)</li>
+                    <li><strong>Взвешивание:</strong> Повесьте брусок на крючок динамометра. Запишите показание — это сила N (вес тела)</li>
+                    <li><strong>Добавьте грузы:</strong> При необходимости добавьте грузы на брусок и снова запишите N</li>
+                    <li><strong>Сборка установки:</strong> Перетащите направляющую на рабочую область. Перетащите динамометр с бруском к направляющей — он автоматически переключится в горизонтальный режим</li>
+                    <li><strong>Измерение F<sub>тр</sub>:</strong> Тяните за ручку динамометра вправо равномерно до скольжения. Запишите показание — это сила трения F<sub>тр</sub></li>
+                    <li><strong>Расчёт μ:</strong> Нажмите «Рассчитать μ» для вычисления коэффициента трения μ = F<sub>тр</sub> / N</li>
+                    <li><strong>Повторите:</strong> Проведите измерения с разным количеством грузов и на разных поверхностях</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Right Panel: Controls & Data -->
+        <aside class="control-panel">
+            <!-- Equipment -->
+            <div class="panel-section">
+                <h3>Оборудование</h3>
+                <div class="equipment-grid" id="equipment-container">
+                    <!-- Оборудование будет добавлено программно -->
+                </div>
+            </div>
+
+            <!-- Weights for loading -->
+            <div class="panel-section">
+                <h3>Грузы для нагрузки</h3>
+                <div class="weights-container" id="weights-container">
+                    <!-- Грузы будут добавлены программно -->
+                </div>
+            </div>
+
+            <!-- Measurement Window -->
+            <div class="panel-section">
+                <h3>Измерения и расчёт</h3>
+                <div class="measurement-window">
+                    <!-- Formula -->
+                    <div class="formula-display">
+                        μ = F<sub>тр</sub> / N
+                    </div>
+
+                    <!-- Variable N (Normal Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">N</div>
+                        <div class="var-input-group">
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-normal-input"
+                                placeholder="Сила давления N (Н)"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-normal">
+                                Записать N
+                            </button>
+                            <span class="var-current-value" id="current-normal" style="display:none;">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Variable Fтр (Friction Force) -->
+                    <div class="variable-row">
+                        <div class="var-label">F<sub>тр</sub></div>
+                        <div class="var-input-group">
+                            <input 
+                                type="text" 
+                                class="var-manual-input" 
+                                id="manual-friction-input"
+                                placeholder="Сила трения F_тр (Н)"
+                                inputmode="decimal"
+                            >
+                            <button class="btn-record-var" id="btn-record-friction">
+                                Записать F<sub>тр</sub>
+                            </button>
+                            <span class="var-current-value" id="current-friction" style="display:none;">—</span>
+                        </div>
+                    </div>
+
+                    <!-- Recorded Values -->
+                    <div class="recorded-values" id="recorded-values">
+                        <div class="recorded-item" id="recorded-normal-display" style="display: none;">
+                            <span class="recorded-label">N =</span>
+                            <span class="recorded-value" id="recorded-normal-value">—</span>
+                            <span class="recorded-unit">Н</span>
+                        </div>
+                        <div class="recorded-item" id="recorded-friction-display" style="display: none;">
+                            <span class="recorded-label">F<sub>тр</sub> =</span>
+                            <span class="recorded-value" id="recorded-friction-value">—</span>
+                            <span class="recorded-unit">Н</span>
+                        </div>
+                    </div>
+
+                    <!-- Calculate Button -->
+                    <div class="action-buttons-group">
+                        <button class="btn-reset-measurement" id="btn-reset-measurement">
+                            🔄 Сбросить
+                        </button>
+                        <button class="btn-calculate-stiffness" id="btn-calculate-coefficient" disabled>
+                            Рассчитать μ
+                        </button>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="calculation-result" id="calculation-result" style="display: none;">
+                        <div class="result-formula">μ = F<sub>тр</sub> / N</div>
+                        <div class="result-calculation" id="result-calculation-text"></div>
+                        <div class="result-final">
+                            <span class="result-label">μ =</span>
+                            <span class="result-value" id="result-coefficient-value">—</span>
+                            <span class="result-unit"></span>
+                        </div>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin-top: 8px;">
+                            где g = 9,8 м/с²
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="panel-section">
+                <button class="btn-success" id="btn-complete" disabled>
+                    <span class="icon">✓</span> Завершить опыт
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Help Modal -->
+    <div class="modal" id="help-modal" style="display: none;">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2>Справка: Сила трения скольжения</h2>
+            <div class="help-content">
+                <h3>Теория</h3>
+                <p><strong>Сила трения скольжения</strong> — сила, возникающая при скольжении одного тела по поверхности другого.</p>
+                
+                <p><strong>Закон Амонтона-Кулона:</strong></p>
+                <div class="formula-box">
+                    F<sub>тр</sub> = μ × N
+                </div>
+                <p>где:</p>
+                <ul>
+                    <li><strong>F<sub>тр</sub></strong> — сила трения скольжения (Н)</li>
+                    <li><strong>μ</strong> — коэффициент трения (безразмерный)</li>
+                    <li><strong>N</strong> — сила нормального давления (Н)</li>
+                </ul>
+                
+                <p>На горизонтальной поверхности: <strong>N = mg</strong></p>
+                
+                <h3>Типичные значения μ</h3>
+                <table class="help-table">
+                    <tr><td>Дерево по дереву</td><td>0.25 - 0.50</td></tr>
+                    <tr><td>Дерево по пластику</td><td>0.20 - 0.35</td></tr>
+                    <tr><td>Дерево по резине</td><td>0.40 - 0.70</td></tr>
+                </table>
+                
+                <h3>Методика измерения</h3>
+                <ol>
+                    <li>Измерить массу бруска с грузами</li>
+                    <li>Равномерно тянуть брусок динамометром</li>
+                    <li>Записать показание в момент равномерного движения</li>
+                    <li>μ = F<sub>тр</sub> / (m × g)</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

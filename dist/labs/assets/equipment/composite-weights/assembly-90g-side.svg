@@ -1,0 +1,162 @@
+<svg width="250" height="450" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#707880;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d0d8e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#808890;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="disk10Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#808890;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c0c8d0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#909098;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="disk20Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#707880;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#b8c0c8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#808890;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="disk50Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#606870;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#b0b8c0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#707880;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- ========== ВЕРХНЯЯ ЧАСТЬ: КРЮЧОК ========== -->
+  <g id="hook">
+    <path d="M 125 15 Q 110 15 110 30 Q 110 38 115 43 L 115 55 L 125 55" 
+          fill="none" stroke="#a0a8b0" stroke-width="7" stroke-linecap="round"/>
+    <path d="M 125 15 Q 140 15 140 30 Q 140 38 135 43 L 135 55 L 125 55" 
+          fill="none" stroke="#a0a8b0" stroke-width="7" stroke-linecap="round"/>
+    <rect x="121" y="53" width="8" height="15" fill="#b0b8c0"/>
+  </g>
+  
+  <!-- ========== СТЕРЖЕНЬ (верхняя часть - ДО опорного кольца) ========== -->
+  <rect x="121" y="68" width="8" height="145" fill="url(#rodGrad)"/>
+  <rect x="122" y="68" width="2" height="145" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- ========== ОПОРНОЕ КОЛЬЦО (КЛЮЧЕВОЙ ЭЛЕМЕНТ!) ========== -->
+  <g id="support-ring">
+    <!-- Тень кольца -->
+    <ellipse cx="125" cy="223" rx="18" ry="4" fill="#505860" opacity="0.4"/>
+    <!-- Боковая поверхность -->
+    <ellipse cx="125" cy="221" rx="18" ry="3.5" fill="#808890"/>
+    <!-- Основная поверхность -->
+    <ellipse cx="125" cy="219" rx="18" ry="3" fill="#b0b8c0" stroke="#707880" stroke-width="0.8"/>
+    <!-- Верхняя плоскость (на неё ложатся диски) -->
+    <ellipse cx="125" cy="218" rx="17" ry="2.8" fill="#d8e0e8"/>
+    <!-- Блик -->
+    <ellipse cx="118" cy="217.5" rx="7" ry="1.5" fill="rgba(255,255,255,0.5)"/>
+  </g>
+  
+  <!-- ========== ДИСКИ СТОПКОЙ (снизу вверх: 50г → 20г → 10г) ========== -->
+  
+  <!-- ДИСК 50г (самый нижний, лежит НА опорном кольце) -->
+  <g id="disk-50g">
+    <!-- Y=218 - это верхняя плоскость опорного кольца -->
+    <rect x="75" y="218" width="100" height="18" fill="url(#disk50Grad)" 
+          stroke="#404850" stroke-width="1" rx="1"/>
+    <rect x="77" y="218" width="96" height="1.5" fill="rgba(255,255,255,0.4)"/>
+    <rect x="77" y="234.5" width="96" height="1.5" fill="rgba(0,0,0,0.3)"/>
+    <rect x="76" y="219" width="5" height="16" fill="rgba(255,255,255,0.25)"/>
+    <!-- Отверстие -->
+    <rect x="123" y="218" width="4" height="18" fill="#000" opacity="0.5"/>
+    <line x1="123" y1="218" x2="123" y2="236" stroke="#000" stroke-width="1"/>
+    <line x1="127" y1="218" x2="127" y2="236" stroke="#000" stroke-width="1"/>
+  </g>
+  
+  <!-- ДИСК 20г (на диске 50г) -->
+  <g id="disk-20g">
+    <!-- Начинается сразу НА диске 50г: 218+18=236 -->
+    <rect x="85" y="236" width="80" height="14" fill="url(#disk20Grad)" 
+          stroke="#505860" stroke-width="0.9" rx="1"/>
+    <rect x="87" y="236" width="76" height="1.2" fill="rgba(255,255,255,0.4)"/>
+    <rect x="87" y="248.8" width="76" height="1.2" fill="rgba(0,0,0,0.3)"/>
+    <rect x="86" y="237" width="4" height="12" fill="rgba(255,255,255,0.25)"/>
+    <!-- Отверстие -->
+    <rect x="123" y="236" width="4" height="14" fill="#000" opacity="0.5"/>
+    <line x1="123" y1="236" x2="123" y2="250" stroke="#000" stroke-width="0.9"/>
+    <line x1="127" y1="236" x2="127" y2="250" stroke="#000" stroke-width="0.9"/>
+  </g>
+  
+  <!-- ДИСК 10г (самый верхний, самый маленький) -->
+  <g id="disk-10g">
+    <!-- Начинается сразу НА диске 20г: 236+14=250 -->
+    <rect x="95" y="250" width="60" height="12" fill="url(#disk10Grad)" 
+          stroke="#606870" stroke-width="0.8" rx="1"/>
+    <rect x="97" y="250" width="56" height="1" fill="rgba(255,255,255,0.4)"/>
+    <rect x="97" y="261" width="56" height="1" fill="rgba(0,0,0,0.3)"/>
+    <rect x="96" y="251" width="3" height="10" fill="rgba(255,255,255,0.25)"/>
+    <!-- Отверстие -->
+    <rect x="123" y="250" width="4" height="12" fill="#000" opacity="0.5"/>
+    <line x1="123" y1="250" x2="123" y2="262" stroke="#000" stroke-width="0.8"/>
+    <line x1="127" y1="250" x2="127" y2="262" stroke="#000" stroke-width="0.8"/>
+  </g>
+  
+  <!-- ========== РЕЗЬБА (проходит сквозь диски, от опорного кольца вниз) ========== -->
+  <!-- Начинается от кольца (y=218) и идёт под диски до гайки (y=330) -->
+  <rect x="121" y="218" width="8" height="112" fill="#909098"/>
+  <g opacity="0.25">
+    <line x1="121" y1="222" x2="129" y2="222" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="228" x2="129" y2="228" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="234" x2="129" y2="234" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="240" x2="129" y2="240" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="246" x2="129" y2="246" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="252" x2="129" y2="252" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="258" x2="129" y2="258" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="264" x2="129" y2="264" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="270" x2="129" y2="270" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="276" x2="129" y2="276" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="282" x2="129" y2="282" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="288" x2="129" y2="288" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="294" x2="129" y2="294" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="300" x2="129" y2="300" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="306" x2="129" y2="306" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="312" x2="129" y2="312" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="318" x2="129" y2="318" stroke="#000" stroke-width="0.6"/>
+    <line x1="121" y1="324" x2="129" y2="324" stroke="#000" stroke-width="0.6"/>
+  </g>
+  
+  <!-- ========== ГАЙКА ========== -->
+  <g id="nut">
+    <polygon points="125,330 133,334 133,344 125,348 117,344 117,334" 
+             fill="#808890" stroke="#505860" stroke-width="1"/>
+    <line x1="117" y1="334" x2="125" y2="330" stroke="#606868" stroke-width="0.6"/>
+    <line x1="133" y1="334" x2="125" y2="330" stroke="#606868" stroke-width="0.6"/>
+    <polygon points="120,335 123,334 123,343 120,342" fill="rgba(255,255,255,0.3)"/>
+  </g>
+  
+  <!-- ========== АННОТАЦИИ ========== -->
+  <g id="labels">
+    <!-- Стрелки к дискам (правильные Y координаты!) -->
+    <!-- Диск 10г: y=250+6=256 (середина диска высотой 12px) -->
+    <line x1="180" y1="256" x2="155" y2="256" stroke="#667eea" stroke-width="1" marker-end="url(#arrowhead)"/>
+    <text x="185" y="259" font-family="Arial" font-size="11" fill="#667eea">10 г</text>
+    
+    <!-- Диск 20г: y=236+7=243 (середина диска высотой 14px) -->
+    <line x1="170" y1="243" x2="165" y2="243" stroke="#667eea" stroke-width="1" marker-end="url(#arrowhead)"/>
+    <text x="175" y="246" font-family="Arial" font-size="11" fill="#667eea">20 г</text>
+    
+    <!-- Диск 50г: y=218+9=227 (середина диска высотой 18px) -->
+    <line x1="180" y1="227" x2="175" y2="227" stroke="#667eea" stroke-width="1" marker-end="url(#arrowhead)"/>
+    <text x="185" y="230" font-family="Arial" font-size="11" fill="#667eea">50 г</text>
+    
+    <!-- Опорное кольцо -->
+    <text x="145" y="221" font-family="Arial" font-size="9" fill="#f59e0b">← опора</text>
+    
+    <!-- Итоговая масса -->
+    <rect x="85" y="365" width="80" height="50" fill="#f0f0f0" stroke="#667eea" stroke-width="2" rx="5"/>
+    <text x="125" y="385" font-family="Arial" font-size="16" fill="#667eea" font-weight="bold" text-anchor="middle">Σ = 90 г</text>
+    <text x="125" y="402" font-family="Arial" font-size="10" fill="#999" text-anchor="middle">10+10+20+50</text>
+  </g>
+  
+  <!-- Стрелка для маркера -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#667eea" />
+    </marker>
+  </defs>
+</svg>

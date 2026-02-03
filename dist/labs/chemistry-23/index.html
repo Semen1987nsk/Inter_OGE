@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Задание 23: Качественный анализ | Химия ОГЭ | Labosfera</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2e7d32, #1b5e20);
+            color: white;
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .header h1 { font-size: 1rem; }
+        .badges { display: flex; gap: 8px; }
+        .badge {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            background: rgba(255,255,255,0.2);
+        }
+        .header-btns { display: flex; gap: 8px; }
+        .btn-reset {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-reset:hover { background: rgba(255,255,255,0.3); }
+        .btn-back {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85em;
+        }
+        .btn-back:hover { background: rgba(255,255,255,0.25); }
+        .btn-back .icon { font-size: 0.9em; }
+
+        .main {
+            display: grid;
+            grid-template-columns: 200px 1fr 300px;
+            gap: 12px;
+            padding: 12px;
+            height: calc(100vh - 44px);
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .panel-title {
+            background: linear-gradient(135deg, #1565c0, #0d47a1);
+            padding: 12px 15px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: white;
+        }
+        .panel-body {
+            padding: 10px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 0.7em;
+            color: #666;
+            text-transform: uppercase;
+            margin: 12px 0 6px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e3f2fd;
+            letter-spacing: 0.5px;
+        }
+
+        .item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #f5f5f5, #eeeeee);
+            border-radius: 10px;
+            cursor: grab;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .item:hover { 
+            background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+            border-color: #1565c0; 
+            transform: translateX(3px);
+        }
+        .item:active { cursor: grabbing; }
+        .item.used { opacity: 0.3; pointer-events: none; }
+        
+        .item-icon {
+            width: 36px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .item-icon svg { width: 100%; height: 100%; }
+        .item-info { flex: 1; }
+        .item-text { font-size: 0.8em; font-weight: 600; color: #333; }
+        .item-sub { font-size: 0.65em; color: #666; margin-top: 2px; }
+
+        .canvas-wrap { 
+            position: relative; 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        canvas { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+        }
+        #canvas-bg { z-index: 1; }
+        #canvas-main { z-index: 2; }
+        #canvas-effects { z-index: 3; pointer-events: none; }
+        #canvas-drag { z-index: 4; pointer-events: none; }
+
+        /* Results Panel */
+        .results-section { margin-bottom: 12px; }
+        .results-section-title {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #1565c0;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .observations {
+            background: linear-gradient(135deg, #fff8e1, #ffecb3);
+            border-radius: 10px;
+            padding: 10px;
+            border: 1px solid #ffc107;
+        }
+        .obs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.7em;
+        }
+        .obs-table th, .obs-table td {
+            padding: 6px 8px;
+            border: 1px solid #ffe082;
+            text-align: center;
+        }
+        .obs-table th {
+            background: #fff3e0;
+            font-weight: 600;
+            color: #e65100;
+        }
+        .obs-table td { background: white; }
+        .obs-precipitate { color: #2e7d32; font-weight: 600; }
+        .obs-no-reaction { color: #9e9e9e; }
+        .obs-empty { color: #bbb; font-style: italic; }
+
+        .conclusions {
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid #81c784;
+        }
+        .conclusion-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 8px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #a5d6a7;
+            flex-wrap: nowrap;
+        }
+        .conclusion-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .conclusion-select {
+            flex: 1;
+            min-width: 0;
+            padding: 6px 8px;
+            border: 1px solid #81c784;
+            border-radius: 6px;
+            font-size: 0.7em;
+            background: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .conclusion-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+        }
+        .status-empty { background: #eee; }
+        .status-correct { background: #4caf50; color: white; }
+        .status-wrong { background: #f44336; color: white; }
+
+        .score-box {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 12px;
+            padding: 15px;
+            color: white;
+            text-align: center;
+        }
+        .score-title { font-size: 0.75em; opacity: 0.9; }
+        .score-value { font-size: 2.5em; font-weight: 700; }
+        .score-max { font-size: 0.85em; opacity: 0.8; }
+
+        .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-check {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+        }
+        .btn-check:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(76,175,80,0.4); }
+        .btn-clear { background: #eee; color: #666; }
+        .btn-clear:hover { background: #ddd; }
+        .btn-hint {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            margin-top: 8px;
+        }
+
+        .hint-box {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+        .hint-box.visible { display: block; }
+        .hint-title { font-weight: 600; font-size: 0.8em; color: #f57c00; margin-bottom: 8px; }
+        .hint-content { font-size: 0.7em; color: #5d4037; line-height: 1.6; }
+        .hint-content ul { margin: 8px 0 8px 20px; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+        .modal-overlay.visible { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .modal-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+        }
+        .modal-icon.task { background: #e3f2fd; }
+        .modal-icon.success { background: #e8f5e9; }
+        .modal-icon.partial { background: #fff3e0; }
+        .modal-icon.fail { background: #ffebee; }
+        .modal-title { font-size: 1.4em; font-weight: 700; color: #333; }
+        .modal-subtitle { font-size: 0.9em; color: #666; }
+
+        .task-box {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 18px;
+            border-left: 4px solid #1565c0;
+        }
+        .task-text { font-size: 0.95em; line-height: 1.8; color: #333; }
+        .task-substances {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 20px 0;
+        }
+        .task-substance {
+            padding: 15px 30px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .task-substance.cuso4 { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+        .task-substance.fecl3 { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+        .task-formula { font-size: 1.5em; font-weight: 700; }
+        .task-name { font-size: 0.8em; color: #666; margin-top: 4px; }
+
+        .criteria-box {
+            background: #fff8e1;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 18px;
+            border: 1px solid #ffc107;
+        }
+        .criteria-title { font-weight: 600; font-size: 0.85em; color: #f57c00; margin-bottom: 8px; }
+        .criteria-text { font-size: 0.8em; color: #5d4037; line-height: 1.6; }
+
+        .modal-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            background: linear-gradient(135deg, #1565c0, #0d47a1);
+            color: white;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(21,101,192,0.4); }
+        .modal-btn.success { background: linear-gradient(135deg, #4caf50, #2e7d32); }
+
+        .pour-hint {
+            position: fixed;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.9);
+            color: #0f0;
+            padding: 8px 14px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            border-radius: 8px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <button class="btn-back" onclick="window.location.href='/'">
+            <span class="icon">◀</span> На главную
+        </button>
+        <h1>
+            <span style="opacity:0.7">ХИМИЯ ОГЭ •</span>
+            Задание 23: Качественный анализ веществ
+            <span style="font-size:0.5em; opacity:0.5; margin-left:8px;">Labosfera</span>
+        </h1>
+        <div class="header-btns">
+            <button class="btn-reset" id="btn-task">📋 Задание</button>
+            <button class="btn-reset" id="btn-reset">🔄 Сброс</button>
+        </div>
+    </header>
+
+    <div class="main">
+        <!-- LEFT: Inventory -->
+        <div class="panel">
+            <div class="panel-title">🧪 Оборудование и реактивы</div>
+            <div class="panel-body" id="inventory"></div>
+        </div>
+
+        <!-- CENTER: Canvas Lab -->
+        <div class="panel" style="padding:0; background: transparent;">
+            <div class="canvas-wrap">
+                <canvas id="canvas-bg"></canvas>
+                <canvas id="canvas-main"></canvas>
+                <canvas id="canvas-effects"></canvas>
+                <canvas id="canvas-drag"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT: Results -->
+        <div class="panel">
+            <div class="panel-title">📊 Лабораторный журнал</div>
+            <div class="panel-body">
+                <div class="results-section">
+                    <div class="results-section-title">📋 Наблюдения</div>
+                    <div class="observations">
+                        <table class="obs-table">
+                            <thead>
+                                <tr>
+                                    <th>Проб.</th>
+                                    <th>Склянка</th>
+                                    <th>Реагент</th>
+                                    <th>Результат</th>
+                                </tr>
+                            </thead>
+                            <tbody id="obs-tbody">
+                                <tr><td colspan="4" class="obs-empty">Проведите опыты...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="results-section">
+                    <div class="results-section-title">🎯 Ваши выводы</div>
+                    <div class="conclusions">
+                        <div class="conclusion-row">
+                            <span class="conclusion-label">Склянка №1:</span>
+                            <select class="conclusion-select" id="ans1">
+                                <option value="">— выберите —</option>
+                            </select>
+                            <span class="conclusion-status status-empty" id="status1"></span>
+                        </div>
+                        <div class="conclusion-row">
+                            <span class="conclusion-label">Склянка №2:</span>
+                            <select class="conclusion-select" id="ans2">
+                                <option value="">— выберите —</option>
+                            </select>
+                            <span class="conclusion-status status-empty" id="status2"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="score-box" id="score-box" style="display: none;">
+                    <div class="score-title">ВАШ РЕЗУЛЬТАТ</div>
+                    <div class="score-value" id="score-value">0</div>
+                    <div class="score-max">из 2 баллов</div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-check" id="btn-check">✓ Проверить</button>
+                    <button class="btn btn-clear" id="btn-clear">↺ Очистить</button>
+                </div>
+                <button class="btn btn-hint" id="btn-hint" style="width:100%">💡 Подсказка</button>
+
+                <div class="hint-box" id="hint-box">
+                    <div class="hint-title">💡 Алгоритм определения</div>
+                    <div class="hint-content" id="hint-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay visible" id="task-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-icon task">📋</div>
+                <div>
+                    <div class="modal-title">Задание 23</div>
+                    <div class="modal-subtitle">Химия ОГЭ — Качественный анализ</div>
+                </div>
+            </div>
+
+            <div class="task-box">
+                <div class="task-text">
+                    <p><strong>Условие:</strong> Даны две склянки с растворами неизвестных веществ. Известно, что в склянках находятся:</p>
+                    <div class="task-substances">
+                        <div class="task-substance cuso4">
+                            <div class="task-formula" style="color:#1565c0">CuSO₄</div>
+                            <div class="task-name">сульфат меди(II)</div>
+                        </div>
+                        <div class="task-substance fecl3">
+                            <div class="task-formula" style="color:#e65100">FeCl₃</div>
+                            <div class="task-name">хлорид железа(III)</div>
+                        </div>
+                    </div>
+                    <p><strong>Задача:</strong> Определите, какое вещество в какой склянке.</p>
+                    <p style="margin-top:12px"><strong>Реактивы:</strong> NaOH (щёлочь), H₂SO₄ (кислота), BaCl₂</p>
+                </div>
+            </div>
+
+            <div class="criteria-box">
+                <div class="criteria-title">⚠️ Критерии оценивания</div>
+                <div class="criteria-text">
+                    <strong>2 балла</strong> — оба вещества определены верно<br>
+                    <strong>1 балл</strong> — одно вещество определено верно<br>
+                    <strong>0 баллов</strong> — оба ответа неверные
+                </div>
+            </div>
+
+            <button class="modal-btn" id="task-start">🔬 Начать эксперимент</button>
+        </div>
+    </div>
+
+    <!-- Results Modal -->
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-icon" id="result-icon">🎉</div>
+                <div>
+                    <div class="modal-title" id="result-title">Результат</div>
+                    <div class="modal-subtitle" id="result-subtitle">Проверка завершена</div>
+                </div>
+            </div>
+            <div class="score-box" style="margin-bottom:20px">
+                <div class="score-title">Ваш результат</div>
+                <div class="score-value" id="result-score">0/2</div>
+            </div>
+            <div id="result-details" style="background:#f5f5f5;border-radius:10px;padding:15px;margin-bottom:20px"></div>
+            <button class="modal-btn success" id="result-close">Понятно</button>
+        </div>
+    </div>
+
+    <div class="pour-hint" id="pour-hint">Отпустите над пробиркой чтобы перелить</div>
+    <div id="debug">Загрузка...</div>
+
+    <script>
+    // =============================================
+    // 🧪 CHEMISTRY LAB v8 - ULTIMATE WITH POURING
+    // =============================================
+
+    const DEBUG = document.getElementById('debug');
+    const dbg = msg => DEBUG.textContent = msg;
+
+    // SVG Icons for inventory
+    const ICONS = {
+        tube: `<svg viewBox="0 0 40 60">
+            <defs>
+                <linearGradient id="tubeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#b3e5fc"/>
+                    <stop offset="30%" style="stop-color:#e1f5fe"/>
+                    <stop offset="70%" style="stop-color:#b3e5fc"/>
+                    <stop offset="100%" style="stop-color:#81d4fa"/>
+                </linearGradient>
+            </defs>
+            <path d="M12 5 L12 45 Q12 55 20 55 Q28 55 28 45 L28 5" fill="url(#tubeGrad)" stroke="#4fc3f7" stroke-width="1.5"/>
+            <ellipse cx="20" cy="5" rx="8" ry="3" fill="#b3e5fc" stroke="#4fc3f7"/>
+        </svg>`,
+        
+        bottle1: `<svg viewBox="0 0 50 70">
+            <defs>
+                <linearGradient id="bottle1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#e0e0e0"/>
+                    <stop offset="30%" style="stop-color:#fafafa"/>
+                    <stop offset="70%" style="stop-color:#e0e0e0"/>
+                    <stop offset="100%" style="stop-color:#bdbdbd"/>
+                </linearGradient>
+            </defs>
+            <rect x="8" y="20" width="34" height="45" rx="5" fill="url(#bottle1Grad)" stroke="#9e9e9e"/>
+            <rect x="12" y="30" width="26" height="30" rx="3" fill="#2196f3" opacity="0.7"/>
+            <path d="M18 20 L18 12 L32 12 L32 20" fill="#e0e0e0" stroke="#9e9e9e"/>
+            <rect x="16" y="5" width="18" height="8" rx="3" fill="#6d4c41"/>
+            <text x="25" y="58" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">?</text>
+        </svg>`,
+        
+        bottle2: `<svg viewBox="0 0 50 70">
+            <defs>
+                <linearGradient id="bottle2Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#e0e0e0"/>
+                    <stop offset="30%" style="stop-color:#fafafa"/>
+                    <stop offset="70%" style="stop-color:#e0e0e0"/>
+                    <stop offset="100%" style="stop-color:#bdbdbd"/>
+                </linearGradient>
+            </defs>
+            <rect x="8" y="20" width="34" height="45" rx="5" fill="url(#bottle2Grad)" stroke="#9e9e9e"/>
+            <rect x="12" y="30" width="26" height="30" rx="3" fill="#ff9800" opacity="0.7"/>
+            <path d="M18 20 L18 12 L32 12 L32 20" fill="#e0e0e0" stroke="#9e9e9e"/>
+            <rect x="16" y="5" width="18" height="8" rx="3" fill="#6d4c41"/>
+            <text x="25" y="58" font-size="14" font-weight="bold" fill="#333" text-anchor="middle">?</text>
+        </svg>`,
+        
+        reagent: (color) => `<svg viewBox="0 0 40 60">
+            <defs>
+                <linearGradient id="reagentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#5d4037"/>
+                    <stop offset="30%" style="stop-color:#8d6e63"/>
+                    <stop offset="70%" style="stop-color:#6d4c41"/>
+                    <stop offset="100%" style="stop-color:#4e342e"/>
+                </linearGradient>
+            </defs>
+            <rect x="8" y="18" width="24" height="38" rx="4" fill="url(#reagentGrad)"/>
+            <path d="M16 18 L16 8 L24 8 L24 18" fill="#455a64"/>
+            <ellipse cx="20" cy="5" rx="6" ry="5" fill="#546e7a"/>
+            <rect x="12" y="28" width="16" height="20" rx="2" fill="${color}" opacity="0.5"/>
+        </svg>`
+    };
+
+    class ChemLab {
+        constructor() {
+            dbg('Инициализация...');
+
+            // Canvases
+            this.bgCanvas = document.getElementById('canvas-bg');
+            this.mainCanvas = document.getElementById('canvas-main');
+            this.effectsCanvas = document.getElementById('canvas-effects');
+            this.dragCanvas = document.getElementById('canvas-drag');
+            
+            this.bgCtx = this.bgCanvas.getContext('2d');
+            this.ctx = this.mainCanvas.getContext('2d');
+            this.fxCtx = this.effectsCanvas.getContext('2d');
+            this.dragCtx = this.dragCanvas.getContext('2d');
+
+            // Chemistry data
+            this.substances = {
+                'CuSO4': { 
+                    formula: 'CuSO₄', 
+                    name: 'Сульфат меди(II)', 
+                    color: '#2196f3',
+                    lightColor: '#64b5f6',
+                    darkColor: '#1565c0'
+                },
+                'FeCl3': { 
+                    formula: 'FeCl₃', 
+                    name: 'Хлорид железа(III)', 
+                    color: '#ff9800',
+                    lightColor: '#ffb74d',
+                    darkColor: '#e65100'
+                },
+                'NaOH': { 
+                    formula: 'NaOH', 
+                    name: 'Гидроксид натрия', 
+                    color: '#e0e0e0',
+                    lightColor: '#f5f5f5',
+                    darkColor: '#bdbdbd'
+                },
+                'H2SO4': { 
+                    formula: 'H₂SO₄', 
+                    name: 'Серная кислота', 
+                    color: '#eceff1',
+                    lightColor: '#fafafa',
+                    darkColor: '#cfd8dc'
+                },
+                'BaCl2': { 
+                    formula: 'BaCl₂', 
+                    name: 'Хлорид бария', 
+                    color: '#e8eaf6',
+                    lightColor: '#f5f5f5',
+                    darkColor: '#c5cae9'
+                }
+            };
+
+            this.reactions = {
+                'CuSO4+NaOH': { precipitate: '#29b6f6', text: 'Голубой осадок Cu(OH)₂' },
+                'CuSO4+BaCl2': { precipitate: '#f5f5f5', text: 'Белый осадок BaSO₄' },
+                'FeCl3+NaOH': { precipitate: '#8d6e63', text: 'Бурый осадок Fe(OH)₃' },
+                'FeCl3+BaCl2': { precipitate: null, text: 'Нет реакции' },
+                'CuSO4+H2SO4': { precipitate: null, text: 'Нет реакции' },
+                'FeCl3+H2SO4': { precipitate: null, text: 'Нет реакции' }
+            };
+
+            this.unknowns = ['CuSO4', 'FeCl3'];
+            this.reagents = ['NaOH', 'H2SO4', 'BaCl2'];
+
+            // Lab state
+            this.tubes = [];
+            this.bottles = [];
+            this.reagentBottles = [];
+            this.experiments = [];
+            this.particles = [];
+            this.pouringAnimation = null;
+
+            // Drag state
+            this.dragging = null;
+            this.mouseX = 0;
+            this.mouseY = 0;
+            this.hoverTube = null;
+
+            this.init();
+        }
+
+        init() {
+            this.resize();
+            window.addEventListener('resize', () => this.resize());
+
+            this.buildInventory();
+            this.setupMouse();
+            this.setupButtons();
+            this.fillSelects();
+            this.generateHint();
+
+            this.animate();
+            dbg('Перетаскивайте оборудование!');
+        }
+
+        resize() {
+            const wrap = this.mainCanvas.parentElement;
+            const rect = wrap.getBoundingClientRect();
+            this.W = rect.width;
+            this.H = rect.height;
+
+            [this.bgCanvas, this.mainCanvas, this.effectsCanvas, this.dragCanvas].forEach(c => {
+                c.width = this.W;
+                c.height = this.H;
+            });
+
+            this.tableY = this.H - 60;
+            this.drawBackground();
+        }
+
+        // ========== INVENTORY ==========
+        buildInventory() {
+            const inv = document.getElementById('inventory');
+            inv.innerHTML = '';
+
+            const addSection = title => {
+                const div = document.createElement('div');
+                div.className = 'section-title';
+                div.textContent = title;
+                inv.appendChild(div);
+            };
+
+            addSection('ПРОБИРКИ');
+            for (let i = 1; i <= 4; i++) {
+                inv.appendChild(this.createItem('tube', i, `Пробирка ${i}`, 'Стеклянная', ICONS.tube));
+            }
+
+            addSection('НЕИЗВЕСТНЫЕ ВЕЩЕСТВА');
+            inv.appendChild(this.createItem('unknown', 1, 'Склянка №1', 'Неизвестное', ICONS.bottle1));
+            inv.appendChild(this.createItem('unknown', 2, 'Склянка №2', 'Неизвестное', ICONS.bottle2));
+
+            addSection('РЕАКТИВЫ');
+            this.reagents.forEach(id => {
+                const s = this.substances[id];
+                inv.appendChild(this.createItem('reagent', id, s.formula, s.name, ICONS.reagent(s.color)));
+            });
+        }
+
+        createItem(type, id, text, sub, svgIcon) {
+            const el = document.createElement('div');
+            el.className = 'item';
+            el.dataset.type = type;
+            el.dataset.id = id;
+
+            el.innerHTML = `
+                <div class="item-icon">${svgIcon}</div>
+                <div class="item-info">
+                    <div class="item-text">${text}</div>
+                    <div class="item-sub">${sub}</div>
+                </div>
+            `;
+
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                if (el.classList.contains('used')) return;
+                this.startDrag(type, id, el);
+            });
+
+            return el;
+        }
+
+        markUsed(type, id) {
+            const el = document.querySelector(`.item[data-type="${type}"][data-id="${id}"]`);
+            if (el) el.classList.add('used');
+        }
+
+        // ========== MOUSE HANDLING ==========
+        setupMouse() {
+            const hint = document.getElementById('pour-hint');
+
+            document.addEventListener('mousemove', e => {
+                this.mouseX = e.clientX;
+                this.mouseY = e.clientY;
+                
+                if (this.dragging) {
+                    if (this.dragging.onCanvas) {
+                        const rect = this.mainCanvas.getBoundingClientRect();
+                        this.dragging.item.x = e.clientX - rect.left - this.dragging.offsetX;
+                        this.dragging.item.y = e.clientY - rect.top - this.dragging.offsetY;
+                    }
+                    
+                    // Check if hovering over tube (for pour hint)
+                    const rect = this.mainCanvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    this.hoverTube = this.getTubeAt(x, y);
+                    
+                    if (this.hoverTube && (this.dragging.type === 'unknown' || this.dragging.type === 'reagent' || 
+                        this.dragging.type === 'canvas-bottle' || this.dragging.type === 'canvas-reagent')) {
+                        hint.style.display = 'block';
+                        hint.style.left = (e.clientX + 15) + 'px';
+                        hint.style.top = (e.clientY - 30) + 'px';
+                    } else {
+                        hint.style.display = 'none';
+                    }
+                }
+            });
+
+            document.addEventListener('mouseup', e => {
+                hint.style.display = 'none';
+                
+                if (!this.dragging) return;
+                
+                const rect = this.mainCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (this.dragging.onCanvas) {
+                    // Check if dropping canvas bottle/reagent on tube
+                    const tube = this.getTubeAt(x, y);
+                    if (tube && (this.dragging.type === 'canvas-bottle' || this.dragging.type === 'canvas-reagent')) {
+                        this.pourIntoTube(this.dragging, tube);
+                    }
+                    this.dragging = null;
+                } else if (x >= 0 && x <= this.W && y >= 0 && y <= this.H) {
+                    this.handleDrop(this.dragging, x, y);
+                }
+
+                this.dragging = null;
+                this.hoverTube = null;
+                this.dragCtx.clearRect(0, 0, this.W, this.H);
+                document.body.style.cursor = 'default';
+                dbg('Перетаскивайте оборудование!');
+            });
+
+            // Canvas interactions
+            this.mainCanvas.addEventListener('mousedown', e => {
+                const rect = this.mainCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                // Check bottles first
+                const bottle = this.getBottleAt(x, y);
+                if (bottle) {
+                    this.dragging = {
+                        type: 'canvas-bottle',
+                        item: bottle,
+                        onCanvas: true,
+                        offsetX: x - bottle.x,
+                        offsetY: y - bottle.y
+                    };
+                    document.body.style.cursor = 'grabbing';
+                    return;
+                }
+
+                // Check reagent bottles
+                const reagent = this.getReagentAt(x, y);
+                if (reagent) {
+                    this.dragging = {
+                        type: 'canvas-reagent',
+                        item: reagent,
+                        onCanvas: true,
+                        offsetX: x - reagent.x,
+                        offsetY: y - reagent.y
+                    };
+                    document.body.style.cursor = 'grabbing';
+                    return;
+                }
+
+                // Check tubes
+                const tube = this.getTubeAt(x, y);
+                if (tube) {
+                    this.dragging = {
+                        type: 'canvas-tube',
+                        item: tube,
+                        onCanvas: true,
+                        offsetX: x - tube.x,
+                        offsetY: y - tube.y
+                    };
+                    document.body.style.cursor = 'grabbing';
+                }
+            });
+        }
+
+        startDrag(type, id, el) {
+            this.dragging = { type, id, el, onCanvas: false };
+            document.body.style.cursor = 'grabbing';
+            dbg(`Взял: ${type} ${id}`);
+        }
+
+        getTubeAt(x, y) {
+            for (let i = this.tubes.length - 1; i >= 0; i--) {
+                const t = this.tubes[i];
+                if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) return t;
+            }
+            return null;
+        }
+
+        getBottleAt(x, y) {
+            for (let i = this.bottles.length - 1; i >= 0; i--) {
+                const b = this.bottles[i];
+                if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return b;
+            }
+            return null;
+        }
+
+        getReagentAt(x, y) {
+            for (let i = this.reagentBottles.length - 1; i >= 0; i--) {
+                const r = this.reagentBottles[i];
+                if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return r;
+            }
+            return null;
+        }
+
+        // ========== DROP HANDLING ==========
+        handleDrop(data, x, y) {
+            const { type, id } = data;
+
+            if (type === 'tube') {
+                if (this.tubes.find(t => t.num === id)) return;
+                this.tubes.push({
+                    num: id,
+                    x: x - 30, y: Math.min(y - 80, this.tableY - 170),
+                    w: 60, h: 160,
+                    liquid: null, liquidNum: null,
+                    reagent: null, liquidLevel: 0,
+                    precipitate: null, precipitateLevel: 0
+                });
+                this.markUsed('tube', id);
+
+            } else if (type === 'unknown') {
+                const tube = this.getTubeAt(x, y);
+                if (tube) {
+                    this.pourFromInventory('unknown', id, tube);
+                } else {
+                    if (this.bottles.find(b => b.num === id)) return;
+                    const substanceId = this.unknowns[id - 1];
+                    this.bottles.push({
+                        num: id,
+                        substanceId,
+                        x: x - 40, y: Math.min(y - 55, this.tableY - 115),
+                        w: 80, h: 110,
+                        angle: 0
+                    });
+                    this.markUsed('unknown', id);
+                }
+
+            } else if (type === 'reagent') {
+                const tube = this.getTubeAt(x, y);
+                if (tube) {
+                    this.pourFromInventory('reagent', id, tube);
+                } else {
+                    if (this.reagentBottles.find(r => r.id === id)) return;
+                    this.reagentBottles.push({
+                        id,
+                        x: x - 30, y: Math.min(y - 50, this.tableY - 100),
+                        w: 60, h: 95,
+                        angle: 0
+                    });
+                }
+            }
+        }
+
+        // ========== POURING MECHANICS ==========
+        pourFromInventory(type, id, tube) {
+            if (type === 'unknown') {
+                if (tube.liquid) return;
+                const substanceId = this.unknowns[id - 1];
+                tube.liquid = substanceId;
+                tube.liquidNum = id;
+                this.animatePour(tube, 0.45, this.substances[substanceId].color);
+                this.markUsed('unknown', id);
+            } else if (type === 'reagent') {
+                if (!tube.liquid || tube.reagent) return;
+                this.addReagentToTube(tube, id);
+            }
+        }
+
+        pourIntoTube(dragData, tube) {
+            if (dragData.type === 'canvas-bottle') {
+                const bottle = dragData.item;
+                if (tube.liquid) return; // Already has liquid
+                
+                tube.liquid = bottle.substanceId;
+                tube.liquidNum = bottle.num;
+                
+                // Animate bottle tilting and pouring
+                this.animateBottlePour(bottle, tube);
+                
+            } else if (dragData.type === 'canvas-reagent') {
+                const reagent = dragData.item;
+                if (!tube.liquid || tube.reagent) return;
+                
+                this.animateReagentPour(reagent, tube);
+            }
+        }
+
+        animateBottlePour(bottle, tube) {
+            const startX = bottle.x;
+            const startY = bottle.y;
+            const targetX = tube.x + tube.w/2 - bottle.w/2;
+            const targetY = tube.y - 40;
+            const startTime = performance.now();
+            const substance = this.substances[bottle.substanceId];
+
+            this.pouringAnimation = {
+                bottle,
+                tube,
+                phase: 'move', // move, tilt, pour, return
+                startTime,
+                update: (now) => {
+                    const elapsed = now - startTime;
+                    
+                    if (this.pouringAnimation.phase === 'move') {
+                        const progress = Math.min(elapsed / 300, 1);
+                        const eased = 1 - Math.pow(1 - progress, 2);
+                        bottle.x = startX + (targetX - startX) * eased;
+                        bottle.y = startY + (targetY - startY) * eased;
+                        if (progress >= 1) {
+                            this.pouringAnimation.phase = 'tilt';
+                            this.pouringAnimation.startTime = now;
+                        }
+                    } else if (this.pouringAnimation.phase === 'tilt') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 400, 1);
+                        bottle.angle = progress * 0.8; // Tilt 45 degrees
+                        if (progress >= 1) {
+                            this.pouringAnimation.phase = 'pour';
+                            this.pouringAnimation.startTime = now;
+                            // Start pouring particles
+                            this.startPourStream(bottle, tube, substance.color);
+                        }
+                    } else if (this.pouringAnimation.phase === 'pour') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 1000, 1);
+                        tube.liquidLevel = 0.45 * progress;
+                        if (progress >= 1) {
+                            this.pouringAnimation.phase = 'return';
+                            this.pouringAnimation.startTime = now;
+                        }
+                    } else if (this.pouringAnimation.phase === 'return') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 400, 1);
+                        const eased = 1 - Math.pow(1 - progress, 2);
+                        bottle.angle = 0.8 * (1 - eased);
+                        bottle.x = targetX + (startX - targetX) * eased;
+                        bottle.y = targetY + (startY - targetY) * eased;
+                        if (progress >= 1) {
+                            this.pouringAnimation = null;
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            };
+        }
+
+        animateReagentPour(reagent, tube) {
+            const startX = reagent.x;
+            const startY = reagent.y;
+            const targetX = tube.x + tube.w/2 - reagent.w/2;
+            const targetY = tube.y - 30;
+            const startTime = performance.now();
+            const substance = this.substances[reagent.id];
+
+            this.pouringAnimation = {
+                reagent,
+                tube,
+                phase: 'move',
+                startTime,
+                update: (now) => {
+                    const elapsed = now - startTime;
+                    
+                    if (this.pouringAnimation.phase === 'move') {
+                        const progress = Math.min(elapsed / 300, 1);
+                        const eased = 1 - Math.pow(1 - progress, 2);
+                        reagent.x = startX + (targetX - startX) * eased;
+                        reagent.y = startY + (targetY - startY) * eased;
+                        if (progress >= 1) {
+                            this.pouringAnimation.phase = 'tilt';
+                            this.pouringAnimation.startTime = now;
+                        }
+                    } else if (this.pouringAnimation.phase === 'tilt') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 300, 1);
+                        reagent.angle = progress * 1.0;
+                        if (progress >= 1) {
+                            this.pouringAnimation.phase = 'pour';
+                            this.pouringAnimation.startTime = now;
+                            this.startPourStream(reagent, tube, substance.color, true);
+                        }
+                    } else if (this.pouringAnimation.phase === 'pour') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 800, 1);
+                        if (progress >= 1) {
+                            this.addReagentToTube(tube, reagent.id);
+                            this.pouringAnimation.phase = 'return';
+                            this.pouringAnimation.startTime = now;
+                        }
+                    } else if (this.pouringAnimation.phase === 'return') {
+                        const progress = Math.min((now - this.pouringAnimation.startTime) / 300, 1);
+                        reagent.angle = 1.0 * (1 - progress);
+                        reagent.x = targetX + (startX - targetX) * progress;
+                        reagent.y = targetY + (startY - targetY) * progress;
+                        if (progress >= 1) {
+                            this.pouringAnimation = null;
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            };
+        }
+
+        startPourStream(source, tube, color, isDrops = false) {
+            const duration = isDrops ? 800 : 1000;
+            const startTime = performance.now();
+            const interval = isDrops ? 50 : 16;
+            
+            // Целевая точка - центр горлышка пробирки
+            const targetX = tube.x + tube.w / 2;
+            const targetY = tube.y + 25;
+            
+            const addParticle = () => {
+                if (performance.now() - startTime > duration) return;
+                
+                // Простой расчёт: берём правый верхний угол источника
+                // (там горлышко при наклоне)
+                const startX = source.x + source.w - 5;
+                const startY = source.y + 20;
+                
+                // Направление к пробирке
+                const dx = targetX - startX;
+                const dy = targetY - startY;
+                
+                // Скорость для красивой параболы
+                // Время полёта ~20-30 кадров, гравитация 0.3
+                const frames = 25;
+                const g = 0.3;
+                
+                // vx = dx / frames
+                // vy = (dy - 0.5 * g * frames^2) / frames (учитываем гравитацию)
+                const vx = dx / frames + (Math.random() - 0.5) * 0.5;
+                const vy = (dy - 0.5 * g * frames * frames) / frames;
+                
+                // Основная капля
+                this.particles.push({
+                    x: startX + (Math.random() - 0.5) * 4,
+                    y: startY + (Math.random() - 0.5) * 2,
+                    vx: vx,
+                    vy: vy,
+                    radius: isDrops ? 5 : 3,
+                    color,
+                    alpha: 1,
+                    life: 50,
+                    gravity: g,
+                    targetTube: tube,
+                    isStream: true
+                });
+                
+                setTimeout(addParticle, interval);
+            };
+            addParticle();
+        }
+
+        addReagentToTube(tube, reagentId) {
+            tube.reagent = reagentId;
+            tube.liquidLevel = Math.min(tube.liquidLevel + 0.15, 0.6);
+            
+            const key = `${tube.liquid}+${reagentId}`;
+            const reaction = this.reactions[key];
+            
+            this.experiments.push({
+                tubeNum: tube.num,
+                unknownNum: tube.liquidNum,
+                substance: tube.liquid,
+                reagent: reagentId,
+                result: reaction?.text || 'Нет реакции',
+                precipitate: reaction?.precipitate
+            });
+            
+            if (reaction?.precipitate) {
+                this.animatePrecipitate(tube, reaction.precipitate);
+            }
+            
+            this.updateObservations();
+        }
+
+        animatePour(tube, targetLevel, color) {
+            const startLevel = tube.liquidLevel;
+            const startTime = performance.now();
+            const duration = 600;
+
+            // Pour particles
+            for (let i = 0; i < 12; i++) {
+                setTimeout(() => {
+                    this.particles.push({
+                        x: tube.x + tube.w/2 + (Math.random() - 0.5) * 15,
+                        y: tube.y + 20,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: 3 + Math.random() * 3,
+                        radius: 2 + Math.random() * 3,
+                        color,
+                        alpha: 1,
+                        life: 35
+                    });
+                }, i * 40);
+            }
+
+            const animate = () => {
+                const progress = Math.min((performance.now() - startTime) / duration, 1);
+                tube.liquidLevel = startLevel + (targetLevel - startLevel) * (1 - Math.pow(1 - progress, 3));
+                if (progress < 1) requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        animatePrecipitate(tube, color) {
+            // ВАЖНО: устанавливаем цвет осадка в объект пробирки!
+            tube.precipitate = color;
+            
+            const startTime = performance.now();
+            const duration = 1500;
+
+            // Reaction bubbles
+            for (let i = 0; i < 25; i++) {
+                setTimeout(() => {
+                    this.particles.push({
+                        x: tube.x + tube.w/2 + (Math.random() - 0.5) * 25,
+                        y: tube.y + tube.h - 50 - Math.random() * 30,
+                        vx: (Math.random() - 0.5) * 1.5,
+                        vy: -1.5 - Math.random() * 2,
+                        radius: 1.5 + Math.random() * 3,
+                        color: color,
+                        alpha: 0.8,
+                        life: 50
+                    });
+                }, i * 40);
+            }
+
+            const animate = () => {
+                const progress = Math.min((performance.now() - startTime) / duration, 1);
+                tube.precipitateLevel = 0.2 * (1 - Math.pow(1 - progress, 2));
+                if (progress < 1) requestAnimationFrame(animate);
+            };
+            animate();
+        }
+
+        // ========== DRAWING ==========
+        drawBackground() {
+            const ctx = this.bgCtx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            // Lab wall
+            const wallGrad = ctx.createLinearGradient(0, 0, 0, this.H);
+            wallGrad.addColorStop(0, '#e3f2fd');
+            wallGrad.addColorStop(0.5, '#bbdefb');
+            wallGrad.addColorStop(1, '#90caf9');
+            ctx.fillStyle = wallGrad;
+            ctx.fillRect(0, 0, this.W, this.H);
+
+            // Tile pattern
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1;
+            for (let y = 0; y < this.tableY; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(this.W, y);
+                ctx.stroke();
+            }
+            for (let x = 0; x < this.W; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, this.tableY);
+                ctx.stroke();
+            }
+
+            // Lab table
+            const tableGrad = ctx.createLinearGradient(0, this.tableY, 0, this.H);
+            tableGrad.addColorStop(0, '#5d4037');
+            tableGrad.addColorStop(0.1, '#6d4c41');
+            tableGrad.addColorStop(0.9, '#4e342e');
+            tableGrad.addColorStop(1, '#3e2723');
+            ctx.fillStyle = tableGrad;
+            ctx.fillRect(0, this.tableY, this.W, this.H - this.tableY);
+
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.fillRect(0, this.tableY, this.W, 3);
+
+            // Instructions
+            ctx.fillStyle = 'rgba(0,0,0,0.4)';
+            ctx.font = 'bold 14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('Поставьте оборудование на стол • Перетащите склянку на пробирку чтобы перелить', this.W / 2, 25);
+        }
+
+        draw() {
+            const ctx = this.ctx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            // Draw bottles
+            for (const bottle of this.bottles) {
+                this.drawBottle(ctx, bottle);
+            }
+
+            // Draw reagent bottles
+            for (const reagent of this.reagentBottles) {
+                this.drawReagentBottle(ctx, reagent);
+            }
+
+            // Draw tubes
+            for (const tube of this.tubes) {
+                this.drawTube(ctx, tube, tube === this.hoverTube);
+            }
+
+            // Draw drag preview
+            if (this.dragging && !this.dragging.onCanvas) {
+                this.drawDragPreview();
+            }
+        }
+
+        drawBottle(ctx, bottle) {
+            const { x, y, w, h, num, substanceId, angle = 0 } = bottle;
+            const substance = this.substances[substanceId];
+            
+            ctx.save();
+            
+            if (angle) {
+                ctx.translate(x + w * 0.3, y + h * 0.3);
+                ctx.rotate(angle);
+                ctx.translate(-(x + w * 0.3), -(y + h * 0.3));
+            }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2, y + h + 5, w/2 - 8, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bottle body
+            const bodyGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+            bodyGrad.addColorStop(0, 'rgba(210,210,210,0.95)');
+            bodyGrad.addColorStop(0.2, 'rgba(255,255,255,0.92)');
+            bodyGrad.addColorStop(0.5, 'rgba(245,245,245,0.88)');
+            bodyGrad.addColorStop(0.8, 'rgba(230,230,230,0.92)');
+            bodyGrad.addColorStop(1, 'rgba(200,200,200,0.95)');
+
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.roundRect(x + 8, y + 25, w - 16, h - 25, 8);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(150,150,150,0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Liquid
+            ctx.fillStyle = substance.color;
+            ctx.globalAlpha = 0.75;
+            ctx.beginPath();
+            ctx.roundRect(x + 14, y + 38, w - 28, h - 50, 5);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Highlight on liquid
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.fillRect(x + 14, y + 38, w - 28, 10);
+
+            // Neck
+            ctx.fillStyle = 'rgba(235,235,235,0.9)';
+            ctx.beginPath();
+            ctx.moveTo(x + w/2 - 14, y + 25);
+            ctx.lineTo(x + w/2 - 10, y + 12);
+            ctx.lineTo(x + w/2 + 10, y + 12);
+            ctx.lineTo(x + w/2 + 14, y + 25);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cork
+            const capGrad = ctx.createLinearGradient(x + w/2 - 12, 0, x + w/2 + 12, 0);
+            capGrad.addColorStop(0, '#5d4037');
+            capGrad.addColorStop(0.5, '#8d6e63');
+            capGrad.addColorStop(1, '#5d4037');
+            ctx.fillStyle = capGrad;
+            ctx.beginPath();
+            ctx.roundRect(x + w/2 - 12, y, 24, 14, 4);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = 'white';
+            ctx.fillRect(x + 16, y + h - 35, w - 32, 24);
+            ctx.strokeStyle = '#bbb';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 16, y + h - 35, w - 32, 24);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 15px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`№${num}`, x + w/2, y + h - 17);
+
+            // Glass reflection
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillRect(x + 14, y + 30, 5, h - 70);
+
+            ctx.restore();
+        }
+
+        drawReagentBottle(ctx, reagent) {
+            const { x, y, w, h, id, angle = 0 } = reagent;
+            const substance = this.substances[id];
+
+            ctx.save();
+            
+            if (angle) {
+                ctx.translate(x + w * 0.3, y + h * 0.3);
+                ctx.rotate(angle);
+                ctx.translate(-(x + w * 0.3), -(y + h * 0.3));
+            }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2, y + h + 3, w/2 - 5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brown bottle body
+            const bodyGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+            bodyGrad.addColorStop(0, '#4e342e');
+            bodyGrad.addColorStop(0.25, '#795548');
+            bodyGrad.addColorStop(0.75, '#6d4c41');
+            bodyGrad.addColorStop(1, '#3e2723');
+
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.roundRect(x + 5, y + 22, w - 10, h - 22, 6);
+            ctx.fill();
+
+            // Dropper tip
+            ctx.fillStyle = '#37474f';
+            ctx.beginPath();
+            ctx.moveTo(x + w/2 - 10, y + 22);
+            ctx.lineTo(x + w/2 + 10, y + 22);
+            ctx.lineTo(x + w/2 + 6, y + 6);
+            ctx.lineTo(x + w/2 - 6, y + 6);
+            ctx.closePath();
+            ctx.fill();
+
+            // Rubber bulb
+            ctx.fillStyle = '#455a64';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2, y + 4, 10, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2 - 3, y + 2, 3, 4, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = 'rgba(255,255,255,0.92)';
+            ctx.fillRect(x + 10, y + h - 32, w - 20, 22);
+            
+            ctx.fillStyle = '#333';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(substance.formula, x + w/2, y + h - 16);
+
+            // Bottle highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fillRect(x + 8, y + 26, 5, h - 55);
+
+            ctx.restore();
+        }
+
+        drawTube(ctx, tube, highlight = false) {
+            const { x, y, w, h, num, liquid, liquidLevel, precipitate, precipitateLevel } = tube;
+
+            ctx.save();
+
+            // Highlight glow when hovering
+            if (highlight) {
+                ctx.shadowColor = '#4caf50';
+                ctx.shadowBlur = 20;
+            }
+
+            // Shadow
+            ctx.fillStyle = 'rgba(0,0,0,0.12)';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2, y + h + 5, w/2 + 5, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+
+            // Glass tube
+            const glassGrad = ctx.createLinearGradient(x, 0, x + w, 0);
+            glassGrad.addColorStop(0, 'rgba(180,220,255,0.85)');
+            glassGrad.addColorStop(0.15, 'rgba(255,255,255,0.75)');
+            glassGrad.addColorStop(0.4, 'rgba(235,248,255,0.55)');
+            glassGrad.addColorStop(0.6, 'rgba(225,243,255,0.55)');
+            glassGrad.addColorStop(0.85, 'rgba(255,255,255,0.75)');
+            glassGrad.addColorStop(1, 'rgba(180,220,255,0.85)');
+
+            ctx.beginPath();
+            ctx.moveTo(x + 6, y + 12);
+            ctx.lineTo(x + 6, y + h - w/2);
+            ctx.arc(x + w/2, y + h - w/2, w/2 - 6, Math.PI, 0, true);
+            ctx.lineTo(x + w - 6, y + 12);
+            ctx.closePath();
+            
+            ctx.fillStyle = glassGrad;
+            ctx.fill();
+
+            // Liquid
+            if (liquidLevel > 0 && liquid) {
+                const substance = this.substances[liquid];
+                const liquidH = (h - 45) * liquidLevel;
+                const liquidY = y + h - liquidH - w/2 + 8;
+
+                const liqGrad = ctx.createLinearGradient(x, liquidY, x, y + h);
+                liqGrad.addColorStop(0, substance.lightColor);
+                liqGrad.addColorStop(0.3, substance.color);
+                liqGrad.addColorStop(1, substance.darkColor);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(x + 10, liquidY);
+                ctx.lineTo(x + 10, y + h - w/2);
+                ctx.arc(x + w/2, y + h - w/2, w/2 - 10, Math.PI, 0, true);
+                ctx.lineTo(x + w - 10, liquidY);
+                ctx.closePath();
+                ctx.clip();
+
+                ctx.fillStyle = liqGrad;
+                ctx.globalAlpha = 0.85;
+                ctx.fillRect(x, liquidY, w, h);
+
+                // Meniscus
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                ctx.beginPath();
+                ctx.ellipse(x + w/2, liquidY + 4, w/2 - 12, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            // Precipitate
+            if (precipitateLevel > 0 && precipitate) {
+                const precH = (h - 45) * precipitateLevel;
+                const precY = y + h - precH - w/2 + 3;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(x + w/2, y + h - w/2, w/2 - 12, Math.PI, 0, true);
+                ctx.lineTo(x + w - 12, precY);
+                ctx.lineTo(x + 12, precY);
+                ctx.closePath();
+                ctx.clip();
+
+                ctx.fillStyle = precipitate;
+                ctx.globalAlpha = 0.92;
+                ctx.fillRect(x, precY, w, h);
+
+                // Particle texture
+                ctx.globalAlpha = 0.3;
+                for (let i = 0; i < 15; i++) {
+                    ctx.beginPath();
+                    ctx.arc(
+                        x + 14 + Math.random() * (w - 28),
+                        precY + Math.random() * precH,
+                        1 + Math.random() * 2,
+                        0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // Glass outline
+            ctx.strokeStyle = highlight ? 'rgba(76,175,80,0.6)' : 'rgba(100,180,255,0.4)';
+            ctx.lineWidth = highlight ? 3 : 2;
+            ctx.beginPath();
+            ctx.moveTo(x + 6, y + 12);
+            ctx.lineTo(x + 6, y + h - w/2);
+            ctx.arc(x + w/2, y + h - w/2, w/2 - 6, Math.PI, 0, true);
+            ctx.lineTo(x + w - 6, y + 12);
+            ctx.stroke();
+
+            // Rim
+            ctx.fillStyle = 'rgba(200,230,255,0.92)';
+            ctx.beginPath();
+            ctx.ellipse(x + w/2, y + 12, w/2 - 4, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(100,180,255,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Number
+            ctx.fillStyle = '#1565c0';
+            ctx.font = 'bold 15px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(num, x + w/2, y);
+
+            // Glass reflection
+            ctx.fillStyle = 'rgba(255,255,255,0.38)';
+            ctx.beginPath();
+            ctx.moveTo(x + 12, y + 18);
+            ctx.lineTo(x + 18, y + 18);
+            ctx.lineTo(x + 18, y + h - 55);
+            ctx.lineTo(x + 12, y + h - 55);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        drawDragPreview() {
+            const ctx = this.dragCtx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            if (!this.dragging) return;
+
+            const rect = this.mainCanvas.getBoundingClientRect();
+            const x = this.mouseX - rect.left;
+            const y = this.mouseY - rect.top;
+
+            if (x < -50 || x > this.W + 50 || y < -50 || y > this.H + 50) return;
+
+            ctx.globalAlpha = 0.8;
+
+            if (this.dragging.type === 'tube') {
+                this.drawTube(ctx, {
+                    x: x - 30, y: y - 80, w: 60, h: 160,
+                    num: this.dragging.id, liquidLevel: 0
+                });
+            } else if (this.dragging.type === 'unknown') {
+                const substanceId = this.unknowns[this.dragging.id - 1];
+                this.drawBottle(ctx, {
+                    x: x - 40, y: y - 55, w: 80, h: 110,
+                    num: this.dragging.id, substanceId
+                });
+            } else if (this.dragging.type === 'reagent') {
+                this.drawReagentBottle(ctx, {
+                    x: x - 30, y: y - 50, w: 60, h: 95,
+                    id: this.dragging.id
+                });
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        drawParticles() {
+            const ctx = this.fxCtx;
+            ctx.clearRect(0, 0, this.W, this.H);
+
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                const p = this.particles[i];
+                
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Применяем гравитацию
+                const gravity = p.gravity || 0.2;
+                p.vy += gravity;
+                
+                p.life--;
+                
+                // Проверяем попадание в пробирку (для частиц струи)
+                if (p.isStream && p.targetTube) {
+                    const tube = p.targetTube;
+                    const tubeLeft = tube.x + 10;
+                    const tubeRight = tube.x + tube.w - 10;
+                    const tubeTop = tube.y + 20;
+                    
+                    if (p.x >= tubeLeft && p.x <= tubeRight && p.y >= tubeTop) {
+                        // Попали в пробирку! Создаём всплеск
+                        for (let j = 0; j < 3; j++) {
+                            this.particles.push({
+                                x: p.x,
+                                y: p.y,
+                                vx: (Math.random() - 0.5) * 3,
+                                vy: -1 - Math.random() * 2,
+                                radius: 1.5 + Math.random(),
+                                color: p.color,
+                                alpha: 0.8,
+                                life: 15,
+                                gravity: 0.4
+                            });
+                        }
+                        // Удаляем частицу
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+                }
+                
+                p.alpha = Math.min(1, p.life / 20);
+
+                if (p.life <= 0) {
+                    this.particles.splice(i, 1);
+                    continue;
+                }
+
+                // Рисуем частицу
+                ctx.globalAlpha = p.alpha;
+                
+                // Для струи добавляем эффект "капли"
+                if (p.isStream && p.radius > 2) {
+                    // Основная капля
+                    const gradient = ctx.createRadialGradient(
+                        p.x - p.radius * 0.3, p.y - p.radius * 0.3, 0,
+                        p.x, p.y, p.radius
+                    );
+                    gradient.addColorStop(0, 'rgba(255,255,255,0.5)');
+                    gradient.addColorStop(0.5, p.color);
+                    gradient.addColorStop(1, p.color);
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Блик на капле
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.beginPath();
+                    ctx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // ========== ANIMATION LOOP ==========
+        animate() {
+            // Update pouring animation
+            if (this.pouringAnimation) {
+                this.pouringAnimation.update(performance.now());
+            }
+
+            this.draw();
+            this.drawParticles();
+
+            requestAnimationFrame(() => this.animate());
+        }
+
+        // ========== UI ==========
+        updateObservations() {
+            const tbody = document.getElementById('obs-tbody');
+            
+            if (this.experiments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="obs-empty">Проведите опыты...</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = this.experiments.map(exp => {
+                const reagent = this.substances[exp.reagent];
+                const cls = exp.precipitate ? 'obs-precipitate' : 'obs-no-reaction';
+                return `<tr>
+                    <td>${exp.tubeNum}</td>
+                    <td>№${exp.unknownNum}</td>
+                    <td>${reagent.formula}</td>
+                    <td class="${cls}">${exp.result}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        setupButtons() {
+            document.getElementById('btn-check').onclick = () => this.check();
+            document.getElementById('btn-clear').onclick = () => this.clear();
+            document.getElementById('btn-reset').onclick = () => this.clear();
+            document.getElementById('btn-hint').onclick = () => {
+                document.getElementById('hint-box').classList.toggle('visible');
+            };
+            document.getElementById('task-start').onclick = () => {
+                document.getElementById('task-modal').classList.remove('visible');
+            };
+            document.getElementById('btn-task').onclick = () => {
+                document.getElementById('task-modal').classList.add('visible');
+            };
+            document.getElementById('result-close').onclick = () => {
+                document.getElementById('result-modal').classList.remove('visible');
+            };
+        }
+
+        fillSelects() {
+            const opts = this.unknowns.map(id => {
+                const s = this.substances[id];
+                return `<option value="${id}">${s.formula} — ${s.name}</option>`;
+            }).join('');
+            document.getElementById('ans1').innerHTML = '<option value="">— выберите —</option>' + opts;
+            document.getElementById('ans2').innerHTML = '<option value="">— выберите —</option>' + opts;
+        }
+
+        generateHint() {
+            document.getElementById('hint-content').innerHTML = `
+                <p><strong>Как определить вещества:</strong></p>
+                <ul>
+                    <li><strong>NaOH</strong> даёт характерные осадки:
+                        <br>• Cu²⁺ → голубой осадок Cu(OH)₂
+                        <br>• Fe³⁺ → бурый осадок Fe(OH)₃
+                    </li>
+                    <li><strong>BaCl₂</strong> определяет сульфат-ионы:
+                        <br>• SO₄²⁻ → белый осадок BaSO₄
+                    </li>
+                </ul>
+                <p style="margin-top:8px"><em>Совет: NaOH достаточно для определения обоих веществ!</em></p>
+            `;
+        }
+
+        check() {
+            const a1 = document.getElementById('ans1').value;
+            const a2 = document.getElementById('ans2').value;
+
+            if (!a1 || !a2) return;
+
+            const c1 = a1 === this.unknowns[0];
+            const c2 = a2 === this.unknowns[1];
+            const score = (c1 ? 1 : 0) + (c2 ? 1 : 0);
+
+            document.getElementById('status1').className = `conclusion-status ${c1 ? 'status-correct' : 'status-wrong'}`;
+            document.getElementById('status1').textContent = c1 ? '✓' : '✗';
+            document.getElementById('status2').className = `conclusion-status ${c2 ? 'status-correct' : 'status-wrong'}`;
+            document.getElementById('status2').textContent = c2 ? '✓' : '✗';
+
+            document.getElementById('score-box').style.display = 'block';
+            document.getElementById('score-value').textContent = score;
+
+            const modal = document.getElementById('result-modal');
+            document.getElementById('result-icon').className = `modal-icon ${score === 2 ? 'success' : score === 1 ? 'partial' : 'fail'}`;
+            document.getElementById('result-icon').textContent = score === 2 ? '🎉' : score === 1 ? '👍' : '😔';
+            document.getElementById('result-title').textContent = score === 2 ? 'Отлично!' : score === 1 ? 'Почти!' : 'Попробуйте ещё';
+            document.getElementById('result-score').textContent = `${score}/2`;
+            document.getElementById('result-details').innerHTML = `
+                <div style="margin-bottom:10px">
+                    <strong>Склянка №1:</strong> ${c1 ? '✓ Верно' : '✗ Неверно'} 
+                    <span style="color:#666">(${this.substances[this.unknowns[0]].formula})</span>
+                </div>
+                <div>
+                    <strong>Склянка №2:</strong> ${c2 ? '✓ Верно' : '✗ Неверно'}
+                    <span style="color:#666">(${this.substances[this.unknowns[1]].formula})</span>
+                </div>
+            `;
+            modal.classList.add('visible');
+        }
+
+        clear() {
+            this.tubes = [];
+            this.bottles = [];
+            this.reagentBottles = [];
+            this.experiments = [];
+            this.particles = [];
+            this.pouringAnimation = null;
+
+            document.querySelectorAll('.item.used').forEach(el => el.classList.remove('used'));
+            document.getElementById('score-box').style.display = 'none';
+            ['status1', 'status2'].forEach(id => {
+                document.getElementById(id).className = 'conclusion-status status-empty';
+                document.getElementById(id).textContent = '';
+            });
+            document.getElementById('ans1').value = '';
+            document.getElementById('ans2').value = '';
+
+            this.updateObservations();
+            dbg('Перетаскивайте оборудование!');
+        }
+    }
+
+    // Start
+    window.addEventListener('DOMContentLoaded', () => {
+        window.lab = new ChemLab();
+    });
+    </script>
+</body>
+</html>

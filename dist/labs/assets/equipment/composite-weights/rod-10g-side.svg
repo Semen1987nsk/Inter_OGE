@@ -1,0 +1,92 @@
+<svg width="120" height="320" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Градиент для стержня -->
+    <linearGradient id="rodGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#707880;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#d0d8e0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#808890;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Градиент для резьбы -->
+    <linearGradient id="threadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#606870;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#c0c8d0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#707880;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Верхний крючок (для подвешивания) -->
+  <g>
+    <!-- Кольцо крючка -->
+    <path d="M 60 10 Q 48 10 48 22 Q 48 28 52 32 L 52 42 L 60 42" 
+          fill="none" stroke="#a0a8b0" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 60 10 Q 72 10 72 22 Q 72 28 68 32 L 68 42 L 60 42" 
+          fill="none" stroke="#a0a8b0" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- Соединение со стержнем -->
+    <rect x="56" y="40" width="8" height="15" fill="#b0b8c0"/>
+  </g>
+  
+  <!-- Основной стержень (гладкая часть) -->
+  <rect x="56" y="55" width="8" height="175" fill="url(#rodGrad)"/>
+  
+  <!-- Блики на стержне -->
+  <rect x="57" y="55" width="2" height="175" fill="rgba(255,255,255,0.3)"/>
+  
+  <!-- Резьба (нижняя часть перед опорным кольцом) -->
+  <rect x="56" y="230" width="8" height="30" fill="url(#threadGrad)"/>
+  <g opacity="0.3">
+    <line x1="56" y1="232" x2="64" y2="232" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="236" x2="64" y2="236" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="240" x2="64" y2="240" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="244" x2="64" y2="244" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="248" x2="64" y2="248" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="252" x2="64" y2="252" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="256" x2="64" y2="256" stroke="#000" stroke-width="0.5"/>
+  </g>
+  
+  <!-- ОПОРНОЕ КОЛЬЦО (упор для дисков) - самая важная часть! -->
+  <g id="support-ring">
+    <!-- Нижняя грань кольца (тень) -->
+    <ellipse cx="60" cy="268" rx="16" ry="3.5" fill="#707880" opacity="0.5"/>
+    
+    <!-- Боковая поверхность кольца (цилиндр) -->
+    <ellipse cx="60" cy="267" rx="16" ry="3" fill="#909098"/>
+    
+    <!-- Основная поверхность кольца -->
+    <ellipse cx="60" cy="265" rx="16" ry="3" fill="#b0b8c0" stroke="#808890" stroke-width="0.5"/>
+    
+    <!-- Верхняя плоскость кольца (на неё ложатся диски) -->
+    <ellipse cx="60" cy="264" rx="15" ry="2.5" fill="#d8e0e8"/>
+    
+    <!-- Блик на кольце -->
+    <ellipse cx="55" cy="263.5" rx="6" ry="1.5" fill="rgba(255,255,255,0.4)"/>
+  </g>
+  
+  <!-- Резьба после кольца (до гайки) -->
+  <rect x="56" y="268" width="8" height="22" fill="url(#threadGrad)"/>
+  <g opacity="0.3">
+    <line x1="56" y1="270" x2="64" y2="270" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="274" x2="64" y2="274" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="278" x2="64" y2="278" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="282" x2="64" y2="282" stroke="#000" stroke-width="0.5"/>
+    <line x1="56" y1="286" x2="64" y2="286" stroke="#000" stroke-width="0.5"/>
+  </g>
+  
+  <!-- Стопорная гайка (шестигранная) -->
+  <g id="nut">
+    <!-- Боковая грань гайки -->
+    <polygon points="60,295 67,298 67,307 60,310 53,307 53,298" 
+             fill="#808890" stroke="#505860" stroke-width="0.8"/>
+    
+    <!-- Грани шестигранника -->
+    <line x1="53" y1="298" x2="60" y2="295" stroke="#606868" stroke-width="0.5"/>
+    <line x1="67" y1="298" x2="60" y2="295" stroke="#606868" stroke-width="0.5"/>
+    <line x1="53" y1="307" x2="60" y2="310" stroke="#404848" stroke-width="0.5"/>
+    <line x1="67" y1="307" x2="60" y2="310" stroke="#404848" stroke-width="0.5"/>
+    
+    <!-- Блик на гайке -->
+    <polygon points="56,299 58,298 58,306 56,305" fill="rgba(255,255,255,0.3)"/>
+  </g>
+  
+</svg>
