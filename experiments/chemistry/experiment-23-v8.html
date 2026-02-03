@@ -1118,79 +1118,48 @@
         startPourStream(source, tube, color, isDrops = false) {
             const duration = isDrops ? 800 : 1000;
             const startTime = performance.now();
-            const interval = isDrops ? 60 : 20;
+            const interval = isDrops ? 50 : 16;
             
-            // Точка выхода струи (из горлышка наклонённой бутылки)
-            const pourOffsetX = source.w * 0.85;
-            const pourOffsetY = 10;
-            
-            // Целевая точка - центр пробирки
+            // Целевая точка - центр горлышка пробирки
             const targetX = tube.x + tube.w / 2;
-            const targetY = tube.y + 25; // Горлышко пробирки
+            const targetY = tube.y + 25;
             
             const addParticle = () => {
                 if (performance.now() - startTime > duration) return;
                 
-                // Начальная позиция с учётом наклона
-                const angle = source.angle || 0;
-                const cosA = Math.cos(angle);
-                const sinA = Math.sin(angle);
+                // Простой расчёт: берём правый верхний угол источника
+                // (там горлышко при наклоне)
+                const startX = source.x + source.w - 5;
+                const startY = source.y + 20;
                 
-                // Pivot point для вращения
-                const pivotX = source.x + source.w * 0.3;
-                const pivotY = source.y + source.h * 0.3;
-                
-                // Точка выхода относительно pivot
-                const localX = pourOffsetX - source.w * 0.3;
-                const localY = pourOffsetY - source.h * 0.3;
-                
-                // Повернутая точка выхода
-                const startX = pivotX + localX * cosA - localY * sinA;
-                const startY = pivotY + localX * sinA + localY * cosA;
-                
-                // Рассчитываем скорость чтобы попасть в пробирку
+                // Направление к пробирке
                 const dx = targetX - startX;
                 const dy = targetY - startY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const speed = isDrops ? 8 : 10;
                 
-                // Нормализуем направление и добавляем небольшой разброс
-                const spread = isDrops ? 0.08 : 0.05;
-                const vx = (dx / distance) * speed + (Math.random() - 0.5) * spread * speed;
-                const vy = (dy / distance) * speed + (Math.random() - 0.5) * spread * speed;
+                // Скорость для красивой параболы
+                // Время полёта ~20-30 кадров, гравитация 0.3
+                const frames = 25;
+                const g = 0.3;
                 
-                // Создаём частицу струи
+                // vx = dx / frames
+                // vy = (dy - 0.5 * g * frames^2) / frames (учитываем гравитацию)
+                const vx = dx / frames + (Math.random() - 0.5) * 0.5;
+                const vy = (dy - 0.5 * g * frames * frames) / frames;
+                
+                // Основная капля
                 this.particles.push({
-                    x: startX + (Math.random() - 0.5) * 3,
-                    y: startY,
+                    x: startX + (Math.random() - 0.5) * 4,
+                    y: startY + (Math.random() - 0.5) * 2,
                     vx: vx,
                     vy: vy,
-                    radius: isDrops ? 4 + Math.random() * 2 : 2.5 + Math.random() * 1.5,
+                    radius: isDrops ? 5 : 3,
                     color,
                     alpha: 1,
-                    life: 40,
-                    gravity: 0.3, // Добавляем гравитацию
+                    life: 50,
+                    gravity: g,
                     targetTube: tube,
                     isStream: true
                 });
-                
-                // Добавляем "хвост" струи для непрерывности
-                if (!isDrops) {
-                    for (let i = 1; i <= 2; i++) {
-                        this.particles.push({
-                            x: startX - vx * 0.1 * i,
-                            y: startY - vy * 0.1 * i,
-                            vx: vx * 0.95,
-                            vy: vy * 0.95,
-                            radius: 2 + Math.random(),
-                            color,
-                            alpha: 0.7,
-                            life: 35,
-                            gravity: 0.3,
-                            isStream: true
-                        });
-                    }
-                }
                 
                 setTimeout(addParticle, interval);
             };
