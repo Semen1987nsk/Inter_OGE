@@ -1,0 +1,24 @@
+{
+  "name": "@labosfera/shared-spa",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ЛАБОСФЕРА — общая инфраструктура для SPA-китов виртуальной лаборатории физики ОГЭ. Контракты IScreen, KitShell, Router, Store + единый DragController, detach-button и record-mode toggle (см. §20 REFERENCE.md). Без зависимостей. ООО ЛАБОСФЕРА.",
+  "exports": {
+    "./shell/IScreen": "./src/shell/IScreen.ts",
+    "./shell/Router": "./src/shell/Router.ts",
+    "./shell/KitShell": "./src/shell/KitShell.ts",
+    "./controller/Store": "./src/controller/Store.ts",
+    "./controller/DragController": "./src/controller/DragController.ts",
+    "./ui/detach-button": "./src/ui/detach-button.ts",
+    "./lib/record-mode": "./src/lib/record-mode.ts",
+    "./lib/journal/types": "./src/lib/journal/types.ts",
+    "./lib/journal/format": "./src/lib/journal/format.ts",
+    "./lib/journal/verify": "./src/lib/journal/verify.ts",
+    "./lib/journal/specs": "./src/lib/journal/specs.ts",
+    "./lib/journal/render": "./src/lib/journal/render.ts",
+    "./lib/journal/pending": "./src/lib/journal/pending.ts",
+    "./lib/journal/recorder": "./src/lib/journal/recorder.ts",
+    "./lib/journal/journal.css": "./src/lib/journal/journal.css"
+  }
+}

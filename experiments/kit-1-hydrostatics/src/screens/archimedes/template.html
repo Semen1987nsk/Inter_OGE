@@ -1,0 +1,227 @@
+<main class="archimedes-stage">
+  <section class="archimedes-workbench" aria-label="Рабочая зона опыта 1.2">
+    <header class="archimedes-header">
+      <ol class="archimedes-steps" id="ar-steps" aria-label="Этапы измерения архимедовой силы">
+        <li class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Повесьте динамометр</span></li>
+        <li class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Подвесьте цилиндр</span></li>
+        <li class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Запишите P возд</span></li>
+        <li class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Налейте воду</span></li>
+        <li class="step" data-step="5"><span class="step-num">5</span><span class="step-label">Опустите в воду</span></li>
+        <li class="step" data-step="6"><span class="step-num">6</span><span class="step-label">Запишите P жид</span></li>
+        <!-- Шаг 7 показывается только после первой полной строки журнала
+             (явный «следующий уровень» — research §1 implicit scaffolding). -->
+        <li class="step step-bonus" data-step="7" hidden><span class="step-num">7</span><span class="step-label">Сравните с теорией</span></li>
+      </ol>
+      <div class="archimedes-hint" id="ar-hint" aria-live="polite">
+        Перетащите динамометр на сцену, затем подвесьте цилиндр на его крючок.
+      </div>
+      <button id="ar-reset-btn" class="archimedes-reset-btn" type="button"
+              aria-label="Сбросить опыт" title="Сбросить опыт 1.2">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="archimedes-stage-area" id="ar-stage">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <!-- Невидимый зажим — точка фиксации динамометра «как будто его держит лаборант».
+           Видимый только при наличии динамометра, opacity 0.3. Линия от него до
+           верхнего крюка динамометра рисуется JS-ом в #ar-clamp-line svg ниже. -->
+      <div class="ar-clamp" id="ar-clamp" hidden aria-hidden="true">
+        <svg viewBox="0 0 16 16" width="16" height="16">
+          <circle cx="8" cy="8" r="3" fill="none" stroke="#9aa3b0" stroke-width="1.2"/>
+        </svg>
+      </div>
+
+      <!-- Drop-zone «динамометр на сцене» — без постоянной надписи. Подсветка
+           появляется только пока drag активен (body.has-drag-active). -->
+      <div class="ar-dropzone ar-dropzone--dyno"
+           id="ar-dropzone-stage"
+           data-dropzone="dynamometer-1,dynamometer-2"
+           data-dropzone-id="ar-stage-dyno"
+           data-drop-active="false"
+           data-drop-hover="false">
+      </div>
+
+      <!-- Mount-точка для динамометра. Появится после drop. -->
+      <div class="ar-mount ar-mount--dyno" id="ar-dyno-host" hidden
+           data-dropzone="cyl-1,cyl-2,cyl-3,cyl-4"
+           data-dropzone-id="ar-dyno-hook"
+           data-drop-active="false"
+           data-drop-hover="false">
+        <!-- сюда оркестратор положит <lab-dynamometer> -->
+        <button id="ar-detach-dyno"
+                class="detach-btn lab-detach-btn"
+                type="button"
+                aria-label="Убрать динамометр со стола"
+                title="Убрать динамометр со стола"
+                hidden>×</button>
+      </div>
+
+      <!-- Цилиндр, висящий под динамометром (overlay; позиция считается из dyno geometry).
+           NB: detach-кнопка НЕ внутри cylinderHost (он сам role="button" для жеста
+           dip/lift), а на уровне stage — иначе axe выдаёт «no-focusable-content»
+           (фокусируемая кнопка внутри role=button). См. §19.11.15 / §19.11.11. -->
+      <div class="ar-mount ar-mount--cylinder" id="ar-cylinder-host" hidden>
+      </div>
+      <button id="ar-detach-cyl"
+              class="detach-btn lab-detach-btn detach-btn--floating"
+              type="button"
+              aria-label="Снять цилиндр с динамометра"
+              title="Снять цилиндр с динамометра"
+              hidden>×</button>
+
+      <!-- SVG-overlay для нити taut + линии-зажима от точки клипа к динамометру.
+           Полные координаты сцены — рисуем напрямую <line>/<path> в этом svg,
+           чтобы не зависеть от relative-host'ов lab-thread. -->
+      <svg class="ar-scene-overlay" id="ar-scene-overlay" aria-hidden="true">
+        <line id="ar-clamp-line" x1="0" y1="0" x2="0" y2="0"
+              stroke="#9aa3b0" stroke-width="1" stroke-linecap="round"
+              opacity="0.45" hidden />
+        <path id="ar-thread-path" d="" fill="none"
+              stroke="#d8c890" stroke-width="1.2" stroke-linecap="round"
+              filter="drop-shadow(0 1px 1px rgba(0,0,0,0.25))" hidden />
+        <line id="ar-bottom-danger" x1="0" y1="0" x2="0" y2="0"
+              stroke="#ef4444" stroke-width="2" stroke-linecap="round"
+              stroke-dasharray="4 3" opacity="0.85" hidden />
+      </svg>
+
+      <!-- Soft-warning банер (перегрузка / частичное погружение / мало воды).
+           Не блокирует, но даёт ученику нейтральную подсказку. -->
+      <div class="ar-banner" id="ar-banner" hidden role="status" aria-live="polite">
+        <span class="ar-banner-icon" aria-hidden="true">⚠</span>
+        <span class="ar-banner-text" id="ar-banner-text"></span>
+      </div>
+
+      <!-- Стакан -->
+      <div class="ar-mount ar-mount--beaker"
+           id="ar-beaker-host"
+           hidden
+           data-dropzone="dynamometer-1,dynamometer-2,cyl-1,cyl-2,cyl-3,cyl-4"
+           data-dropzone-id="ar-beaker"
+           data-drop-active="false"
+           data-drop-hover="false">
+        <!-- сюда оркестратор положит <lab-beaker> -->
+        <button id="ar-detach-beaker"
+                class="detach-btn lab-detach-btn"
+                type="button"
+                aria-label="Убрать стакан со стола"
+                title="Убрать стакан со стола"
+                hidden>×</button>
+      </div>
+
+      <!-- Drop-zone для стакана из карточки. По умолчанию виден только когда стакан НЕ на сцене. -->
+      <div class="ar-dropzone ar-dropzone--beaker"
+           id="ar-dropzone-beaker"
+           data-dropzone="beaker"
+           data-dropzone-id="ar-stage-beaker"
+           data-drop-active="false"
+           data-drop-hover="false">
+      </div>
+
+      <!-- Простой dose-picker для воды: 4 кнопки рядом с beaker. Появляется по тапу.
+           300 мл — целенаправленный «перелив», ставит warning-banner. -->
+      <div class="ar-dose-picker" id="ar-dose-picker" hidden role="menu" aria-label="Сколько воды налить">
+        <button type="button" class="dose-btn" data-dose="100" role="menuitem">100 мл</button>
+        <button type="button" class="dose-btn" data-dose="150" role="menuitem">150 мл</button>
+        <button type="button" class="dose-btn" data-dose="200" role="menuitem"
+                data-recommended
+                aria-label="Налить 200 мл — рекомендованный объём">200 мл</button>
+        <button type="button" class="dose-btn" data-dose="300" role="menuitem">300 мл</button>
+      </div>
+
+      <!-- CTA «Записать показание» — единая кнопка, оркестратор управляет состоянием -->
+      <button id="ar-record-btn" class="ar-record-btn" type="button" hidden>
+        <span id="ar-record-label">Записать P возд</span>
+      </button>
+
+      <!-- Журнал (floating panel внизу-справа, как в 1.1) -->
+      <aside id="ar-journal-panel" class="ar-journal-panel" aria-label="Журнал измерений">
+        <!-- §20.4 REFERENCE.md — toggle «manual / auto» (инжектируется JS-ом). -->
+        <div id="ar-record-mode-slot" class="ar-record-mode-slot"></div>
+        <!-- §21 — shared `renderJournalTable` рендерит сюда таблицу с
+             ARCHIMEDES_SPEC. Ученик в semi-auto вводит F_A_изм и Δ
+             в input'ы, ✓ проверяет. -->
+        <div id="ar-journal-host" class="ar-journal-host"></div>
+        <!-- lab-journal остаётся скрытым data-store: rows для CSV/PDF
+             экспорта и getJournalRows() API. Визуально не показывается
+             (CSS `display: none` в archimedes-experiment.css §21). -->
+        <lab-journal id="ar-journal" experiment-id="1.2" data-role="student" hidden></lab-journal>
+      </aside>
+    </div>
+  </section>
+
+  <aside class="archimedes-equipment-panel" aria-label="Оборудование комплекта №1 для опыта 1.2">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Динамометры</h3>
+      <div class="equipment-grid equipment-grid-2">
+        <lab-equipment-card
+          title="Динамометр 1 Н"
+          status="available"
+          data-eq="dynamometer-1"
+          data-draggable="dynamometer-1"
+          data-dropzone="dynamometer-1"
+          data-dropzone-id="card-dynamometer-1"
+        >
+          <lab-dynamometer range="1" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+        <lab-equipment-card
+          title="Динамометр 5 Н"
+          status="available"
+          data-eq="dynamometer-2"
+          data-draggable="dynamometer-2"
+          data-dropzone="dynamometer-2"
+          data-dropzone-id="card-dynamometer-2"
+        >
+          <lab-dynamometer range="5" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Цилиндры</h3>
+      <p class="equipment-group-hint">Подвешивайте на крючок динамометра. Цилиндр №3 рекомендован.</p>
+      <div class="equipment-grid equipment-grid-4">
+        <lab-equipment-card title="Цилиндр № 1" status="available"
+          data-eq="cyl-1" data-draggable="cyl-1"
+          data-dropzone="cyl-1" data-dropzone-id="card-cyl-1">
+          <lab-metal-weight material="steel" id-num="1"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 2" status="available"
+          data-eq="cyl-2" data-draggable="cyl-2"
+          data-dropzone="cyl-2" data-dropzone-id="card-cyl-2">
+          <lab-metal-weight material="aluminum" id-num="2"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 3" status="available"
+          data-eq="cyl-3" data-draggable="cyl-3"
+          data-recommended
+          data-dropzone="cyl-3" data-dropzone-id="card-cyl-3">
+          <lab-metal-weight material="plastic" id-num="3"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 4" status="available"
+          data-eq="cyl-4" data-draggable="cyl-4"
+          data-dropzone="cyl-4" data-dropzone-id="card-cyl-4">
+          <lab-metal-weight material="aluminum" id-num="4"></lab-metal-weight>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Посуда</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card title="Стакан 250 мл" status="available"
+          data-eq="beaker" data-draggable="beaker"
+          data-dropzone="beaker" data-dropzone-id="card-beaker">
+          <lab-beaker level="0"></lab-beaker>
+        </lab-equipment-card>
+      </div>
+    </section>
+  </aside>
+</main>
+<div id="ar-live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

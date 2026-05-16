@@ -1,0 +1,1612 @@
+/**
+ * Layout опыта 2.1 «Жёсткость пружины» — v3.1 (стиль готовых опытов kit2).
+ *
+ * Двух-колоночный layout:
+ *   слева — большая сцена с штативом + журнал измерений
+ *   справа — узкая колонка карточек оборудования
+ *
+ * Палитра адаптирована под стиль старых опытов:
+ *   - тёмно-сине-серый фон сцены
+ *   - бирюзовый акцент (#38bdaf) для кнопок и активных рамок
+ *   - зелёный пунктир для drop-zone
+ */
+
+/* ─── App shell ──────────────────────────────────────────────── */
+
+.app {
+  display: grid;
+  grid-template-rows: var(--layout-header-height) minmax(0, 1fr);
+  height: 100dvh;
+  background: linear-gradient(180deg, #0a1530 0%, #0d1b2a 100%);
+  overflow: hidden;
+}
+
+@media (max-width: 1199px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+
+.app-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--layout-padding);
+  background: rgb(6 13 20 / 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.app-header-center {
+  text-align: center;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.experiment-eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1;
+}
+
+.experiment-title {
+  font-family: var(--font-display);
+  font-size: var(--text-h3);
+  font-weight: 600;
+  color: #38bdaf;
+  margin: 4px 0 0;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+}
+
+.experiment-spec {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 14px;
+  background: transparent;
+  border: 1.5px solid #38bdaf;
+  border-radius: var(--radius-pill);
+  color: #38bdaf;
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.back-btn:hover {
+  background: rgb(56 189 175 / 0.12);
+}
+
+/* ─── Main: сцена + панель оборудования (PhET-стиль: 70/30) ─────
+   Журнал и график перенесены во floating-панель внутри сцены —
+   главная зона дышит, нет постоянной пустой колонки. */
+
+.app-main-v3 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--layout-padding);
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* На очень больших экранах (Smart Board, дом-ноут 16″+) даём оборудованию
+   немного больше места — карточки с фото лучше читаются с дистанции. */
+@media (min-width: 1600px) {
+  .app-main-v3 {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+}
+
+/* ─── Workbench (одна колонка: только сцена) ────────────────── */
+
+.workbench {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+  min-width: 0;
+}
+
+.workbench-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.workbench-hint {
+  flex: 1;
+  min-width: 200px;
+  text-align: right;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ─── Stepper: «① Закрепите пружину → ② Запишите l₀ → …» ─────────
+   Главная навигация ученика по этапам опыта. Активный шаг подсвечен,
+   завершённые помечаются галочкой. */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.step-label {
+  white-space: nowrap;
+}
+
+.step-label small {
+  font-size: 10px;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+/* Завершённый шаг — приглушённый зелёный с галочкой */
+.step[data-state='done'] {
+  background: rgb(16 185 129 / 0.08);
+  border-color: rgb(16 185 129 / 0.3);
+  color: var(--color-success);
+}
+.step[data-state='done'] .step-num {
+  background: var(--color-success);
+  color: #06151c;
+}
+.step[data-state='done'] .step-num::after {
+  content: '✓';
+  font-size: 13px;
+}
+.step[data-state='done'] .step-num {
+  font-size: 0; /* скрываем цифру, оставляя только ::after */
+}
+
+/* Активный шаг — бирюзовый, scale 1.05, лёгкая пульсация */
+.step[data-state='active'] {
+  background: rgb(56 189 175 / 0.15);
+  border-color: rgb(56 189 175 / 0.6);
+  color: #38bdaf;
+  font-weight: 700;
+  transform: scale(1.04);
+  box-shadow: 0 0 0 4px rgb(56 189 175 / 0.1);
+}
+.step[data-state='active'] .step-num {
+  background: #38bdaf;
+  color: #06151c;
+}
+.step[data-state='active'] .step-label small {
+  opacity: 1;
+  font-weight: 500;
+}
+
+/* Соединительная линия между шагами */
+.step + .step::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: rgb(255 255 255 / 0.15);
+  flex-shrink: 0;
+  margin-left: -8px;
+  margin-right: 4px;
+}
+
+.workbench-stage {
+  position: relative;
+  background: linear-gradient(180deg, #0a1530 0%, #0d1b2a 100%);
+  /* «Фреймер»: чёткая 2px-рамка в акцентном цвете + двойной ободок через box-shadow,
+     inset-тень для глубины («поверхность») и лёгкое внешнее свечение. */
+  border: 2px solid rgb(56 189 175 / 0.45);
+  border-radius: var(--radius-lg);
+  /* Drag-зона: запрещаем text-selection (без этого после drop остаётся
+     выделение, прибор «как двойным кликом выделен»). */
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.04),
+    inset 0 14px 36px -10px rgb(0 0 0 / 0.6),
+    inset 0 -14px 28px -10px rgb(0 0 0 / 0.45),
+    0 0 0 1px rgb(0 0 0 / 0.4),
+    0 0 28px rgb(56 189 175 / 0.1);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Большой padding-bottom (28px) — тень от основания штатива 16px, иначе наслаивается на нижнюю рамку. */
+  padding: 16px 16px 28px;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ─── Угловые скобки рабочего поля ──────────────────────────── */
+
+.stage-corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  z-index: 6;
+  filter: drop-shadow(0 0 4px rgb(56 189 175 / 0.45));
+}
+
+.stage-corner::before,
+.stage-corner::after {
+  content: '';
+  position: absolute;
+  background: rgb(56 189 175 / 0.95);
+  border-radius: 1px;
+}
+
+/* Горизонтальная риска — 22×2 */
+.stage-corner::before {
+  width: 22px;
+  height: 2px;
+}
+
+/* Вертикальная риска — 2×22 */
+.stage-corner::after {
+  width: 2px;
+  height: 22px;
+}
+
+.stage-corner--tl { top: 8px; left: 8px; }
+.stage-corner--tl::before { top: 0; left: 0; }
+.stage-corner--tl::after  { top: 0; left: 0; }
+
+.stage-corner--tr { top: 8px; right: 8px; }
+.stage-corner--tr::before { top: 0; right: 0; }
+.stage-corner--tr::after  { top: 0; right: 0; }
+
+.stage-corner--bl { bottom: 8px; left: 8px; }
+.stage-corner--bl::before { bottom: 0; left: 0; }
+.stage-corner--bl::after  { bottom: 0; left: 0; }
+
+.stage-corner--br { bottom: 8px; right: 8px; }
+.stage-corner--br::before { bottom: 0; right: 0; }
+.stage-corner--br::after  { bottom: 0; right: 0; }
+
+/* "Поверхность стола" — лёгкая подсветка снизу */
+.workbench-stage::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 70px;
+  background: radial-gradient(
+    ellipse at 50% 100%,
+    rgb(56 189 175 / 0.08) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* ─── Track-container (горизонтальная сцена опыта 2.2) ───────────
+   В отличие от опыта 2.1 здесь сцена ШИРОКАЯ а не высокая —
+   направляющая лежит горизонтально, брусок ездит по ней.
+   Фикс-pixel приборы (lab-friction-track, lab-block) центрируются. */
+
+.track-container {
+  position: relative;
+  height: 100%;
+  max-height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+lab-friction-track {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 1023px) {
+  lab-friction-track {
+    --track-w: 600px;
+    --track-h: 100px;
+  }
+}
+
+@media (max-width: 767px) {
+  lab-friction-track {
+    --track-w: 460px;
+    --track-h: 78px;
+  }
+}
+
+/* ─── Block-mount (контейнер бруска + стопки грузов) ────────────
+   JS (#updateMountPosition) располагает его поверх направляющей. */
+
+.block-mount {
+  position: absolute;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.block-mount > lab-block {
+  position: relative;
+  pointer-events: auto;
+}
+
+/* Wrapper динамометра в block-mount: позиционируется справа от бруска */
+.block-mount > .attached-eq[data-equipment-id^="dyno-"] {
+  right: -310px;
+  top: 6px;
+}
+
+.block-mount lab-dynamometer-h {
+  --dyno-w: 280px;
+  --dyno-h: 76px;
+  pointer-events: auto;
+}
+
+/* В правой панели (карточка) — компактнее */
+lab-equipment-card lab-dynamometer-h {
+  --dyno-w: 200px;
+  --dyno-h: 56px;
+}
+
+/* Тонкая «нитка»-трос между крюком динамометра и крючком бруска (рисуется JS-ом). */
+.pull-string {
+  position: absolute;
+  height: 2px;
+  background: linear-gradient(to right,
+    rgb(255 255 255 / 0.3) 0%,
+    rgb(255 255 255 / 0.85) 50%,
+    rgb(255 255 255 / 0.3) 100%);
+  pointer-events: none;
+  z-index: 3;
+  transform-origin: left center;
+}
+
+.stacked-mount {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stacked-mount > * {
+  pointer-events: auto;
+}
+
+/* ─── Surface toggle (переключатель А/Б) ───────────────────────── */
+
+.surface-toggle {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: inline-flex;
+  background: rgb(6 13 20 / 0.7);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  gap: 4px;
+  z-index: 12;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.surface-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.surface-btn small {
+  font-size: 10px;
+  font-weight: 400;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.surface-btn:hover {
+  background: rgb(255 255 255 / 0.05);
+  color: var(--color-text-primary);
+}
+
+.surface-btn[data-state='active'] {
+  background: #38bdaf;
+  color: #06151c;
+}
+
+.surface-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+}
+
+.surface-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgb(0 0 0 / 0.3);
+  flex-shrink: 0;
+}
+
+.surface-swatch--A {
+  background: linear-gradient(135deg, #e2c094 0%, #d2a87a 50%, #a07c50 100%);
+}
+
+.surface-swatch--B {
+  background: linear-gradient(135deg, #7a6450 0%, #5d4a3a 50%, #3d2f25 100%);
+}
+
+/* ─── Кнопка «Взвесить брусок» (правый верхний угол сцены) ────── */
+
+.weigh-btn {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgb(255 190 11 / 0.15);
+  border: 1px solid rgb(255 190 11 / 0.6);
+  border-radius: var(--radius-pill);
+  color: var(--color-brand-orange);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 12;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+.weigh-btn:hover {
+  background: rgb(255 190 11 / 0.28);
+}
+
+.weigh-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+}
+
+/* ─── Форма ручного ввода в журнал ──────────────────────────── */
+
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgb(56 189 175 / 0.06);
+  border: 1px solid rgb(56 189 175 / 0.3);
+  border-radius: var(--radius-md);
+}
+
+.record-form[hidden] {
+  display: none;
+}
+
+.record-form-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.record-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.record-field label {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.record-field input,
+.record-field output {
+  display: block;
+  width: 90px;
+  padding: 4px 8px;
+  background: rgb(6 13 20 / 0.6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-align: right;
+  box-sizing: border-box;
+}
+
+.record-field input:focus {
+  outline: 2px solid #38bdaf;
+  outline-offset: -1px;
+  border-color: #38bdaf;
+}
+
+.record-field-readonly output {
+  background: rgb(255 255 255 / 0.04);
+  color: var(--color-text-muted);
+}
+
+.record-field .hint {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  grid-column: 1 / -1;
+  margin-top: -2px;
+}
+
+.record-form-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.rf-cancel,
+.rf-submit {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border: 1px solid;
+}
+
+.rf-cancel {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.rf-cancel:hover {
+  background: rgb(255 255 255 / 0.05);
+  color: var(--color-text-primary);
+}
+
+.rf-submit {
+  background: #38bdaf;
+  border-color: #38bdaf;
+  color: #06151c;
+}
+
+.rf-submit:hover:not(:disabled) {
+  background: #2ea59a;
+}
+
+.rf-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── Формула расчёта в журнале (стандарт REFERENCE) ─────────── */
+
+.formula-display {
+  margin-bottom: var(--space-2);
+  padding: 8px 12px;
+  background: rgb(58 134 255 / 0.08);
+  border: 1px solid rgb(58 134 255 / 0.25);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.formula-display[hidden] {
+  display: none;
+}
+
+.formula-label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-brand-blue);
+}
+
+.formula-expr em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--color-brand-orange);
+}
+
+.formula-expr sub {
+  font-size: 0.7em;
+  vertical-align: sub;
+}
+
+.formula-units {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  flex-basis: 100%;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+.formula-units em {
+  font-style: italic;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.journal-table thead th em {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.journal-table thead th sub {
+  font-size: 0.7em;
+  vertical-align: sub;
+}
+
+/* ─── Drop-zone варианты для опыта 2.2 ───────────────────────── */
+
+.drop-zone--track,
+.drop-zone--block-top,
+.drop-zone--block-hook {
+  /* Базовые стили унаследованы от .drop-zone выше; здесь только специфика */
+  width: auto;
+  height: auto;
+}
+
+/* (опыт 2.2 не использует штатив — в комплекте №2 для трения он не нужен;
+   lab-stand удалён из main.ts) */
+
+.hook-slot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+/* Drop-zone — пульсирующая зона приёма. Размер фиксированный, позиционируется JS-ом
+   (left/top) на крюке штатива или нижней петле цепочки. */
+.drop-zone {
+  position: absolute;
+  width: 130px;
+  height: 64px;
+  /* left/top задаются JS-ом через #updateDropZonePositions */
+  border: 2.5px dashed rgb(56 189 175 / 0.85);
+  background: rgb(56 189 175 / 0.12);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+  animation: drop-zone-pulse 1.5s ease-in-out infinite;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+@keyframes drop-zone-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(56 189 175 / 0.55), 0 0 18px rgb(56 189 175 / 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgb(56 189 175 / 0), 0 0 28px rgb(56 189 175 / 0.55);
+    transform: scale(1.04);
+  }
+}
+
+.drop-zone--active {
+  background: rgb(56 189 175 / 0.32);
+  border-color: rgb(56 189 175 / 1);
+  border-style: solid;
+  animation: none;
+  transform: scale(1.12);
+  box-shadow:
+    0 0 0 4px rgb(56 189 175 / 0.35),
+    0 0 32px rgb(56 189 175 / 0.7);
+}
+
+.drop-zone-label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: rgb(255 255 255 / 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+  text-align: center;
+  padding: 0 6px;
+}
+
+.drop-zone[hidden] {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-zone {
+    animation: none;
+  }
+}
+
+/* Mount-контейнер для подвешенной конструкции (планшет → динамометр → грузы) */
+.hung-mount {
+  position: absolute;
+  z-index: 4;
+  /* left/top задаются JS-ом (под крюком штатива) */
+  pointer-events: none;
+}
+
+/* hung-stack — relative-контейнер; дети получают абсолютное позиционирование
+   через JS (#updateChainPositions), чтобы крюки реально совпадали. */
+.hung-stack {
+  position: relative;
+  pointer-events: auto;
+  width: 0;
+}
+
+/* Подвешенные элементы — absolute wrapper, размер по содержимому (left/top/transform задаются JS-ом). */
+.hung-stack > .attached-eq {
+  position: absolute;
+  display: inline-block;
+}
+
+/* Подсветка сцепления — золотое пульсирующее кольцо вокруг нижнего крюка целевого элемента,
+   когда ученик подносит совместимый перетаскиваемый предмет. Контроллер вешает класс на wrapper
+   последнего висящего элемента в #highlightSnapTarget(). */
+.attached-eq.snap-target::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  border-radius: 50%;
+  border: 3px solid var(--equip-snap-active, #f2c94c);
+  background: radial-gradient(
+    circle,
+    rgb(242 201 76 / 0.35) 0%,
+    rgb(242 201 76 / 0.08) 60%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 18px rgb(242 201 76 / 0.7),
+    inset 0 0 12px rgb(242 201 76 / 0.45);
+  pointer-events: none;
+  animation: snap-target-pulse 0.9s ease-in-out infinite;
+  z-index: 7;
+}
+
+@keyframes snap-target-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attached-eq.snap-target::after {
+    animation: none;
+  }
+}
+
+/* Подсветка-«внимание» на планшете пружины: когда ученику нужно кликнуть
+   по шкале (записать l₀ или l₁). Атрибут ставит JS в #refreshUi. */
+.hung-stack lab-spring-board[data-attention='true'] {
+  filter: drop-shadow(0 0 14px rgb(242 201 76 / 0.85));
+  animation: scale-attention 1.4s ease-in-out infinite;
+}
+
+@keyframes scale-attention {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgb(242 201 76 / 0.55));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgb(242 201 76 / 1));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hung-stack lab-spring-board[data-attention='true'] {
+    animation: none;
+  }
+}
+
+/* Pulse кнопки «Записать в журнал» когда оба значения сняты (state='ready-to-record').
+   Привлекает внимание ученика к финальному шагу. */
+.record-btn.ready-pulse:not(:disabled) {
+  animation: record-pulse 1.4s ease-in-out infinite;
+  background: rgb(56 189 175 / 0.35);
+  border-color: #38bdaf;
+  color: #fff;
+}
+
+@keyframes record-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgb(56 189 175 / 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgb(56 189 175 / 0);
+    transform: scale(1.04);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record-btn.ready-pulse:not(:disabled) {
+    animation: none;
+  }
+}
+
+/* Размеры оборудования на сцене (в hung-stack).
+   Подняты vs. v3: цифры шкал и наклеек хорошо читаются с расстояния. */
+.hung-stack lab-spring-board {
+  --board-w: 156px;
+  --board-h: 360px;
+}
+
+.hung-stack lab-dynamometer {
+  --dyno-w: 104px;
+  --dyno-h: 304px;
+}
+
+.hung-stack lab-weight {
+  --weight-size: 64px;
+}
+
+.hung-stack lab-composite-weight {
+  --piece-size: 68px;
+}
+
+/* X-кнопка снятия с установки — справа сверху подвешенного элемента */
+/* X-кнопка снятия с установки. Видна всегда (полупрозрачно) — без этого ученики
+   не догадываются её нажать. На hover/focus — яркая. Стандарт discoverability
+   (Figma, Notion, JetBrains). */
+/* Detach-кнопка (×) — нейтральная по умолчанию, destructive intent при hover на ней.
+   §15.4 обновлён 2026-05-14. */
+.detach-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(40, 48, 64, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-display, sans-serif);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.32;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.attached-eq:hover .detach-btn {
+  opacity: 0.85;
+}
+
+.detach-btn:hover,
+.detach-btn:focus-visible {
+  opacity: 1;
+  background: rgb(220 38 38 / 0.95);
+  border-color: rgb(255 255 255 / 0.85);
+  color: #fff;
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.55);
+}
+
+.detach-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+}
+
+/* ─── Overload banner ────────────────────────────────────────────
+   Мягкое предупреждение «указатель за шкалой» — появляется, когда
+   ученик перерастягивает пружину (k10 + тяжёлый груз). Не блокирует,
+   а подсказывает: «для этой пружины подбери лёгкий комплект 60–80 г». */
+
+.overload-banner {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: min(560px, calc(100% - var(--space-4) * 2));
+  padding: 10px 16px;
+  background: rgb(245 158 11 / 0.18);
+  border: 1px solid rgb(245 158 11 / 0.6);
+  border-radius: var(--radius-md);
+  color: var(--color-warning, #f59e0b);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.35);
+  z-index: 13;
+  pointer-events: none;
+  animation: overload-banner-in var(--dur-base) var(--ease-out);
+}
+
+.overload-banner[hidden] {
+  display: none;
+}
+
+.overload-banner svg {
+  flex-shrink: 0;
+}
+
+.overload-banner-text {
+  color: rgb(255 255 255 / 0.92);
+  font-weight: 500;
+}
+
+@keyframes overload-banner-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overload-banner {
+    animation: none;
+  }
+}
+
+/* Drag overlay — куда перемещаются элементы во время drag (position:fixed) */
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.drag-overlay > * {
+  pointer-events: auto;
+}
+
+/* ─── Floating measurement-panel (PhET-стиль) ────────────────────
+   Журнал, результат и график — раскрывающаяся панель внутри сцены.
+   Появляется при первом измерении (data-state="has-data"), сворачивается
+   кликом по заголовку. На узких экранах превращается в bottom-sheet. */
+
+.measurement-panel {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  /* На широких экранах — компактная панель в правом нижнем углу сцены,
+     ширина ограничена, чтобы не наезжать на штатив. */
+  width: min(440px, calc(100% - var(--space-4) * 2));
+  max-height: calc(100% - var(--space-4) * 2);
+  display: flex;
+  flex-direction: column;
+  background: rgb(6 13 20 / 0.78);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 12;
+  overflow: hidden;
+  /* По умолчанию (state="empty") — только заголовок, тело свёрнуто */
+  transition: max-height var(--dur-base) var(--ease-out);
+}
+
+/* Свёрнута: видна только шапка-кнопка */
+.measurement-panel[aria-collapsed='true'] .measurement-body {
+  display: none;
+}
+.measurement-panel[aria-collapsed='true'] .chev {
+  transform: rotate(-90deg);
+}
+
+/* Когда данных нет — компактнее, плейсхолдер серый */
+.measurement-panel[data-state='empty'] {
+  background: rgb(6 13 20 / 0.5);
+}
+
+.measurement-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 10px 8px 12px;
+  border-bottom: 1px solid transparent;
+  background: rgb(56 189 175 / 0.06);
+  flex-shrink: 0;
+}
+
+.measurement-panel[data-state='has-data'] .measurement-panel-header {
+  border-bottom-color: var(--color-border);
+}
+
+.measurement-toggle {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-body);
+  cursor: pointer;
+  text-align: left;
+}
+
+.measurement-toggle:hover {
+  color: #38bdaf;
+}
+
+.measurement-toggle:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.measurement-toggle .chev {
+  transition: transform var(--dur-fast) var(--ease-out);
+  color: #38bdaf;
+}
+
+.measurement-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: #38bdaf;
+  color: #06151c;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--text-xs);
+}
+
+.measurement-body {
+  overflow-y: auto;
+  padding: var(--space-3);
+  /* Прокрутка внутри панели — таблица + результат + график. */
+}
+
+.record-btn {
+  padding: 6px 12px;
+  background: rgb(56 189 175 / 0.15);
+  border: 1px solid rgb(56 189 175 / 0.5);
+  border-radius: var(--radius-md);
+  color: #38bdaf;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.record-btn:hover:not(:disabled) {
+  background: rgb(56 189 175 / 0.28);
+  transform: translateY(-1px);
+}
+
+.record-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.record-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+}
+
+.reset-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.reset-btn:hover {
+  background: rgb(239 68 68 / 0.15);
+  color: var(--color-error);
+  border-color: rgb(239 68 68 / 0.4);
+}
+
+.reset-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange);
+  outline-offset: 2px;
+}
+
+.journal-empty {
+  padding: var(--space-3);
+  background: rgb(56 189 175 / 0.06);
+  border: 1px dashed rgb(56 189 175 / 0.3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  text-align: center;
+}
+
+.journal-table {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  border-collapse: collapse;
+}
+
+.journal-table th,
+.journal-table td {
+  padding: var(--space-2);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.journal-table th {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.journal-table th:first-child,
+.journal-table td:first-child {
+  text-align: left;
+  width: 24px;
+}
+
+/* Result panel */
+
+.result-panel {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: rgb(56 189 175 / 0.06);
+  border: 1px solid rgb(56 189 175 / 0.25);
+  border-radius: var(--radius-md);
+}
+
+.result-title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 4px 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.05);
+}
+
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.result-row span {
+  color: var(--color-text-secondary);
+  font-family: var(--font-display);
+}
+
+.result-row strong {
+  color: var(--color-text-primary);
+  font-weight: 700;
+}
+
+.result-success {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  background: rgb(16 185 129 / 0.12);
+  border-left: 3px solid var(--color-success);
+  border-radius: 4px;
+  color: var(--color-success);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.result-warning {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  background: rgb(245 158 11 / 0.12);
+  border-left: 3px solid var(--color-warning);
+  border-radius: 4px;
+  color: var(--color-warning);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* Граф */
+
+.graph-wrap {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background: rgb(255 255 255 / 0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.graph-title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+#graph {
+  width: 100%;
+  height: 180px;
+}
+
+/* hint-bar — flash при ошибке */
+.workbench-hint[data-flash='true'] {
+  color: var(--color-warning);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* ─── Правая колонка: оборудование ──────────────────────────── */
+
+.equipment-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.equipment-group {
+  background: rgb(6 13 20 / 0.5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 10px;
+}
+
+.equipment-group-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.equipment-group-hint {
+  font-family: var(--font-display);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: 0 0 6px;
+  line-height: 1.3;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+/* Готовые грузы — 3 одинаковых груза в одну строку */
+.equipment-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+/* Наборный груз — 4 элемента в одну строку */
+.equipment-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+/* ─── Live-region (sr-only) ──────────────────────────────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   АДАПТИВ — стратегия PhET-like (после research best-practices):
+     ≥1600 px (Smart Board, дом-ноут 16″+)   — две колонки, floating-panel
+                                                 в правом нижнем углу сцены
+     1280–1599 px (учительский ноут, проектор) — то же, но floating-panel
+                                                 уже и компактнее
+     1024–1279 (iPad landscape)               — стэк: сцена → measurement
+                                                 → equipment-panel снизу
+     ≤768 (планшет portrait, телефон)         — вертикальный стэк, сцена
+                                                 уменьшается по высоте
+   ───────────────────────────────────────────────────────────── */
+
+/* ─── Tablet landscape (1024–1279) ──────────────────────────── */
+
+@media (max-width: 1279px) {
+  /* На узких экранах штатив и измерения стэкируются внутри сцены.
+     workbench-stage переходит в flex-column: штатив сверху, measurement-panel снизу. */
+  .workbench-stage {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: var(--space-3);
+    gap: var(--space-3);
+    overflow-y: auto;
+  }
+
+  .track-container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 100%;
+    flex-shrink: 0;
+    height: auto;
+    min-height: 280px;
+    padding: var(--space-4) 0;
+  }
+
+  /* Measurement-panel становится non-floating, занимает всю ширину под направляющей. */
+  .measurement-panel {
+    position: static;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-height: none;
+    flex-shrink: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* ─── Tablet portrait / mobile (≤1023) ──────────────────────── */
+
+@media (max-width: 1023px) {
+  /* Главный grid вытягивается в один столбец: workbench → equipment */
+  .app-main-v3 {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  /* Equipment-panel — горизонтальная лента карточек снизу */
+  .equipment-panel {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: var(--space-2);
+    flex-shrink: 0;
+  }
+
+  .equipment-group {
+    min-width: 280px;
+    flex-shrink: 0;
+  }
+
+  /* На планшете в портретной ориентации сцена не должна занимать больше
+     ~50vh, иначе панель измерений и оборудование не поместятся. */
+  .workbench-stage {
+    max-height: 50vh;
+  }
+}
+
+/* ─── Mobile (≤767) ─────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  :root {
+    --layout-padding: var(--space-3);
+  }
+
+  .app-main-v3 {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  /* На мобильном высота шапки auto — три строки (Назад / Заголовок / Спека) не влезают в 64px */
+  .app {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    gap: var(--space-1);
+    text-align: center;
+    padding: var(--space-2) var(--space-3);
+    height: auto;
+    position: static;
+  }
+
+  .app-header-left,
+  .app-header-right {
+    justify-content: center;
+  }
+
+  .experiment-spec {
+    display: none;
+  }
+
+  /* Workbench-header прячет hint-bar в одну строку под title */
+  .workbench-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .workbench-hint {
+    text-align: left;
+  }
+
+  .equipment-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .track-container {
+    max-height: 240px;
+  }
+
+  .measurement-panel {
+    max-height: 40vh;
+  }
+}
+
+/* ─── Smart Board / large desktop (≥1600) ───────────────────── */
+
+@media (min-width: 1600px) {
+  /* Чуть просторнее панель измерений — учитель видит таблицу из класса */
+  .measurement-panel {
+    width: min(520px, calc(100% - var(--space-4) * 2));
+  }
+  .journal-table {
+    font-size: var(--text-body);
+  }
+  .journal-table th {
+    font-size: var(--text-sm);
+  }
+}

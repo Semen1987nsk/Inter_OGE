@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="ЛАБОСФЕРА — виртуальная лаборатория физики ОГЭ-2026. 7 комплектов оборудования по спецификации ФИПИ. Цифровой двойник реального лабораторного оборудования." />
+  <meta name="theme-color" content="#06101e" />
+  <title>ЛАБОСФЕРА — Виртуальная лаборатория физики ОГЭ-2026</title>
+
+  <!-- Шрифты: Onest (display) + Geist (body) + JetBrains Mono (numerals).
+       Правило 1: НЕ Manrope/Inter/Space Grotesk — это generic-tells. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=Cormorant:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <!-- Geist — через CDN по cdn.jsdelivr -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5.1.0/index.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- Preload главного фото для LCP -->
+  <link rel="preload" as="image" href="/photos/kit-2.png" />
+
+  <link rel="icon" type="image/png" href="/photos/logo.png" />
+</head>
+<body>
+  <a href="#catalog" class="sr-only-focusable">Перейти к каталогу комплектов</a>
+
+  <main>
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  HERO                                                │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="hero" aria-labelledby="hero-title">
+      <!-- Видео-фон (правило 3): лениво, со slow-zoom -->
+      <!-- Hero-видео: Stunning Milky Way Galaxy in 4K (Pexels, royalty-free).
+           Млечный путь — масштаб космоса, deep purple/blue, медитативное движение.
+           Концептуально: «физика — это от атомов до галактик».
+           Источник: https://www.pexels.com/video/stunning-milky-way-galaxy-in-4k-29857700/
+           License: Pexels Free Use (без attribution required для коммерческого использования) -->
+      <video
+        class="hero-video"
+        width="1920"
+        height="1080"
+        preload="auto"
+        autoplay
+        muted
+        loop
+        playsinline
+        poster="/videos/hero-poster.jpg"
+        aria-hidden="true"
+      >
+        <!-- 1080p H.264, 1.2 MB / VP9 WebM 0.9 MB. Источник: Pexels free Milky Way 4K -->
+        <source src="/videos/hero-loop.mp4" type="video/mp4" />
+        <source src="/videos/hero-loop.webm" type="video/webm" />
+      </video>
+      <!-- Premium cinematic overlay: mesh-gradient + vignette скрывают
+           любую low-res-ность видео и поднимают контраст у текста. -->
+      <div class="hero-video-overlay" aria-hidden="true"></div>
+      <div class="hero-video-fallback" aria-hidden="true"></div>
+
+      <div class="container hero-topbar">
+        <a class="hero-topbar-brand" href="/" aria-label="ЛАБОСФЕРА — на главную">
+          <span class="wordmark">
+            <span class="wordmark-letter">Л</span><span class="wordmark-letter">а</span><span class="wordmark-letter">б</span><span class="wordmark-letter">о</span><span class="wordmark-letter">с</span><span class="wordmark-letter">ф</span><span class="wordmark-letter">е</span><span class="wordmark-letter">р</span><span class="wordmark-letter">а</span>
+          </span>
+        </a>
+        <span class="hero-topbar-meta">ВИРТУАЛЬНАЯ ЛАБОРАТОРИЯ · v2.0</span>
+      </div>
+
+      <div class="container hero-content">
+        <div class="hero-headline">
+          <h1 class="hero-title" id="hero-title">
+            Виртуальная<br />лаборатория<br /><em>физики</em>
+            <span class="hero-title-coda">для&nbsp;ОГЭ-2026</span>
+          </h1>
+          <div class="hero-spec" aria-hidden="true">
+            <span class="hero-spec-line" data-spec="kits-count">
+              <span class="hero-spec-dot"></span>—&nbsp;комплектов
+            </span>
+            <span class="hero-spec-line" data-spec="experiments-count">
+              <span class="hero-spec-dot"></span>—&nbsp;опытов
+            </span>
+            <span class="hero-spec-line"><span class="hero-spec-dot"></span>ФИПИ-2026</span>
+          </div>
+        </div>
+
+        <div class="hero-cta-row">
+          <a
+            class="hero-cta hero-cta--primary"
+            href="../kit-2-forces/?role=teacher"
+            data-magnetic
+            aria-label="Войти как учитель — открыть каталог опытов в режиме учителя"
+          >
+            <span>Войти как учитель</span>
+            <span class="hero-cta-arrow" aria-hidden="true">→</span>
+          </a>
+          <a
+            class="hero-cta hero-cta--ghost"
+            href="../kit-2-forces/?role=student"
+            data-magnetic
+            aria-label="Войти как ученик — открыть каталог опытов в режиме ученика"
+          >
+            <span>Войти как ученик</span>
+            <span class="hero-cta-arrow" aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="container hero-scroll-hint" aria-hidden="true">
+        <span class="hero-scroll-line"></span>
+        <span>Прокрутите вниз — каталог</span>
+      </div>
+    </section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  CATALOG (BENTO)                                     │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="catalog" id="catalog" aria-labelledby="catalog-title">
+      <div class="container">
+        <header class="section-header">
+          <span class="eyebrow eyebrow--gold">Каталог · 7 комплектов</span>
+          <h2 class="section-title" id="catalog-title">
+            Тридцать опытов <em>по программе ОГЭ</em>, собранные в семь комплектов
+          </h2>
+          <p class="section-subtitle">
+            Каждый комплект — это полноценная цифровая копия реального лабораторного оборудования
+            ЛАБОСФЕРА с тем же составом и точностью приборов. Выберите комплект и начните урок.
+          </p>
+        </header>
+
+        <div class="catalog-bento" id="kit-bento" role="list">
+          <!-- Карточки рендерятся через JS из data/kits.ts -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  HOW IT WORKS                                        │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="how" aria-labelledby="how-title">
+      <div class="container">
+        <header class="section-header">
+          <span class="eyebrow eyebrow--teal">Как это работает</span>
+          <h2 class="section-title" id="how-title">
+            Три шага — от <em>назначения</em> до <em>отчёта</em>
+          </h2>
+          <p class="section-subtitle">
+            Учитель выбирает опыт, ученик собирает виртуальную установку и получает результат
+            с тем же оформлением, что в школьной тетради.
+          </p>
+        </header>
+
+        <ol class="how-steps">
+          <li class="how-step">
+            <span class="how-step-num" aria-hidden="true">01</span>
+            <h3 class="how-step-title">Учитель назначает опыт</h3>
+            <p class="how-step-text">
+              Из каталога — кит и конкретная задача ОГЭ. Класс получает ссылку, никаких установок.
+            </p>
+            <span class="how-step-tag">Браузер · 0 установка</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step-num" aria-hidden="true">02</span>
+            <h3 class="how-step-title">Ученик собирает установку</h3>
+            <p class="how-step-text">
+              Перетаскивает приборы из набора, фиксирует измерения, видит реальную физику —
+              затухающие колебания, силу трения, напряжение.
+            </p>
+            <span class="how-step-tag">Drag &amp; drop · реальная физика</span>
+          </li>
+          <li class="how-step">
+            <span class="how-step-num" aria-hidden="true">03</span>
+            <h3 class="how-step-title">Журнал, формула, оценка</h3>
+            <p class="how-step-text">
+              Автоматический журнал измерений, расчёт по формуле, проверка попадания в интервал
+              ФИПИ — всё, как требует методичка.
+            </p>
+            <span class="how-step-tag">Журнал · формула · ФИПИ-критерий</span>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  PHYSICS IN BROWSER — Three.js scene (Phase 4)       │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="physics" id="physics" aria-labelledby="physics-title"></section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  REAL VS DIGITAL — diptyque                          │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="twin" aria-labelledby="twin-title">
+      <div class="container">
+        <header class="section-header">
+          <span class="eyebrow eyebrow--gold">Реальное = Цифровое</span>
+          <h2 class="twin-statement" id="twin-title">
+            Тот&nbsp;же&nbsp;опыт. <em>Без поломок.</em><br />
+            Без пропавших грузов.
+          </h2>
+        </header>
+
+        <div class="twin-diptyque" role="figure" aria-label="Сравнение: реальный комплект ЛАБОСФЕРА слева vs цифровой двойник опыта 2.1 справа">
+          <div class="twin-pane">
+            <img src="/photos/kit-2-real.png" alt="Реальный комплект ЛАБОСФЕРА №2 — штатив с двумя динамометрами, грузы 100 г, направляющая на чёрной подставке" />
+            <div class="twin-pane-label">
+              <span class="twin-pane-label-dot"></span>
+              <span>Реальный комплект · ЛАБОСФЕРА</span>
+            </div>
+          </div>
+          <div class="twin-pane">
+            <img src="/photos/digital-twin-spring.png" alt="Цифровой двойник опыта 2.1 «Жёсткость пружины» — штатив, пружина с динамометром и грузом 100 г, журнал измерений" />
+            <div class="twin-pane-label">
+              <span class="twin-pane-label-dot"></span>
+              <span>Цифровой двойник · опыт 2.1</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="twin-caption">
+          Слева — фото комплекта №2 ЛАБОСФЕРА · справа — скриншот опыта 2.1 в браузере
+        </p>
+      </div>
+    </section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  JOURNEY — pin-scroll 4 опыта (Phase 5)              │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <section class="journey" id="journey" aria-labelledby="journey-title"></section>
+
+    <!-- ╭──────────────────────────────────────────────────────╮
+         │  FOOTER                                              │
+         ╰──────────────────────────────────────────────────────╯ -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="footer-brand-row">
+              <span class="wordmark wordmark--footer">ЛАБОСФЕРА</span>
+            </div>
+            <p class="footer-tag">
+              Виртуальная лаборатория физики для подготовки к ОГЭ-2026.
+              Соответствует кодификатору ФИПИ. Производство и разработка — ООО «ЛАБОСФЕРА», Россия.
+            </p>
+          </div>
+          <div class="footer-meta">
+            <span class="footer-meta-line">v2.0 · 2026-05-06</span>
+            <span class="footer-meta-line">ФИПИ ОГЭ-2026 · соответствует</span>
+            <span class="footer-meta-line">Web Components · TypeScript 5.6</span>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 ООО «ЛАБОСФЕРА»</span>
+          <span>Все права защищены</span>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

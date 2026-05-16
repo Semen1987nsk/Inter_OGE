@@ -1,0 +1,126 @@
+/**
+ * tokens.css — дизайн-система каталога-главной ЛАБОСФЕРА.
+ *
+ * Brand-pulse дисциплина (правило 9):
+ *   85% площади экрана — тёмно-синий dominant
+ *   Gold (#ffbe0b) — ТОЛЬКО на: hero CTA primary, нумерация bento, focus-ring,
+ *                                shimmer на locked, флагман-shadow tint
+ *   Teal (#14b8a6) — ТОЛЬКО на: статус «готов», ghost-CTA outline, прогресс
+ */
+
+:root {
+  /* ─── Палитра (правило 9) ──────────────────────────────────── */
+  --bg-deep:           #06101e;
+  --bg-elevated:       #0c1830;
+  --bg-card:           #11203a;
+  --bg-card-hover:     #142849;
+
+  --text-primary:      #ffffff;
+  --text-secondary:    #c5cfe2;
+  --text-muted:        #8a96b0;
+  --text-disabled:     #4a5468;
+
+  --gold:              #ffbe0b;
+  --gold-soft:         rgba(255, 190, 11, 0.18);
+  --gold-glow:         rgba(255, 190, 11, 0.32);
+
+  --teal:              #14b8a6;
+  --teal-soft:         rgba(20, 184, 166, 0.16);
+
+  --locked-tint:       rgba(74, 84, 104, 0.6);
+  --border-subtle:     rgba(255, 255, 255, 0.08);
+  --border-strong:     rgba(255, 255, 255, 0.16);
+
+  /* ─── Типография — стек 50/30/20 (правило 1) ───────────────── */
+  /* Display (hero, h2): Onest Variable 800 — slight quirky, distinctive */
+  /* Body: Geist Regular/Medium — clean utility */
+  /* Numerals/eyebrow: JetBrains Mono — engineering feel */
+  --font-display: 'Onest', 'Manrope', system-ui, -apple-system, sans-serif;
+  --font-body:    'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Roboto Mono', ui-monospace, monospace;
+  /* Academic-accent serif для hero h1, цифр-плакатов, флагман-меток.
+     Cormorant — наследник Garamond, OFL, полная Cyrillic.
+     Используется ТОЧЕЧНО (по правилу 1 — не размывать палитру шрифтов). */
+  --font-accent:  'Cormorant', 'Spectral', 'Vollkorn', 'PT Serif', Georgia, serif;
+
+  /* Размеры — clamp для fluid type */
+  --fs-hero:       clamp(3rem, 8vw, 6rem);          /* 48-96px */
+  --fs-display:    clamp(2.25rem, 5vw, 4rem);       /* 36-64px */
+  --fs-h2:         clamp(1.75rem, 3.5vw, 2.75rem);  /* 28-44px */
+  --fs-h3:         clamp(1.25rem, 1.8vw, 1.5rem);   /* 20-24px */
+  --fs-body-lg:    1.125rem;
+  --fs-body:       1rem;
+  --fs-small:      0.875rem;
+  --fs-eyebrow:    0.75rem;
+
+  --lh-tight:      1.05;
+  --lh-snug:       1.2;
+  --lh-normal:     1.55;
+
+  --ls-tight:      -0.04em;   /* hero заголовки */
+  --ls-display:    -0.02em;   /* h2 */
+  --ls-eyebrow:    0.18em;    /* uppercase eyebrows */
+  --ls-mono:       -0.01em;
+
+  /* ─── Spatial system ───────────────────────────────────────── */
+  --space-1:       4px;
+  --space-2:       8px;
+  --space-3:       12px;
+  --space-4:       16px;
+  --space-5:       20px;
+  --space-6:       24px;
+  --space-8:       32px;
+  --space-10:      40px;
+  --space-12:      48px;
+  --space-16:      64px;
+  --space-20:      80px;
+  --space-24:      96px;
+  --space-32:      128px;
+
+  --container-max: 1440px;
+  --container-pad: clamp(24px, 5vw, 80px);
+
+  --gap-grid:      clamp(16px, 2vw, 32px);
+  --gap-card:      clamp(20px, 1.6vw, 28px);
+
+  /* ─── Радиусы ──────────────────────────────────────────────── */
+  --radius-sm:     8px;
+  --radius-md:     14px;
+  --radius-lg:     20px;
+  --radius-xl:     28px;
+  --radius-pill:   999px;
+
+  /* ─── Тени с разной глубиной (правило 2) ───────────────────── */
+  --shadow-sm:        0 4px 8px -2px rgba(0, 0, 0, 0.3);
+  --shadow-md:        0 8px 16px -4px rgba(0, 0, 0, 0.32);
+  --shadow-lg:        0 16px 32px -8px rgba(0, 0, 0, 0.42);
+  --shadow-xl:        0 32px 64px -16px rgba(0, 0, 0, 0.48);
+  --shadow-flagship:  0 32px 64px -16px rgba(255, 190, 11, 0.18),
+                      0 8px 24px -8px rgba(0, 0, 0, 0.5);
+
+  /* ─── Motion (правила 5, 8) ────────────────────────────────── */
+  --dur-fast:      160ms;
+  --dur-base:      280ms;
+  --dur-slow:      480ms;
+  --dur-cinematic: 800ms;
+  --ease-out:      cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── Z-stack ──────────────────────────────────────────────── */
+  --z-bg:          0;
+  --z-content:     10;
+  --z-overlay:     20;
+  --z-modal:       100;
+}
+
+/* ─── Поддержка reduced-motion (правило 8) ──────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

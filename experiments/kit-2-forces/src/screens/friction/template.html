@@ -1,0 +1,207 @@
+<main class="app-main-v3">
+        <section class="workbench" aria-label="Рабочая зона">
+          <header class="workbench-header">
+            <ol class="steps" id="steps" aria-label="Задача в опыте">
+              <li class="step" data-task="A-coefficient" data-state="active" tabindex="0" role="button" aria-current="true">
+                <span class="step-num">A</span>
+                <span class="step-label">Измерение μ <small>(один груз)</small></span>
+              </li>
+              <li class="step" data-task="B-work" tabindex="0" role="button">
+                <span class="step-num">B</span>
+                <span class="step-label">Работа силы трения</span>
+              </li>
+              <li class="step" data-task="C-force-vs-N" tabindex="0" role="button">
+                <span class="step-num">C</span>
+                <span class="step-label">F<sub>тр</sub> от N <small>(график)</small></span>
+              </li>
+              <li class="step" data-task="D-force-vs-surface" tabindex="0" role="button">
+                <span class="step-num">D</span>
+                <span class="step-label">F<sub>тр</sub> от поверхности</span>
+              </li>
+            </ol>
+            <div class="workbench-hint" id="hint-bar">
+              Возьмите деревянный брусок и поставьте на направляющую.
+            </div>
+            <button id="reset-btn" class="reset-btn" type="button" aria-label="Сбросить опыт" title="Сбросить опыт">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+                <path d="M3 4v5h5"/>
+              </svg>
+            </button>
+          </header>
+
+          <div class="workbench-stage" id="stage">
+            <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+            <!-- Переключатель поверхности (вверху сцены слева) -->
+            <div class="surface-toggle" id="surface-toggle" role="group" aria-label="Поверхность направляющей">
+              <button type="button" data-surface="A" data-state="active" aria-pressed="true" class="surface-btn">
+                <span class="surface-swatch surface-swatch--A" aria-hidden="true"></span>
+                Поверхность А <small>(направляющая)</small>
+              </button>
+              <button type="button" data-surface="B" data-state="inactive" aria-pressed="false" class="surface-btn">
+                <span class="surface-swatch surface-swatch--B" aria-hidden="true"></span>
+                Поверхность Б <small>(гибкая полоса)</small>
+              </button>
+            </div>
+
+            <!-- Кнопка «Взвесить брусок» — показывает F с динамометра, ученик считает m -->
+            <button type="button" id="weigh-btn" class="weigh-btn" aria-label="Взвесить брусок динамометром">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                <path d="M12 3v18M5 8l7-5 7 5M5 8h14l-2 9H7L5 8z" />
+              </svg>
+              Взвесить брусок
+            </button>
+
+            <!-- Горизонтальная направляющая, центрирована в сцене -->
+            <div class="track-container" id="track-container">
+              <lab-friction-track id="track" surface="A"></lab-friction-track>
+
+              <!-- Snap-зоны (видимость управляется JS-ом) -->
+              <div class="drop-zone drop-zone--track" id="drop-zone-track" aria-hidden="true" hidden>
+                <span class="drop-zone-label">Поставьте брусок на направляющую</span>
+              </div>
+              <div class="drop-zone drop-zone--block-top" id="drop-zone-block-top" aria-hidden="true" hidden>
+                <span class="drop-zone-label">Положите груз сверху</span>
+              </div>
+              <div class="drop-zone drop-zone--block-hook" id="drop-zone-block-hook" aria-hidden="true" hidden>
+                <span class="drop-zone-label">Прицепите динамометр к крючку</span>
+              </div>
+            </div>
+
+            <!-- Floating measurement panel (PhET-стиль), правый нижний угол -->
+            <aside
+              id="measurement-panel"
+              class="measurement-panel"
+              data-state="empty"
+              aria-collapsed="false"
+              aria-label="Панель измерений"
+            >
+              <header class="measurement-panel-header">
+                <button
+                  id="measurement-toggle"
+                  class="measurement-toggle"
+                  type="button"
+                  aria-expanded="true"
+                  aria-controls="measurement-body"
+                >
+                  <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span class="measurement-title">Журнал измерений</span>
+                  <span id="measurement-count" class="measurement-count" hidden>0</span>
+                </button>
+                <button
+                  id="record-btn"
+                  class="record-btn"
+                  type="button"
+                  disabled
+                  hidden
+                >
+                  Записать в журнал
+                </button>
+              </header>
+
+              <div id="measurement-body" class="measurement-body">
+                <div class="journal-empty" id="journal-empty">
+                  Поставьте брусок, прицепите динамометр и потяните до начала скольжения. Затем нажмите «Записать в журнал».
+                </div>
+
+                <!-- Форма ручного ввода в журнал. Появляется после нажатия «Записать в журнал»
+                     при готовом измерении. Ученик САМ списывает значения с приборов. -->
+                <form id="record-form" class="record-form" hidden>
+                  <h4 class="record-form-title">Запишите значения с приборов</h4>
+                  <div class="record-field">
+                    <label for="rf-mblock">Масса бруска <em>m</em><sub>бр</sub>, г:</label>
+                    <input type="number" id="rf-mblock" inputmode="numeric" step="1" min="0" max="500" placeholder="напр. 50" />
+                    <small class="hint">Если ещё не взвешивали — нажмите «Взвесить брусок» наверху сцены.</small>
+                  </div>
+                  <div class="record-field record-field-readonly">
+                    <label>Масса грузов <em>m</em><sub>гр</sub>, г:</label>
+                    <output id="rf-mweights">0</output>
+                    <small class="hint">Авто (сумма наклеек на грузах).</small>
+                  </div>
+                  <div class="record-field">
+                    <label for="rf-friction">Показание динамометра <em>F</em><sub>тр</sub>, Н:</label>
+                    <input type="number" id="rf-friction" inputmode="decimal" step="0.01" min="0" max="5" placeholder="напр. 0.30" />
+                  </div>
+                  <div class="record-form-actions">
+                    <button type="button" id="rf-cancel" class="rf-cancel">Отмена</button>
+                    <button type="submit" id="rf-submit" class="rf-submit">В журнал</button>
+                  </div>
+                </form>
+                <!-- Формула расчёта (видна когда есть журнал) — стандарт REFERENCE -->
+                <div class="formula-display" id="formula-display" hidden>
+                  <span class="formula-label">Формула:</span>
+                  <span class="formula-expr">
+                    <em>m</em><sub>общ</sub> = <em>m</em><sub>бр</sub> + <em>m</em><sub>гр</sub>,
+                    <em>N</em> = <em>m</em><sub>общ</sub> · <em>g</em>,
+                    <em>μ</em> = <em>F</em><sub>тр</sub> / <em>N</em>
+                  </span>
+                  <span class="formula-units">массу — в кг, <em>g</em> = 9,8 м/с²</span>
+                </div>
+
+                <table class="journal-table" id="journal-table" hidden>
+                  <thead>
+                    <tr>
+                      <th>№</th>
+                      <th>Пов.</th>
+                      <th><em>m</em><sub>общ</sub>, г</th>
+                      <th><em>N</em>, Н</th>
+                      <th><em>F</em><sub>тр</sub>, Н</th>
+                      <th><em>μ</em></th>
+                    </tr>
+                  </thead>
+                  <tbody id="journal-body"></tbody>
+                </table>
+                <div id="result-panel" class="result-panel" hidden></div>
+                <div id="graph-wrap" class="graph-wrap" hidden>
+                  <h3 class="graph-title">График F<sub>тр</sub>(N)</h3>
+                  <lab-graph id="graph"></lab-graph>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <div id="drag-overlay" class="drag-overlay" aria-hidden="true"></div>
+
+        <aside class="equipment-panel" aria-label="Оборудование комплекта">
+          <section class="equipment-group">
+            <h3 class="equipment-group-title">Оборудование</h3>
+            <div class="equipment-grid">
+              <lab-equipment-card title="Брусок 50 г" status="available" data-eq="block">
+                <lab-block mass="50"></lab-block>
+              </lab-equipment-card>
+              <lab-equipment-card title="Динамометр 1Н" status="available" data-eq="dyno-1">
+                <lab-dynamometer-h range="1" force="0"></lab-dynamometer-h>
+              </lab-equipment-card>
+              <lab-equipment-card title="Динамометр 5Н" status="available" data-eq="dyno-5">
+                <lab-dynamometer-h range="5" force="0"></lab-dynamometer-h>
+              </lab-equipment-card>
+            </div>
+          </section>
+
+          <section class="equipment-group">
+            <h3 class="equipment-group-title">Готовые грузы</h3>
+            <div class="equipment-grid equipment-grid-3">
+              <lab-equipment-card title="Груз №1" status="available" data-eq="w-100-1">
+                <lab-flat-weight mass="100" number="1"></lab-flat-weight>
+              </lab-equipment-card>
+              <lab-equipment-card title="Груз №2" status="available" data-eq="w-100-2">
+                <lab-flat-weight mass="100" number="2"></lab-flat-weight>
+              </lab-equipment-card>
+              <lab-equipment-card title="Груз №3" status="available" data-eq="w-100-3">
+                <lab-flat-weight mass="100" number="3"></lab-flat-weight>
+              </lab-equipment-card>
+            </div>
+          </section>
+
+          <!-- Наборный груз НЕ используется в опыте 2.2 — убран.
+               Для трения достаточно 3×100г. Если понадобится — добавить отдельную сцену. -->
+        </aside>
+      </main>
+<div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ЛАБОСФЕРА · Виртуальная лаборатория</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="mockup.css">
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true">
+    <div class="atmosphere-glow atmosphere-glow--blue"></div>
+    <div class="atmosphere-glow atmosphere-glow--gold"></div>
+    <svg class="atmosphere-noise" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+      <filter id="noise">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+        <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.4 0"/>
+      </filter>
+      <rect width="100%" height="100%" filter="url(#noise)"/>
+    </svg>
+  </div>
+
+  <header class="topbar">
+    <a class="topbar-brand" href="#">
+      <img src="photos/logo.png" alt="" class="topbar-logo">
+      <span class="topbar-brand-wordmark">
+        <span class="topbar-eyebrow">ЛАБОСФЕРА</span>
+        <span class="topbar-title">Виртуальная лаборатория</span>
+      </span>
+    </a>
+
+    <div class="topbar-center">
+      <div class="role-switch" role="tablist" aria-label="Режим работы">
+        <button class="role-switch-btn is-active" role="tab" aria-selected="true" data-role="student">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.66 4 3 6 3s6-1.34 6-3v-5"/></svg>
+          Ученик
+        </button>
+        <button class="role-switch-btn" role="tab" aria-selected="false" data-role="teacher">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Учитель
+        </button>
+        <span class="role-switch-thumb" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <nav class="topbar-actions" aria-label="Глобальная навигация">
+      <button class="topbar-btn" type="button" aria-label="Журнал измерений">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h13a2 2 0 0 1 2 2v14H6a2 2 0 0 1-2-2V4z"/><path d="M9 8h7M9 12h7M9 16h4"/></svg>
+        <span>Журнал</span>
+      </button>
+      <button class="topbar-btn topbar-btn--icon" type="button" aria-label="Настройки">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <div class="app">
+    <aside class="sidebar" aria-label="Фильтры каталога">
+      <section class="sidebar-section">
+        <div class="sidebar-section-label">Категория</div>
+        <ul class="filter-list">
+          <li><button class="filter-item is-active" data-cat="all">
+            <span class="filter-dot" style="--dot:#ffbe0b"></span>
+            <span class="filter-name">Все опыты</span>
+            <span class="filter-count">33</span>
+          </button></li>
+          <li><button class="filter-item" data-cat="mechanics">
+            <span class="filter-dot" style="--dot:#3a86ff"></span>
+            <span class="filter-name">Механика</span>
+            <span class="filter-count">15</span>
+          </button></li>
+          <li><button class="filter-item" data-cat="electricity">
+            <span class="filter-dot" style="--dot:#ffbe0b"></span>
+            <span class="filter-name">Электричество</span>
+            <span class="filter-count">9</span>
+          </button></li>
+          <li><button class="filter-item" data-cat="optics">
+            <span class="filter-dot" style="--dot:#10b981"></span>
+            <span class="filter-name">Оптика</span>
+            <span class="filter-count">6</span>
+          </button></li>
+          <li><button class="filter-item" data-cat="thermal">
+            <span class="filter-dot" style="--dot:#ef4444"></span>
+            <span class="filter-name">Термодинамика</span>
+            <span class="filter-count">3</span>
+          </button></li>
+        </ul>
+      </section>
+
+      <section class="sidebar-section">
+        <div class="sidebar-section-label">Программа</div>
+        <div class="chips">
+          <button class="chip is-active">Базовая</button>
+          <button class="chip">Расширенная</button>
+        </div>
+      </section>
+
+      <section class="sidebar-section sidebar-section--scrollable">
+        <div class="sidebar-section-label">Готовые опыты</div>
+        <ul class="recent-list">
+          <li class="recent-item is-done">
+            <span class="recent-num">1.1</span>
+            <span class="recent-name">Плотность вещества</span>
+          </li>
+          <li class="recent-item is-done">
+            <span class="recent-num">1.2</span>
+            <span class="recent-name">Архимедова сила</span>
+          </li>
+          <li class="recent-item is-done">
+            <span class="recent-num">2.1</span>
+            <span class="recent-name">Жёсткость пружины</span>
+          </li>
+          <li class="recent-item is-done">
+            <span class="recent-num">2.2</span>
+            <span class="recent-name">Сила упругости</span>
+          </li>
+          <li class="recent-item is-done">
+            <span class="recent-num">2.3</span>
+            <span class="recent-name">Работа упругости</span>
+          </li>
+          <li class="recent-item is-done">
+            <span class="recent-num">2.4</span>
+            <span class="recent-name">Трение скольжения</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="sidebar-progress">
+        <div class="progress-head">
+          <span class="progress-eyebrow">Ваш прогресс</span>
+          <span class="progress-figures"><b>8</b><span class="progress-total">/33</span></span>
+        </div>
+        <div class="progress-bar"><span style="width: 24%"></span></div>
+        <p class="progress-hint">До итогового экзамена — 25 опытов</p>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="poster-wall" id="kitGrid"></div>
+    </main>
+  </div>
+
+  <aside class="kit-drawer" id="kitDrawer" hidden aria-label="Детали комплекта">
+    <div class="kit-drawer-backdrop" data-close></div>
+    <div class="kit-drawer-panel" role="dialog" aria-modal="true">
+      <header class="kit-drawer-head">
+        <span class="kit-drawer-eyebrow" id="drawerKitNum">КОМПЛЕКТ №—</span>
+        <h2 class="kit-drawer-title" id="drawerTitle">—</h2>
+        <button class="kit-drawer-close" data-close aria-label="Закрыть">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </header>
+      <p class="kit-drawer-summary" id="drawerSummary"></p>
+      <div class="kit-drawer-meta" id="drawerMeta"></div>
+      <ol class="kit-drawer-experiments" id="drawerExperiments"></ol>
+    </div>
+  </aside>
+
+  <script src="mockup.js"></script>
+</body>
+</html>

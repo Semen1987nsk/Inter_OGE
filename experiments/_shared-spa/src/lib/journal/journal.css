@@ -1,0 +1,337 @@
+/**
+ * Стили единого журнала измерений (§21 REFERENCE.md, UX-v2).
+ *
+ * Подключается в каждом SPA через
+ *   `import '@labosfera/shared-spa/lib/journal/journal.css';`
+ *
+ * Использует CSS-переменные опыта (--color-*, --space-*, --text-*,
+ * --font-mono, --font-display) с fallback'ами на дефолтные значения,
+ * чтобы стили работали даже если SPA забыл подключить design-tokens.
+ *
+ * Селекторы:
+ *   .lab-journal-table     — таблица (создаётся в render.ts)
+ *   .lab-journal-body      — tbody
+ *   .j-input               — input в ячейке (semi-auto derived, fully-manual all)
+ *   .j-check               — кнопка ✓ проверки
+ *   .j-verdict, .j-verdict--{ok|close|wrong|empty}
+ *   .record-pending-slot, .record-pending-btn — pending-плашка под сценой
+ *
+ * Атрибут `data-mode` на таблице переключает поведение:
+ *   - fully-auto    → table read-only, БЕЗ inputs (рендерится как text)
+ *   - semi-auto     → derived = input + verdict, direct = read-only
+ *   - fully-manual  → ВСЕ cells = input БЕЗ verdict-цветов БЕЗ placeholder
+ */
+
+/* ─── Таблица ───────────────────────────────────────────────────── */
+
+.lab-journal-table {
+  width: 100%;
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Consolas, monospace);
+  font-size: var(--text-sm, 13px);
+  border-collapse: collapse;
+  color: var(--color-text-primary, #fff);
+}
+
+.lab-journal-table th,
+.lab-journal-table td {
+  padding: var(--space-2, 8px);
+  text-align: right;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  vertical-align: middle;
+}
+
+.lab-journal-table th {
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-weight: 600;
+  font-size: var(--text-xs, 11px);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.lab-journal-table th:first-child,
+.lab-journal-table td:first-child {
+  text-align: left;
+  width: 28px;
+}
+
+.lab-journal-table thead th em {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.lab-journal-table thead th sub {
+  font-size: 0.7em;
+  vertical-align: sub;
+}
+
+.lab-journal-table tbody tr[data-editing='true'] {
+  background: rgb(255 190 11 / 0.06);
+}
+
+/* ─── Input в ячейке ────────────────────────────────────────────── */
+
+.lab-journal-table input.j-input {
+  width: 64px;
+  padding: 3px 6px;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgba(56, 189, 175, 0.35);
+  border-radius: 6px;
+  color: var(--color-text-primary, #fff);
+  font-family: var(--font-mono, ui-monospace, Consolas, monospace);
+  font-size: var(--text-sm, 13px);
+  text-align: right;
+  outline: none;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.lab-journal-table input.j-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+.lab-journal-table input.j-input:focus {
+  border-color: #38bdaf;
+  background: rgb(56 189 175 / 0.10);
+  box-shadow: 0 0 0 3px rgb(56 189 175 / 0.15);
+}
+
+/* Verdict-цвета — ТОЛЬКО в semi-auto. В fully-manual и fully-auto
+   подсветка скрыта (no-help педагогика, §21.A.1). */
+.lab-journal-table[data-mode='semi-auto'] input.j-input[data-verdict='ok'] {
+  border-color: var(--color-success, #10b981);
+  background: rgb(16 185 129 / 0.12);
+  color: var(--color-success, #10b981);
+}
+.lab-journal-table[data-mode='semi-auto'] input.j-input[data-verdict='close'] {
+  border-color: var(--color-warning, #f59e0b);
+  background: rgb(245 158 11 / 0.10);
+  color: var(--color-warning, #f59e0b);
+}
+.lab-journal-table[data-mode='semi-auto'] input.j-input[data-verdict='wrong'] {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.10);
+  color: #ff9b9b;
+}
+.lab-journal-table[data-mode='semi-auto'] input.j-input[data-verdict='empty'] {
+  border-color: var(--color-warning, #f59e0b);
+  background: rgb(245 158 11 / 0.10);
+}
+
+/* В fully-manual подсветка ВСЕХ verdict'ов скрыта — ученик не должен
+   видеть «правильно ли». */
+.lab-journal-table[data-mode='fully-manual'] input.j-input {
+  border-color: rgba(56, 189, 175, 0.35);
+  background: rgb(255 255 255 / 0.06);
+  color: var(--color-text-primary, #fff);
+}
+
+/* ─── Кнопка ✓ ─────────────────────────────────────────────────── */
+
+.lab-journal-table button.j-check {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgb(56 189 175 / 0.14);
+  border: 1px solid rgba(56, 189, 175, 0.5);
+  border-radius: 6px;
+  color: #38bdaf;
+  font-family: var(--font-display, sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.lab-journal-table button.j-check:hover {
+  background: rgb(56 189 175 / 0.28);
+  transform: translateY(-1px);
+}
+
+.lab-journal-table button.j-check:active {
+  transform: translateY(0);
+}
+
+/* В fully-manual и fully-auto колонка ✓ скрывается полностью. */
+.lab-journal-table[data-mode='fully-manual'] th:last-child,
+.lab-journal-table[data-mode='fully-manual'] td:last-child,
+.lab-journal-table[data-mode='fully-auto'] th:last-child,
+.lab-journal-table[data-mode='fully-auto'] td:last-child {
+  display: none;
+}
+
+/* ─── Verdict-бейджи (legacy для совместимости) ────────────────── */
+
+.j-verdict {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: var(--font-display, sans-serif);
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.lab-journal-table[data-mode='semi-auto'] td.j-verdict--ok {
+  background: rgb(16 185 129 / 0.06);
+}
+.lab-journal-table[data-mode='semi-auto'] td.j-verdict--close {
+  background: rgb(245 158 11 / 0.05);
+}
+.lab-journal-table[data-mode='semi-auto'] td.j-verdict--wrong {
+  background: rgb(255 107 107 / 0.05);
+}
+
+/* В fully-manual verdict-классы не должны влиять на td-фон. */
+.lab-journal-table[data-mode='fully-manual'] td.j-verdict,
+.lab-journal-table[data-mode='fully-manual'] td.j-verdict--ok,
+.lab-journal-table[data-mode='fully-manual'] td.j-verdict--close,
+.lab-journal-table[data-mode='fully-manual'] td.j-verdict--wrong,
+.lab-journal-table[data-mode='fully-manual'] td.j-verdict--empty {
+  background: transparent;
+}
+
+/* ─── Pending-плашка «Записать в журнал» ───────────────────────── */
+
+.record-pending-slot {
+  padding: 8px 12px 0;
+}
+
+.record-pending-slot[hidden] {
+  display: none !important;
+}
+
+.record-pending-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgb(255 190 11 / 0.55);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgb(255 190 11 / 0.18), rgb(255 190 11 / 0.08));
+  color: var(--color-text-primary, #fff);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, transform 160ms ease-out;
+}
+
+.record-pending-btn:hover,
+.record-pending-btn:focus-visible {
+  background: linear-gradient(180deg, rgb(255 190 11 / 0.28), rgb(255 190 11 / 0.14));
+  border-color: rgb(255 190 11 / 0.85);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.record-pending-btn:active {
+  transform: translateY(0);
+}
+
+.record-pending-btn .record-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.record-pending-btn .record-text {
+  white-space: nowrap;
+}
+
+.record-pending-btn .record-summary {
+  flex: 1;
+  font-weight: 400;
+  font-size: 12px;
+  opacity: 0.8;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-journal-table input.j-input,
+  .lab-journal-table button.j-check,
+  .record-pending-btn {
+    transition: none;
+  }
+}
+
+/* ─── Toggle режима записи (3-сегментный) ──────────────────────── */
+
+.record-mode-slot {
+  margin-left: auto;
+  padding-right: 6px;
+}
+
+.record-mode-toggle {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgb(255 255 255 / 0.04);
+}
+
+.record-mode-toggle button {
+  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.6));
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.record-mode-toggle button:last-child {
+  border-right: none;
+}
+
+.record-mode-toggle button:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: var(--color-text-primary, #fff);
+}
+
+.record-mode-toggle button[aria-pressed='true'] {
+  background: rgb(255 190 11 / 0.16);
+  color: rgb(255 190 11);
+}
+
+.record-mode-toggle[data-locked='true'] button {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.record-mode-toggle[data-locked='true'] button[aria-pressed='true'] {
+  opacity: 0.9;
+}
+
+/* ─── §21 UX-v2: «без подсказок» в fully-manual ───────────────────
+   В ручном режиме скрываем ВСЕ расчётные подсказки во ВСЕХ опытах:
+   - .formula-display      — формулы расчёта (F=mg, μ=F/N и т.п.)
+   - .density-result-hint  — баннер «перепроверь» под журналом
+   - .journal-empty        — текст «подвесьте груз и…» в пустом журнале
+   - .formula-units        — пояснения единиц («в кг, м/с²»)
+   - .ar-record-hint       — подсказки в шапке Архимед-журнала
+   - .equipment-group-hint — рекомендации по выбору оборудования
+                             (в палитре, нужны для drag — оставляем).
+   Этот блок применяется глобально через body[data-record-mode], так
+   что любой будущий опыт автоматически получает «чистый» fully-manual,
+   если он использует один из этих стандартных классов.
+   §21 REFERENCE.md, требование пользователя 2026-05-13. */
+body[data-record-mode='fully-manual'] .formula-display,
+body[data-record-mode='fully-manual'] .formula-units,
+body[data-record-mode='fully-manual'] .density-result-hint,
+body[data-record-mode='fully-manual'] .journal-empty,
+body[data-record-mode='fully-manual'] .ar-record-hint {
+  display: none !important;
+}

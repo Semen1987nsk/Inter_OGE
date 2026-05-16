@@ -1,0 +1,1594 @@
+/**
+ * home.css — главные стили каталога ЛАБОСФЕРА.
+ *
+ * Структура:
+ *   1. body / общие layout-правила
+ *   2. Hero
+ *   3. Bento-каталог + kit-card
+ *   4. How it works
+ *   5. Real vs Digital (diptyque)
+ *   6. Footer
+ *   7. Адаптив
+ */
+
+/* ─── 1. BODY + GLOBAL ─────────────────────────────────────────── */
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ─── Grain overlay — inline SVG fractalNoise (4 кБ, без runtime).
+   AWWWARDS-стандарт 2026 для премиум-сайтов: добавляет «film texture»
+   на тёмный фон, ощущение киноплёнки, скрывает банальные gradient-banding'и.
+   `mix-blend-mode: overlay` + opacity 0.06 — органично подмешивается в фон.
+   Pointer-events: none — не перехватывает клики.
+   На prefers-reduced-motion и mobile остаётся (статичный, не анимирован). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='256' height='256' filter='url(%23n)'/></svg>");
+  background-size: 256px 256px;
+}
+
+main,
+.footer {
+  position: relative;
+  z-index: 2;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding-inline: var(--container-pad);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.eyebrow--gold { color: var(--gold); }
+.eyebrow--teal { color: var(--teal); }
+
+/* ─── 2. HERO ──────────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  isolation: isolate;
+  overflow: hidden;
+
+  /* Multi-layer texture (правило 6): ambient lights + noise + scan-lines */
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      rgba(29, 52, 97, 0.55),
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 85% 85%,
+      rgba(255, 190, 11, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 10% 90%,
+      rgba(20, 184, 166, 0.06),
+      transparent
+    ),
+    repeating-linear-gradient(
+      23deg,
+      transparent 0 80px,
+      rgba(255, 255, 255, 0.018) 80px 81px
+    ),
+    var(--bg-deep);
+}
+
+/* Видео-фон с slow-zoom (правило 3) */
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% center;
+  z-index: var(--z-bg);
+  opacity: 0.62;
+  /* Cinematic 1080p — без blur (источник теперь 1920×1080, не растягивается).
+     Лёгкий boost contrast/saturation для премиум-look. */
+  filter: saturate(1.1) brightness(0.92) contrast(1.12);
+  /* Cinematic slow-zoom 1.0 → 1.05 за 30s, alternate */
+  animation: cinematic-zoom 30s var(--ease-out) infinite alternate;
+}
+
+/* Premium overlay — mesh-gradient deep-blue + vignette по краям.
+   Маскирует low-res и тянет глаз к центральному тексту. */
+.hero-video-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: calc(var(--z-bg) + 1);
+  pointer-events: none;
+  background:
+    /* Тонкий gold-blob слева — eye-magnet к hero-headline */
+    radial-gradient(ellipse 60% 40% at 18% 38%, rgba(255, 190, 11, 0.10) 0%, transparent 60%),
+    /* Teal-blob справа-снизу */
+    radial-gradient(ellipse 50% 50% at 82% 78%, rgba(20, 184, 166, 0.10) 0%, transparent 65%),
+    /* Vignette: затемнение по краям */
+    radial-gradient(ellipse 90% 80% at center, transparent 30%, rgba(6, 16, 30, 0.65) 95%),
+    /* Низ затемнён для читаемости CTA */
+    linear-gradient(to bottom, transparent 60%, rgba(6, 16, 30, 0.6) 100%);
+}
+
+.hero-video::-webkit-media-controls { display: none !important; }
+
+@keyframes cinematic-zoom {
+  from { transform: scale(1); }
+  to   { transform: scale(1.06); }
+}
+
+.hero-video-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 50%, rgba(255, 190, 11, 0.14), transparent 40%),
+    radial-gradient(circle at 70% 60%, rgba(20, 184, 166, 0.12), transparent 50%);
+  z-index: var(--z-bg);
+}
+
+/* Vignette overlay поверх видео для контраста с текстом.
+   Радиальный + линейный дают «луч света» вокруг центра, видео остаётся
+   читаемым в углах и постепенно затемняется к низу. */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    /* Сильно затемнить верх, оставить мидл-полупрозрачным, дно глубокое */
+    linear-gradient(180deg,
+      rgba(6, 16, 30, 0.55) 0%,
+      rgba(6, 16, 30, 0.2) 25%,
+      rgba(6, 16, 30, 0.4) 60%,
+      rgba(6, 16, 30, 0.95) 100%
+    ),
+    /* Радиальный затемнитель по краям, центр светлее */
+    radial-gradient(ellipse 100% 80% at 50% 60%,
+      transparent 0%,
+      rgba(6, 16, 30, 0.55) 100%
+    );
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Hero topbar */
+.hero-topbar {
+  position: relative;
+  z-index: var(--z-content);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-6) 0;
+  gap: var(--space-6);
+}
+
+.hero-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   WORDMARK «ЛАБОСФЕРА» — премиальный текстовый логотип
+   с градиентом gold→white через background-clip:text.
+   Заменяет дешёвый PNG-логотип на белом фоне.
+   ═══════════════════════════════════════════════════════════════ */
+.wordmark {
+  font-family: var(--font-accent);  /* Cormorant — академический ритм */
+  font-weight: 600;
+  font-style: italic;
+  font-size: clamp(1.25rem, 1.4vw, 1.65rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  /* Gold → white градиент по тексту */
+  background: linear-gradient(120deg,
+    #ffbe0b 0%,
+    #fde68a 32%,
+    #ffffff 58%,
+    #c5cfe2 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  /* Лёгкий вертикальный сдвиг для каждой буквы — даёт «нота-в-партитуре» эффект */
+  display: inline-flex;
+  align-items: baseline;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.wordmark-letter {
+  display: inline-block;
+  transition: transform 380ms var(--ease-out);
+  will-change: transform;
+}
+
+.hero-topbar-brand:hover .wordmark-letter:nth-child(odd) { transform: translateY(-2px); }
+.hero-topbar-brand:hover .wordmark-letter:nth-child(even) { transform: translateY(2px); }
+
+.wordmark--footer {
+  font-size: clamp(1.5rem, 1.8vw, 2rem);
+  letter-spacing: 0.2em;
+}
+
+.hero-topbar-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Hero content — типографический «вдох» (правило 10) */
+.hero-content {
+  position: relative;
+  z-index: var(--z-content);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(var(--space-8), 4vw, var(--space-16));
+  padding-block: var(--space-16) var(--space-12);
+}
+
+.hero-headline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-6) var(--space-12);
+  align-items: end;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-hero);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  color: var(--text-primary);
+  max-width: 18ch;
+  /* Не разрывать слова посимвольно — только по словам */
+  word-break: keep-all;
+  overflow-wrap: normal;
+  hyphens: none;
+  /* SplitType создаёт inline-span'ы — поднимаем перерасчёт строк */
+  overflow: hidden;
+}
+
+/* SplitType-обёртки char'ов: ставим overflow-clip для clip-path mask,
+   чтобы yPercent: 110 → 0 анимация выглядела как «шторка вверх». */
+.hero-title .char {
+  display: inline-block;
+  will-change: transform, opacity;
+}
+
+/* Cormorant акцент в hero h1 (правило 1: точечно, не вся семья).
+   Использовать через <em class="hero-title-em">лаборатория</em> или
+   автоматически на <em> внутри .hero-title. */
+.hero-title em {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  /* «Учебник 19 века + 2026» — антиква-сглаживание */
+}
+
+/* ─── Pre-reveal страховка от FOUC (Phase 2).
+   До запуска GSAP timeline элементы скрыты; при `done` появляются с
+   CSS-transition (если GSAP не успел загрузиться — это и есть fallback).
+   GSAP-inline-стили перекрывают эти rule'ы во время reveal. */
+.hero[data-reveal-state='pre'] .hero-spec-line,
+.hero[data-reveal-state='pre'] .hero-cta,
+.hero[data-reveal-state='pre'] .hero-scroll-hint {
+  opacity: 0;
+}
+.hero[data-reveal-state='done'] .hero-spec-line,
+.hero[data-reveal-state='done'] .hero-cta,
+.hero[data-reveal-state='done'] .hero-scroll-hint {
+  opacity: 1;
+  transition: opacity 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Третья строка hero-title — половинной ширины (асимметрия, правило 10) */
+.hero-title-coda {
+  display: block;
+  margin-top: var(--space-4);
+  font-size: 0.6em;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.hero-spec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  align-self: end;
+  padding-bottom: var(--space-2);
+}
+
+.hero-spec-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.hero-spec-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+/* CTA-блок: рассинхрон по вертикали (правило 10) */
+.hero-cta-row {
+  display: flex;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.hero-cta {
+  --cta-tx: 0px;
+  --cta-ty: 0px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 18px 32px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.005em;
+  border-radius: var(--radius-pill);
+  transform: translate3d(var(--cta-tx), var(--cta-ty), 0);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hero-cta--primary {
+  background: var(--gold);
+  color: var(--bg-deep);
+  box-shadow:
+    0 8px 24px -8px rgba(255, 190, 11, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  /* Slight vertical offset для рассинхрона */
+  margin-top: 6px;
+}
+
+.hero-cta--primary:hover {
+  background: #ffc933;
+  box-shadow:
+    0 16px 40px -10px rgba(255, 190, 11, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.hero-cta--ghost {
+  background: transparent;
+  color: var(--teal);
+  border: 1.5px solid rgba(20, 184, 166, 0.55);
+}
+
+.hero-cta--ghost:hover {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+}
+
+.hero-cta-arrow {
+  display: inline-block;
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+.hero-cta:hover .hero-cta-arrow {
+  transform: translateX(4px);
+}
+
+/* Hero footer — kicker для скролла */
+.hero-scroll-hint {
+  position: relative;
+  z-index: var(--z-content);
+  padding: var(--space-8) 0 var(--space-12);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.hero-scroll-line {
+  flex: 0 0 60px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--text-muted), transparent);
+}
+
+/* ─── 3. CATALOG (BENTO) ───────────────────────────────────────── */
+
+.catalog {
+  padding: clamp(var(--space-20), 12vh, var(--space-32)) 0 var(--space-24);
+  position: relative;
+}
+
+.section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: clamp(var(--space-12), 6vw, var(--space-20));
+  max-width: 720px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+}
+
+.section-title em {
+  font-style: normal;
+  color: var(--gold);
+}
+
+.section-subtitle {
+  font-size: var(--fs-body-lg);
+  color: var(--text-secondary);
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* Bento grid (правило 2) */
+.catalog-bento {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(220px, auto);
+  gap: var(--gap-grid);
+
+  /* Stagger entrance — карточки появляются по очереди (правило 5) */
+  --i-delay: 80ms;
+}
+
+/* Карточка: общая база */
+.kit-card {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --tilt-z: 0deg;
+  --photo-x: 0px;
+  --photo-y: 0px;
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  /* clip-path заставляет браузер обрезать ВСЕХ детей по форме карточки —
+     overflow:hidden иногда не клипит при transforms */
+  clip-path: inset(0 round var(--radius-lg));
+  border-radius: var(--radius-lg);
+  background: var(--bg-card);
+  /* 3D-tilt без preserve-3d — overflow:hidden корректно клипает фото */
+  transform: perspective(1200px)
+             rotateX(var(--tilt-x))
+             rotateY(var(--tilt-y))
+             rotateZ(var(--tilt-z));
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out);
+  /* Stagger animation */
+  animation: card-enter 720ms var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--i-delay));
+  /* Чёрный полупрозрачный фон, чтобы фото-альфа не показывала фон страницы */
+  background: linear-gradient(165deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: perspective(1200px) translateY(24px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(1200px) translateY(0) scale(1);
+  }
+}
+
+/* Variable depth-shadow по приоритету (правило 2) */
+.kit-card[data-priority='flagship'] {
+  box-shadow: var(--shadow-flagship);
+  grid-column: span 6;
+  grid-row: span 2;
+  min-height: 480px;
+}
+
+.kit-card[data-priority='medium'] {
+  box-shadow: var(--shadow-lg);
+  grid-column: span 3;
+  min-height: 280px;
+}
+
+.kit-card[data-priority='compact'] {
+  box-shadow: var(--shadow-md);
+  grid-column: span 2;
+  min-height: 240px;
+}
+
+/* Border-treatment по статусу (правило 2) */
+.kit-card[data-status='ready'] {
+  border: 1px solid rgba(255, 190, 11, 0.18);
+}
+
+.kit-card[data-status='ready']:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 190, 11, 0.4);
+  box-shadow:
+    0 32px 64px -16px rgba(255, 190, 11, 0.22),
+    0 8px 24px -8px rgba(0, 0, 0, 0.5);
+}
+
+/* Dashed border для locked — сразу читается периферическим зрением */
+.kit-card[data-status='planned'] {
+  border: 1.5px dashed rgba(20, 184, 166, 0.22);
+  opacity: 0.78;
+  filter: saturate(0.55);
+  cursor: not-allowed;
+}
+
+.kit-card[data-status='planned']:hover {
+  filter: saturate(0.7);
+  opacity: 0.88;
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+/* Specimen-frame (правило 5): 4 corner-brackets как viewfinder камеры */
+.kit-card[data-status='ready']::before,
+.kit-card[data-status='ready']::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--gold);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.kit-card[data-status='ready']::before {
+  top: 16px;
+  left: 16px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.kit-card[data-status='ready']::after {
+  bottom: 16px;
+  right: 16px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.kit-card[data-status='ready']:hover::before,
+.kit-card[data-status='ready']:hover::after {
+  opacity: 0.9;
+}
+
+/* Дополнительные corner-brackets (TR, BL) через дочерний элемент */
+.kit-card-corners {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  z-index: 4;
+}
+
+.kit-card[data-status='ready']:hover .kit-card-corners {
+  opacity: 1;
+}
+
+.kit-card-corners::before,
+.kit-card-corners::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--gold);
+}
+
+.kit-card-corners::before {
+  top: 16px;
+  right: 16px;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+.kit-card-corners::after {
+  bottom: 16px;
+  left: 16px;
+  border-right: 0;
+  border-top: 0;
+}
+
+/* Содержимое карточки */
+.kit-card-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
+    var(--bg-card);
+}
+
+.kit-card-photo-wrap {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  /* 2D parallax — без translateZ, иначе фото уходит из clipping-plane карточки */
+  transform: translate(var(--photo-x), var(--photo-y));
+  transition: transform var(--dur-base) var(--ease-out);
+}
+
+/* Фото в пределах карточки. Текст ограничен max-width meta-блока,
+   поэтому фото может занимать правую часть карточки безопасно. */
+.kit-card[data-priority='flagship'] .kit-card-photo-wrap {
+  top: 4%;
+  right: 2%;
+  width: 50%;
+  height: 92%;
+}
+
+.kit-card[data-priority='medium'] .kit-card-photo-wrap {
+  top: 6%;
+  right: 2%;
+  width: 44%;
+  height: 88%;
+}
+
+.kit-card[data-priority='compact'] .kit-card-photo-wrap {
+  top: 8%;
+  right: 4%;
+  width: 48%;
+  height: 84%;
+}
+
+.kit-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  filter: drop-shadow(0 24px 32px rgba(0, 0, 0, 0.4));
+  /* 3-layer parallax: photo — самый медленный слой (depth 0). */
+  transform: translate3d(var(--photo-x, 0px), var(--photo-y, 0px), 0);
+  transition: transform 80ms linear;
+}
+
+/* Glare overlay (правило 10 — surprise при tilt). Радиальный bloom-блик
+   следует за наклоном. Скрыт без hover. */
+.kit-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at var(--glare-x, 50%) var(--glare-y, 50%),
+    rgba(255, 255, 255, var(--glare-alpha, 0)) 0%,
+    transparent 40%
+  );
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 220ms var(--ease-out);
+}
+.kit-card:hover::after { opacity: 1; }
+
+.kit-card[data-status='planned'] .kit-card-photo {
+  filter: drop-shadow(0 24px 32px rgba(0, 0, 0, 0.4)) saturate(0.4);
+}
+
+.kit-card-meta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: clamp(var(--space-6), 2vw, var(--space-8));
+  height: 100%;
+  /* 3-layer parallax: meta — самый «близкий» к зрителю, depth 1.
+     Усиление маленькое, текст не должен «прыгать». */
+  transform: translate3d(var(--meta-x, 0px), var(--meta-y, 0px), 0);
+  transition: transform 80ms linear;
+}
+
+/* Ограничиваем ширину meta-блока, чтобы текст не лез на фото */
+.kit-card[data-priority='flagship'] .kit-card-meta { max-width: 52%; }
+.kit-card[data-priority='medium']   .kit-card-meta { max-width: 60%; }
+.kit-card[data-priority='compact']  .kit-card-meta { max-width: 56%; }
+
+.kit-card-meta-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.kit-card-num {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.kit-card-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.kit-card-status[data-status='ready'] {
+  background: var(--teal-soft);
+  color: var(--teal);
+  border: 1px solid rgba(20, 184, 166, 0.35);
+}
+
+.kit-card-status[data-status='planned'] {
+  background: rgba(74, 84, 104, 0.4);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.kit-card-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.kit-card-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 800;
+  line-height: var(--lh-snug);
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  max-width: 14ch;
+  margin-top: auto;
+}
+
+.kit-card[data-priority='flagship'] .kit-card-title {
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  max-width: 16ch;
+}
+
+.kit-card-subtitle {
+  font-size: var(--fs-small);
+  color: var(--text-secondary);
+  max-width: 32ch;
+  line-height: 1.5;
+}
+
+.kit-card[data-priority='flagship'] .kit-card-subtitle {
+  font-size: var(--fs-body);
+  max-width: 50ch;
+}
+
+.kit-card-experiments {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* строго 2 колонки в meta-блоке */
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.kit-card-experiments li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  letter-spacing: var(--ls-mono);
+}
+
+.kit-card-experiments li::before {
+  content: '';
+  flex: 0 0 5px;
+  height: 5px;
+  background: var(--teal);
+  border-radius: 50%;
+}
+
+.kit-card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-body);
+  color: var(--gold);
+  align-self: flex-start;
+  padding: 10px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 190, 11, 0.35);
+  background: rgba(255, 190, 11, 0.05);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.kit-card-cta:hover {
+  background: var(--gold);
+  color: var(--bg-deep);
+  border-color: var(--gold);
+}
+
+.kit-card-cta-arrow { transition: transform var(--dur-base) var(--ease-out); }
+.kit-card-cta:hover .kit-card-cta-arrow { transform: translateX(3px); }
+
+/* Lock-overlay для planned (status-aware shimmer, правило 5) */
+.kit-lock {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(6, 16, 30, 0.7);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.kit-lock svg {
+  width: 16px;
+  height: 16px;
+}
+
+.kit-card[data-status='planned'] .kit-lock {
+  /* Subtle shimmer каждые 5s — намекает «здесь скоро будет» */
+  animation: lock-shimmer 5s var(--ease-out) infinite;
+}
+
+@keyframes lock-shimmer {
+  0%, 60%, 100% {
+    color: var(--text-muted);
+    border-color: var(--border-subtle);
+    box-shadow: none;
+  }
+  70%, 80% {
+    color: var(--gold);
+    border-color: rgba(255, 190, 11, 0.4);
+    box-shadow: 0 0 16px rgba(255, 190, 11, 0.25);
+  }
+}
+
+/* Shake-фидбек при клике на planned-карточку — даём понять, что заперто, а не сломано */
+@keyframes lock-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-6px); }
+  30% { transform: translateX(5px); }
+  45% { transform: translateX(-4px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+}
+.kit-card--shake {
+  animation: lock-shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+.kit-card--shake .kit-lock {
+  color: var(--gold);
+  border-color: rgba(255, 190, 11, 0.6);
+  box-shadow: 0 0 24px rgba(255, 190, 11, 0.35);
+}
+
+/* ─── 4. HOW IT WORKS ──────────────────────────────────────────── */
+
+.how {
+  padding: var(--space-24) 0;
+  background:
+    linear-gradient(180deg, transparent, rgba(20, 184, 166, 0.03) 50%, transparent),
+    var(--bg-deep);
+}
+
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap-grid);
+  margin-top: var(--space-12);
+}
+
+.how-step {
+  position: relative;
+  padding: var(--space-8);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.how-step-num {
+  font-family: var(--font-display);
+  font-size: 4rem;
+  font-weight: 900;
+  color: var(--gold);
+  opacity: 0.32;
+  line-height: 0.8;
+  letter-spacing: var(--ls-tight);
+}
+
+.how-step-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-h3);
+  font-weight: 800;
+  line-height: var(--lh-snug);
+}
+
+.how-step-text {
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+}
+
+.how-step-tag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-top: auto;
+}
+
+/* ─── 5. REAL VS DIGITAL (DIPTYQUE) ───────────────────────────── */
+
+.twin {
+  padding: var(--space-24) 0 var(--space-32);
+}
+
+.twin-statement {
+  font-family: var(--font-display);
+  font-size: var(--fs-display);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-display);
+  max-width: 22ch;
+  margin-bottom: var(--space-12);
+}
+
+.twin-statement em {
+  font-style: normal;
+  color: var(--gold);
+}
+
+.twin-diptyque {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--gold);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 21 / 9;
+}
+
+.twin-pane {
+  position: relative;
+  overflow: hidden;
+  /* Подкладываем светлый фон под левый pane (реальное фото на белом)
+     и тёмный — под правый (скриншот цифрового опыта).
+     Каждый pane получает родной background через :nth-child. */
+}
+
+.twin-pane:nth-child(1) {
+  background:
+    radial-gradient(ellipse at center, #f5f7fa 0%, #d9dde4 100%);
+}
+
+.twin-pane:nth-child(2) {
+  background: var(--bg-deep);
+}
+
+.twin-pane img,
+.twin-pane video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;  /* contain — чтобы продакт-шот не обрезался */
+  object-position: center;
+  display: block;
+  padding: clamp(16px, 2vw, 32px);
+}
+
+.twin-pane-label {
+  position: absolute;
+  bottom: var(--space-5);
+  left: var(--space-5);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(6, 16, 30, 0.85);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.twin-pane-label-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.twin-pane:nth-child(2) .twin-pane-label-dot { background: var(--teal); }
+
+.twin-caption {
+  margin-top: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ─── 6. FOOTER ────────────────────────────────────────────────── */
+
+.footer {
+  padding: var(--space-16) 0 var(--space-12);
+  border-top: 1px solid var(--border-subtle);
+  background: #04090f;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-12);
+  align-items: start;
+  margin-bottom: var(--space-12);
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 480px;
+}
+
+.footer-brand-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.footer-brand-row img { height: 32px; width: auto; }
+
+.footer-brand-row span {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.125rem;
+}
+
+.footer-tag {
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.footer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  letter-spacing: var(--ls-mono);
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.footer-meta-line { display: flex; gap: var(--space-3); justify-content: flex-end; }
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-disabled);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ─── 7. АДАПТИВ ───────────────────────────────────────────────── */
+
+@media (max-width: 1199px) {
+  .hero-headline { grid-template-columns: 1fr; }
+  .hero-spec { text-align: left; }
+  .hero-spec-line { justify-content: flex-start; }
+
+  .catalog-bento { grid-template-columns: repeat(4, 1fr); }
+  .kit-card[data-priority='flagship'] { grid-column: span 4; }
+  .kit-card[data-priority='medium'] { grid-column: span 2; }
+  .kit-card[data-priority='compact'] { grid-column: span 2; }
+
+  .how-steps { grid-template-columns: 1fr; }
+
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-meta { text-align: left; }
+  .footer-meta-line { justify-content: flex-start; }
+}
+
+@media (max-width: 767px) {
+  .catalog-bento { grid-template-columns: 1fr; gap: var(--space-4); }
+  .kit-card[data-priority='flagship'],
+  .kit-card[data-priority='medium'],
+  .kit-card[data-priority='compact'] {
+    grid-column: span 1;
+    min-height: 320px;
+  }
+
+  .hero-cta-row { flex-direction: column; align-items: stretch; }
+  .hero-cta { justify-content: center; }
+  .hero-cta--primary { margin-top: 0; }
+
+  .twin-diptyque { grid-template-columns: 1fr; aspect-ratio: 4 / 5; }
+
+  .footer-bottom { flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+}
+
+/* Reduced motion — выключаем все non-functional animations */
+@media (prefers-reduced-motion: reduce) {
+  .hero-video { animation: none; }
+  .kit-card { animation: none; }
+  .kit-card[data-status='planned'] .kit-lock { animation: none; }
+}
+
+/* Reduced data — отключаем видео */
+@media (prefers-reduced-data: reduce) {
+  .hero-video { display: none; }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   PHYSICS-IN-BROWSER section (Phase 4 — Three.js scene)
+   ═══════════════════════════════════════════════════════════════ */
+
+.physics {
+  position: relative;
+  padding-block: clamp(var(--space-16), 8vw, var(--space-24));
+  overflow: hidden;
+}
+
+.physics .section-header { margin-bottom: var(--space-12); }
+.physics .section-title em {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: -0.01em;
+}
+
+.physics-stage {
+  position: relative;
+  width: 100%;
+  /* aspect-ratio гарантирует CLS=0 даже когда сцена ещё грузится */
+  aspect-ratio: 16 / 7;
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #0c1830 0%, #06101e 70%);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-flagship);
+  isolation: isolate;
+}
+
+.physics-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 1;
+}
+
+/* Poster: статический gradient + накладные точки, виден пока scene грузится */
+.physics-poster {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 32%, rgba(255, 190, 11, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 78% 68%, rgba(20, 184, 166, 0.22) 0%, transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(12, 24, 48, 0.6) 0%, #06101e 80%);
+  transition: opacity 600ms var(--ease-out);
+}
+.physics-stage[data-state='live'] .physics-poster { opacity: 0.35; }
+
+.physics-labels {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.physics-label {
+  position: absolute;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: rgba(6, 16, 30, 0.65);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.physics-label--top-left { top: var(--space-6); left: var(--space-6); border-color: var(--gold-soft); color: var(--gold); }
+.physics-label--bottom-right { bottom: var(--space-6); right: var(--space-6); border-color: var(--teal-soft); color: var(--teal); }
+
+/* Mobile: poster + decorative dots, без Three.js (правило desktop-WOW/mobile-clean) */
+@media (max-width: 767px) {
+  .physics-stage { aspect-ratio: 4 / 3; }
+  .physics-label { font-size: 10px; padding: 4px 8px; }
+  .physics-label--top-left { top: var(--space-4); left: var(--space-4); }
+  .physics-label--bottom-right { bottom: var(--space-4); right: var(--space-4); }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   JOURNEY section — pin-scroll storytelling (Phase 5)
+   ═══════════════════════════════════════════════════════════════ */
+
+.journey {
+  position: relative;
+  padding-block: clamp(var(--space-16), 8vw, var(--space-24));
+}
+
+.journey .container {
+  /* Pin-режим: контейнер строго 100vh — иначе spacer ScrollTrigger
+     растягивает height до 4×100vh, и justify-content:center портит layout. */
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  row-gap: var(--space-8);
+  align-items: start;
+  padding-block: clamp(var(--space-10), 6vw, var(--space-16));
+}
+.journey .section-title em {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: -0.01em;
+}
+
+.journey-track {
+  position: relative;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  /* Stage absolute inset:0 — track держит высоту через min-height. */
+  min-height: 460px;
+  height: 100%;
+  align-self: stretch;
+}
+
+.journey-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: clamp(var(--space-6), 3vw, var(--space-12));
+  align-items: center;
+  padding: clamp(var(--space-8), 3vw, var(--space-12));
+  background: linear-gradient(145deg, rgba(12, 24, 48, 0.95) 0%, rgba(17, 32, 58, 0.7) 100%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  /* Стартовая видимость — для первого stage; остальные скрываются JS */
+  opacity: 1;
+  overflow: hidden;
+}
+
+.journey-stage-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-self: center;
+  z-index: 2;
+}
+
+/* Premium «big number» behind photo — fashion-mag editorial trick */
+.journey-stage-visual {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.journey-stage-photo {
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.55));
+  /* Постепенное проявление при смене stage'а */
+  transition: transform 600ms var(--ease-out);
+}
+
+.journey-stage-bignum {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(8rem, 18vw, 16rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(140deg,
+    rgba(255, 190, 11, 0.18) 0%,
+    rgba(255, 190, 11, 0.06) 40%,
+    rgba(20, 184, 166, 0.08) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+.journey-stage-num {
+  font-family: var(--font-mono);
+  font-size: clamp(0.75rem, 0.9vw, 0.875rem);
+  font-weight: 600;
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.journey-stage-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.2vw, 3rem);
+  font-weight: 700;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-display);
+  color: var(--text-primary);
+}
+
+.journey-stage-desc {
+  font-size: var(--fs-body-lg);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  max-width: 56ch;
+}
+
+.journey-stage-metric {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+.journey-stage-metric-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.journey-stage-metric-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-h3);
+  font-weight: 600;
+  color: var(--teal);
+}
+
+.journey-stage-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 14px 28px;
+  margin-top: var(--space-4);
+  align-self: flex-start;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--bg-deep);
+  background: var(--gold);
+  border-radius: var(--radius-pill);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  box-shadow: 0 8px 24px var(--gold-glow);
+}
+.journey-stage-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px var(--gold-glow);
+}
+
+.journey-progress {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+}
+.journey-progress-dot {
+  font-family: var(--font-mono);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  transition: all var(--dur-base) var(--ease-out);
+}
+.journey-progress-dot[data-active='true'] {
+  color: var(--gold);
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+/* Mobile fallback: scroll-snap vertical (правило desktop-WOW/mobile-clean) */
+.journey--mobile-fallback .journey-track {
+  position: relative;
+  min-height: auto;
+}
+.journey--mobile-fallback .journey-stage {
+  position: relative;
+  inset: auto;
+  opacity: 1 !important;
+  transform: none !important;
+  margin-bottom: var(--space-6);
+}
+@media (max-width: 767px) {
+  .journey-stage {
+    position: relative;
+    inset: auto;
+    grid-template-columns: 1fr;
+    margin-bottom: var(--space-6);
+    opacity: 1;
+  }
+  .journey-stage-visual { min-height: 220px; order: -1; }
+  .journey-stage-bignum { font-size: 8rem; }
+  .journey .container { height: auto; }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   CURSOR FOLLOWER (Phase 6 — desktop only)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cursor-follower {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  margin-top: -14px;
+  pointer-events: none;
+  z-index: 9999;
+  mix-blend-mode: difference;
+  transition: opacity 220ms var(--ease-out);
+  opacity: 1;
+  will-change: transform;
+}
+.cursor-follower[data-hidden='true'] { opacity: 0; }
+
+.cursor-follower-dot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 280ms var(--ease-out), background-color 280ms var(--ease-out);
+  transform-origin: center;
+}
+.cursor-follower[data-grow='true'] .cursor-follower-dot {
+  transform: scale(2.8);
+  background: rgba(255, 190, 11, 0.6);
+}
+
+/* Скрываем cursor на touch / mobile */
+@media (max-width: 767px), (hover: none), (pointer: coarse) {
+  .cursor-follower { display: none; }
+}
+
+/* ═════════════════════════════════════════════════════════════════
+   A11Y POLISH (Phase 6) — focus rings, prefers-reduced-motion
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Видимый focus-ring на ВСЕХ интерактивных элементах.
+   Skim-friendly — не «убирать default focus». */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible,
+.kit-card:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
+}
+
+/* prefers-reduced-motion: отключаем все «оркестрационные» motion'ы */
+@media (prefers-reduced-motion: reduce) {
+  .kit-card-icon * { animation: none !important; }
+  .cursor-follower { display: none; }
+  .physics-canvas { display: none; }
+  .physics-stage[data-state='live'] .physics-poster { opacity: 1 !important; }
+  .hero-title .char { transform: none !important; opacity: 1 !important; }
+}

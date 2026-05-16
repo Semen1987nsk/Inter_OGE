@@ -1,0 +1,289 @@
+<main class="app-main-v3">
+  <section class="workbench" aria-label="Рабочая зона">
+    <header class="workbench-header">
+      <ol class="steps" id="steps" aria-label="Этапы измерения">
+        <li class="step" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">Соберите установку</span>
+        </li>
+        <li class="step" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-label">Налейте воду в мензурку</span>
+        </li>
+        <li class="step" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-label">Измерьте <em>m</em> на весах</span>
+        </li>
+        <li class="step" data-step="4">
+          <span class="step-num">4</span>
+          <span class="step-label">Опустите в мензурку → <em>V</em><sub>2</sub></span>
+        </li>
+        <li class="step" data-step="5">
+          <span class="step-num">5</span>
+          <span class="step-label">В журнал</span>
+        </li>
+      </ol>
+      <div class="workbench-hint" id="hint-bar">
+        Перетащите весы и мензурку с правой панели на стол.
+      </div>
+      <span class="sr-only" id="kit-1-instruction">
+        Определите плотность четырёх цилиндров: измерьте массу на весах
+        и объём по вытесненной воде в мензурке.
+      </span>
+      <button id="reset-btn" class="reset-btn" type="button" aria-label="Сбросить опыт" title="Сбросить опыт">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="workbench-stage" id="stage">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <div class="density-stage-content">
+        <div
+          class="density-slot"
+          id="slot-balance"
+          data-dropzone="balance,cyl-*"
+          data-dropzone-id="balance"
+          data-drop-active="false"
+          data-drop-hover="false"
+        >
+          <div class="density-slot-empty" id="slot-balance-empty">
+            <div class="density-slot-empty-inner">
+              <svg viewBox="0 0 64 40" width="64" height="40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 28 L56 28" stroke-dasharray="3 3" />
+                <path d="M14 24 L20 28 L14 32" />
+                <path d="M50 24 L44 28 L50 32" />
+                <text x="32" y="18" font-size="9" fill="currentColor" stroke="none" text-anchor="middle">Весы</text>
+              </svg>
+            </div>
+          </div>
+          <lab-balance id="balance" mass-g="0" data-draggable="balance" hidden></lab-balance>
+          <lab-metal-weight
+            id="weight-on-balance"
+            class="density-overlay-weight density-overlay-weight--balance"
+            material="steel"
+            id-num="1"
+            no-legend
+            hidden
+          ></lab-metal-weight>
+          <button
+            class="density-detach-btn lab-detach-btn"
+            id="detach-balance"
+            type="button"
+            aria-label="Убрать весы со стола"
+            title="Убрать весы со стола"
+            hidden
+          >×</button>
+          <button
+            class="density-detach-btn lab-detach-btn density-detach-btn--inner"
+            id="detach-weight"
+            type="button"
+            aria-label="Снять цилиндр с весов"
+            title="Снять цилиндр с весов"
+            hidden
+          >×</button>
+          <span class="density-slot-caption" id="slot-balance-caption" hidden>Весы (200 г, 0.1 г)</span>
+        </div>
+
+        <div
+          class="density-slot"
+          id="slot-cylinder"
+          data-dropzone="cylinder,cyl-*,beaker"
+          data-dropzone-id="cylinder"
+          data-drop-active="false"
+          data-drop-hover="false"
+        >
+          <div class="density-slot-empty" id="slot-cylinder-empty">
+            <div class="density-slot-empty-inner">
+              <svg viewBox="0 0 64 40" width="64" height="40" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M8 28 L56 28" stroke-dasharray="3 3" />
+                <path d="M14 24 L20 28 L14 32" />
+                <path d="M50 24 L44 28 L50 32" />
+                <text x="32" y="18" font-size="9" fill="currentColor" stroke="none" text-anchor="middle">Мензурка</text>
+              </svg>
+            </div>
+          </div>
+          <lab-graduated-cylinder id="cylinder" level="0" submerged="0" data-draggable="cylinder" hidden></lab-graduated-cylinder>
+          <lab-metal-weight
+            id="weight-in-cylinder"
+            class="density-overlay-weight density-overlay-weight--cylinder"
+            material="steel"
+            id-num="1"
+            no-legend
+            hidden
+          ></lab-metal-weight>
+          <button
+            class="density-detach-btn lab-detach-btn"
+            id="detach-cylinder"
+            type="button"
+            aria-label="Убрать мензурку со стола"
+            title="Убрать мензурку со стола"
+            hidden
+          >×</button>
+          <button
+            class="density-detach-btn lab-detach-btn density-detach-btn--inner"
+            id="detach-submerged"
+            type="button"
+            aria-label="Вынуть цилиндр из мензурки"
+            title="Вынуть цилиндр из мензурки"
+            hidden
+          >×</button>
+          <span class="density-slot-caption" id="slot-cylinder-caption" hidden>Мензурка 250 мл (С = 2 мл)</span>
+        </div>
+      </div>
+
+      <aside
+        id="measurement-panel"
+        class="measurement-panel"
+        data-state="empty"
+        aria-label="Панель измерений"
+      >
+        <header class="measurement-panel-header">
+          <button
+            id="measurement-toggle"
+            class="measurement-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="measurement-body"
+          >
+            <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            <span class="measurement-title">Журнал измерений</span>
+            <span id="measurement-count" class="measurement-count" hidden>0</span>
+          </button>
+          <!-- §20.4 REFERENCE.md — toggle режима записи. По умолчанию manual.
+               Шаблон оставляет место — toggle инжектируется JS-ом
+               (`renderRecordModeToggle` из @shared/lib/record-mode). -->
+          <div id="record-mode-slot" class="record-mode-slot"></div>
+        </header>
+
+        <div id="measurement-body" class="measurement-body">
+          <div class="journal-empty" id="journal-empty">
+            Перетащите цилиндр на весы → налейте воду → опустите в мензурку.
+            Затем нажмите «Записать в журнал», когда показания готовы.
+          </div>
+
+          <!-- §20.4 — кнопка «Записать в журнал» появляется когда
+               pendingMeasurement готов и режим = manual. В auto-режиме
+               пишется автоматически и эта кнопка скрыта. -->
+          <div id="record-pending-slot" class="record-pending-slot" hidden>
+            <button
+              id="record-pending-btn"
+              type="button"
+              class="record-pending-btn"
+              aria-label="Записать текущее измерение в журнал"
+            >
+              <span class="record-icon" aria-hidden="true">✏</span>
+              <span class="record-text">Записать в журнал</span>
+              <span id="record-pending-summary" class="record-summary"></span>
+            </button>
+          </div>
+
+          <div class="formula-display" id="formula-display" hidden>
+            <span class="formula-label">Формула:</span>
+            <span class="formula-expr">
+              <em>V</em> = <em>V</em><sub>2</sub> − <em>V</em><sub>1</sub>,
+              <em>ρ</em> = <em>m</em> / <em>V</em>
+            </span>
+            <span class="formula-units">m — в граммах, V — в см³, ρ — в г/см³ (×1000 → кг/м³)</span>
+          </div>
+
+          <!-- §21: shared `renderJournalTable` инжектит сюда полную <table>
+               (thead + tbody) на основе DENSITY_SPEC. -->
+          <div id="journal-host" class="journal-host" hidden></div>
+          <div id="result-panel" class="result-panel" hidden></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <aside class="equipment-panel" aria-label="Оборудование комплекта №1 ФИПИ">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Измерительные приборы</h3>
+      <div class="equipment-grid equipment-grid-2">
+        <lab-equipment-card
+          title="Весы 200 г · 0.1 г"
+          status="available"
+          data-eq="balance"
+          data-draggable="balance"
+          data-dropzone="balance"
+          data-dropzone-id="card-balance"
+        >
+          <lab-balance mass-g="0"></lab-balance>
+        </lab-equipment-card>
+        <lab-equipment-card
+          title="Мензурка 250 мл"
+          status="available"
+          data-eq="cylinder"
+          data-draggable="cylinder"
+          data-dropzone="cylinder"
+          data-dropzone-id="card-cylinder"
+        >
+          <lab-graduated-cylinder level="0" submerged="0"></lab-graduated-cylinder>
+        </lab-equipment-card>
+        <lab-equipment-card title="Динамометр 1 Н" status="available" data-eq="dyno-1">
+          <lab-dynamometer range="1" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+        <lab-equipment-card title="Динамометр 5 Н" status="available" data-eq="dyno-5">
+          <lab-dynamometer range="5" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Цилиндры</h3>
+      <p class="equipment-group-hint">
+        Четыре цилиндра из разных материалов. Определите плотность каждого и узнайте материал.
+      </p>
+      <div class="equipment-grid equipment-grid-4">
+        <lab-equipment-card title="Цилиндр № 1" status="available" data-eq="cyl-1" data-draggable="cyl-1" data-dropzone="cyl-1" data-dropzone-id="card-cyl-1">
+          <lab-metal-weight material="steel" id-num="1"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 2" status="available" data-eq="cyl-2" data-draggable="cyl-2" data-dropzone="cyl-2" data-dropzone-id="card-cyl-2">
+          <lab-metal-weight material="aluminum" id-num="2"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 3" status="available" data-eq="cyl-3" data-draggable="cyl-3" data-dropzone="cyl-3" data-dropzone-id="card-cyl-3">
+          <lab-metal-weight material="plastic" id-num="3"></lab-metal-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Цилиндр № 4" status="available" data-eq="cyl-4" data-draggable="cyl-4" data-dropzone="cyl-4" data-dropzone-id="card-cyl-4">
+          <lab-metal-weight material="aluminum" id-num="4"></lab-metal-weight>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Расходные</h3>
+      <div class="equipment-grid equipment-grid-3">
+        <lab-equipment-card title="Стакан с водой" status="available" data-eq="beaker" data-draggable="beaker">
+          <lab-beaker level="100"></lab-beaker>
+        </lab-equipment-card>
+        <lab-equipment-card
+          title="Нить 1 м"
+          status="available"
+          data-eq="thread"
+          data-future-experiment="1.3"
+          data-future-hint="Подвешивать цилиндр на динамометр для измерения архимедовой силы (опыт 1.3)."
+        >
+          <lab-thread></lab-thread>
+        </lab-equipment-card>
+        <lab-equipment-card
+          title="Соль · палочка"
+          status="available"
+          data-eq="salt"
+          data-future-experiment="1.5"
+          data-future-hint="Делать солёный раствор и менять плотность воды (опыт 1.5 — плавание тел)."
+        >
+          <lab-salt-set></lab-salt-set>
+        </lab-equipment-card>
+      </div>
+    </section>
+  </aside>
+</main>
+<div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -1,0 +1,36 @@
+{
+  "name": "@labosfera/kit-1-hydrostatics",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Виртуальный комплект №1 «Гидростатика» — серия опытов по плотности и архимедовой силе для подготовки к ОГЭ по физике (ФИПИ-2026), один SPA с PhET-style экранами. ООО ЛАБОСФЕРА",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && playwright test",
+    "typecheck": "tsc -b --noEmit",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "format": "prettier --write \"src/**/*.{ts,css,html,json,md}\""
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.3",
+    "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "eslint": "^9.39.4",
+    "fast-check": "^4.7.0",
+    "happy-dom": "^15.11.7",
+    "typescript": "~5.6.3",
+    "typescript-eslint": "^8.59.3",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8"
+  }
+}

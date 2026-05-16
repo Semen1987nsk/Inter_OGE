@@ -1,61 +1,41 @@
 {
-  "name": "inter_oge",
-  "version": "1.0.0",
-  "description": "Веб-приложение для проведения виртуальных лабораторных работ по физике с оборудованием **Labosfera** (www.labosfera.ru). Идеально подходит для интерактивных панелей и сенсорных экранов.",
-  "main": "app.js",
+  "name": "inter-oge-monorepo",
+  "version": "2.0.0",
+  "description": "Inter_OGE — виртуальная лаборатория ЛАБОСФЕРА для подготовки к ОГЭ-2026 по физике. Монорепо: TypeScript 5.6 + Vite 6 + vanilla Web Components. Каждый комплект — независимый SPA в experiments/<id>/, общая инфраструктура — в experiments/_shared-spa/.",
+  "private": true,
   "type": "module",
-  "directories": {
-    "doc": "docs"
-  },
+  "workspaces": [
+    "experiments/_shared-spa",
+    "experiments/kit-1-hydrostatics",
+    "experiments/kit-2-forces",
+    "experiments/2-1-spring",
+    "experiments/2-2-friction",
+    "experiments/home"
+  ],
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit",
-    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
-    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage --forceExit",
-    "test:e2e": "npx playwright test",
-    "test:e2e:ui": "npx playwright test --ui",
-    "test:e2e:headed": "npx playwright test --headed",
-    "test:e2e:debug": "npx playwright test --debug",
-    "test:all": "npm run test && npm run test:e2e",
-    "serve": "npx http-server . -p 8080 -c-1"
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present",
+    "dev:kit-2": "npm --workspace=@labosfera/kit-2-forces run dev",
+    "dev:kit-1": "npm --workspace=@labosfera/kit-1-hydrostatics run dev",
+    "dev:home": "npm --workspace=labosfera-home run dev",
+    "dev:spring": "npm --workspace=@labosfera/spring-experiment run dev",
+    "dev:friction": "npm --workspace @labosfera/friction-experiment run dev"
   },
   "keywords": [
     "physics",
     "education",
     "OGE",
+    "FIPI-2026",
     "laboratory",
-    "simulation"
+    "simulation",
+    "labosfera"
   ],
-  "author": "Labosfera Team",
-  "license": "ISC",
-  "dependencies": {
-    "playwright": "^1.56.1"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.56.1",
-    "http-server": "^14.1.1",
-    "jest": "^29.7.0"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "transform": {},
-    "moduleFileExtensions": [
-      "js",
-      "mjs"
-    ],
-    "testMatch": [
-      "**/tests/**/*.test.js",
-      "**/tests/**/*.test.mjs"
-    ],
-    "collectCoverageFrom": [
-      "experiments/shared/**/*.js",
-      "experiments/kit2/modules/**/*.js",
-      "!**/node_modules/**"
-    ],
-    "coverageDirectory": "coverage",
-    "coverageReporters": [
-      "text",
-      "lcov",
-      "html"
-    ]
-  }
+  "author": "ООО ЛАБОСФЕРА",
+  "license": "UNLICENSED"
 }

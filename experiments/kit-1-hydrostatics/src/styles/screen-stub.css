@@ -1,0 +1,64 @@
+/* screen-stub.css — оформление placeholder-экранов на этапе bootstrap. */
+
+.screen-stub {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 32px;
+  background:
+    radial-gradient(ellipse at top, rgb(20 184 166 / 0.06), transparent 60%),
+    var(--color-background, #0d121e);
+}
+
+.screen-stub-inner {
+  max-width: 540px;
+  text-align: left;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border, rgb(255 255 255 / 0.08));
+  background: var(--color-surface-elevated, #1a1f2e);
+}
+
+.screen-stub-kicker {
+  display: inline-block;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-brand-orange, #ffbe0b);
+  margin-bottom: 8px;
+}
+
+.screen-stub-title {
+  margin: 0 0 14px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-text-primary, #e8eef9);
+}
+
+.screen-stub-summary {
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #a8b3c7);
+}
+
+.screen-stub-equipment {
+  margin: 0 0 18px;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-primary, #e8eef9);
+}
+
+.screen-stub-status {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 2px solid var(--color-brand-teal, #14b8a6);
+  background: rgb(20 184 166 / 0.06);
+  font-size: 12px;
+  color: var(--color-brand-teal, #14b8a6);
+}

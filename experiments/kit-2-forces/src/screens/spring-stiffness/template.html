@@ -1,0 +1,238 @@
+<main class="app-main-v3">
+        <section class="workbench" aria-label="Рабочая зона">
+          <header class="workbench-header">
+            <ol class="steps" id="steps" aria-label="Этапы измерения">
+              <li class="step" data-step="1">
+                <span class="step-num">1</span>
+                <span class="step-label">Закрепите пружину</span>
+              </li>
+              <li class="step" data-step="2">
+                <span class="step-num">2</span>
+                <span class="step-label">Запишите l₀ <small>(клик по шкале)</small></span>
+              </li>
+              <li class="step" data-step="3">
+                <span class="step-num">3</span>
+                <span class="step-label">Подвесьте груз</span>
+              </li>
+              <li class="step" data-step="4">
+                <span class="step-num">4</span>
+                <span class="step-label">Запишите l₁ <small>(клик по шкале)</small></span>
+              </li>
+              <li class="step" data-step="5">
+                <span class="step-num">5</span>
+                <span class="step-label">В журнал</span>
+              </li>
+            </ol>
+            <div class="workbench-hint" id="hint-bar">
+              Возьмите оборудование из правой панели и перетащите на установку.
+            </div>
+            <button id="reset-btn" class="reset-btn" type="button" aria-label="Сбросить опыт" title="Сбросить опыт">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+                <path d="M3 4v5h5"/>
+              </svg>
+            </button>
+          </header>
+
+          <div class="workbench-stage" id="stage">
+            <!-- Угловые скобки-«фреймер» в стиле технического чертежа: визуально замыкают рабочее поле -->
+            <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+            <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+            <!-- Баннер «указатель за шкалой» — мягкое предупреждение при перерастяжении пружины
+                 (актуально для пружины №2 / k10 при подвесе тяжёлых грузов). Не блокирует
+                 эксперимент, но помогает выбрать правильный комплект груза. -->
+            <div
+              id="overload-banner"
+              class="overload-banner"
+              role="status"
+              aria-live="polite"
+              hidden
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                <path d="M12 9v4M12 17h.01" />
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              </svg>
+              <span class="overload-banner-text"></span>
+            </div>
+            <div class="stand-container" id="stand-container">
+              <lab-stand id="stand"></lab-stand>
+              <div class="hook-slot" data-slot="0" id="hook-0"></div>
+              <div class="hook-slot" data-slot="1" id="hook-1"></div>
+              <div class="hook-slot" data-slot="2" id="hook-2"></div>
+
+              <!-- Пульсирующая зона-приёмник у крюка штатива (для пружины) -->
+              <div class="drop-zone" id="drop-zone-spring" aria-hidden="true" hidden>
+                <span class="drop-zone-label">Закрепите пружину</span>
+              </div>
+              <!-- Пульсирующая зона-приёмник у нижней петли цепочки (для динамометра/груза) -->
+              <div class="drop-zone" id="drop-zone-bottom" aria-hidden="true" hidden>
+                <span class="drop-zone-label">Подвесьте сюда</span>
+              </div>
+            </div>
+
+            <!-- Floating measurement panel — выезжает снизу-справа сцены при первом измерении.
+                 PhET-стиль: сцена доминирует, журнал/график — opt-in оверлей. -->
+            <aside
+              id="measurement-panel"
+              class="measurement-panel"
+              data-state="empty"
+              aria-collapsed="false"
+              aria-label="Панель измерений"
+            >
+              <header class="measurement-panel-header">
+                <button
+                  id="measurement-toggle"
+                  class="measurement-toggle"
+                  type="button"
+                  aria-expanded="true"
+                  aria-controls="measurement-body"
+                >
+                  <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                  <span class="measurement-title">Журнал измерений</span>
+                  <span id="measurement-count" class="measurement-count" hidden>0</span>
+                </button>
+                <!-- §20.4 — record-mode toggle (semi-auto / fully-manual / fully-auto). -->
+                <div id="record-mode-slot" class="record-mode-slot"></div>
+                <button
+                  id="record-btn"
+                  class="record-btn"
+                  type="button"
+                  disabled
+                  hidden
+                >
+                  Записать в журнал
+                </button>
+              </header>
+
+              <div id="measurement-body" class="measurement-body">
+                <div class="journal-empty" id="journal-empty">
+                  Подвесьте груз и кликните по делению шкалы напротив указателя пружины.
+                </div>
+
+                <!-- Форма ручного ввода в журнал. Открывается после нажатия «Записать в журнал».
+                     Префилл: l₀, l₁ из кликов по шкале, m из суммы наклеек грузов. Ученик может
+                     скорректировать значения перед сохранением. -->
+                <form id="record-form" class="record-form" hidden>
+                  <h4 class="record-form-title">Запишите значения с приборов</h4>
+                  <div class="record-field">
+                    <label for="rf-l0"><em>l</em><sub>0</sub>, мм:</label>
+                    <input type="number" id="rf-l0" inputmode="numeric" step="1" min="0" max="100" placeholder="напр. 30" />
+                    <small class="hint">Положение указателя без нагрузки (клик по шкале — авто-префилл).</small>
+                  </div>
+                  <div class="record-field">
+                    <label for="rf-l1"><em>l</em><sub>1</sub>, мм:</label>
+                    <input type="number" id="rf-l1" inputmode="numeric" step="1" min="0" max="100" placeholder="напр. 50" />
+                    <small class="hint">Положение указателя с нагрузкой.</small>
+                  </div>
+                  <div class="record-field record-field-readonly">
+                    <label>Масса <em>m</em>, г:</label>
+                    <output id="rf-mass">0</output>
+                    <small class="hint">Авто (сумма наклеек на грузах).</small>
+                  </div>
+                  <div class="record-form-actions">
+                    <button type="button" id="rf-cancel" class="rf-cancel">Отмена</button>
+                    <button type="submit" id="rf-submit" class="rf-submit">В журнал</button>
+                  </div>
+                </form>
+
+                <!-- Формула расчёта (видна когда есть журнал) -->
+                <div class="formula-display" id="formula-display" hidden>
+                  <span class="formula-label">Формула:</span>
+                  <span class="formula-expr">
+                    <em>F</em> = <em>m</em> · <em>g</em>,
+                    <em>Δl</em> = <em>l</em><sub>1</sub> − <em>l</em><sub>0</sub>,
+                    <em>k</em> = <em>F</em> / <em>Δl</em>
+                  </span>
+                  <span class="formula-units">массу — в кг, <em>Δl</em> — в метрах, <em>g</em> = 9,8 м/с²</span>
+                </div>
+
+                <!-- §21 — журнал v2: контейнер для shared `renderJournalTable` (SPRING_SPEC). -->
+                <div id="journal-host" class="journal-host" hidden></div>
+
+                <!-- §21.10 — pending-плашка для semi-auto (видна когда ready && signature changed). -->
+                <div id="record-pending-slot" class="record-pending-slot" hidden>
+                  <button id="record-pending-btn" class="record-pending-btn" type="button">
+                    Записать в журнал <span id="record-pending-summary"></span>
+                  </button>
+                </div>
+
+                <!-- LEGACY: fallback таблица v1, скрыта если используется journal-host (v2). -->
+                <table class="journal-table" id="journal-table" hidden>
+                  <thead>
+                    <tr>
+                      <th>№</th>
+                      <th><em>m</em>, г</th>
+                      <th><em>F</em>, Н</th>
+                      <th><em>l</em><sub>1</sub>, мм</th>
+                      <th><em>Δl</em>, мм</th>
+                      <th><em>k</em>, Н/м</th>
+                    </tr>
+                  </thead>
+                  <tbody id="journal-body"></tbody>
+                </table>
+                <div id="result-panel" class="result-panel" hidden></div>
+                <div id="graph-wrap" class="graph-wrap" hidden>
+                  <h3 class="graph-title">График F(Δl)</h3>
+                  <lab-graph id="graph"></lab-graph>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <!-- Overlay для drag&drop (position:fixed) — должен быть выше всех элементов -->
+        <div id="drag-overlay" class="drag-overlay" aria-hidden="true"></div>
+
+        <aside class="equipment-panel" aria-label="Оборудование комплекта">
+          <section class="equipment-group">
+            <h3 class="equipment-group-title">Оборудование</h3>
+            <div class="equipment-grid">
+              <lab-equipment-card title="Динамометр 1Н" status="available" data-eq="dyno-1">
+                <lab-dynamometer range="1" force="0"></lab-dynamometer>
+              </lab-equipment-card>
+              <lab-equipment-card title="Динамометр 5Н" status="available" data-eq="dyno-5">
+                <lab-dynamometer range="5" force="0"></lab-dynamometer>
+              </lab-equipment-card>
+              <lab-equipment-card title="Пружина №1" status="available" data-eq="spring-k50">
+                <lab-spring-board spring-id="k50" extension="0"></lab-spring-board>
+              </lab-equipment-card>
+              <lab-equipment-card title="Пружина №2" status="available" data-eq="spring-k10">
+                <lab-spring-board spring-id="k10" extension="0"></lab-spring-board>
+              </lab-equipment-card>
+            </div>
+          </section>
+
+          <section class="equipment-group">
+            <h3 class="equipment-group-title">Готовые грузы</h3>
+            <div class="equipment-grid equipment-grid-3">
+              <lab-equipment-card title="Груз №1" status="available" data-eq="w-100-1">
+                <lab-weight mass="100" number="1"></lab-weight>
+              </lab-equipment-card>
+              <lab-equipment-card title="Груз №2" status="available" data-eq="w-100-2">
+                <lab-weight mass="100" number="2"></lab-weight>
+              </lab-equipment-card>
+              <lab-equipment-card title="Груз №3" status="available" data-eq="w-100-3">
+                <lab-weight mass="100" number="3"></lab-weight>
+              </lab-equipment-card>
+            </div>
+          </section>
+
+          <section class="equipment-group">
+            <h3 class="equipment-group-title">Наборный груз</h3>
+            <p class="equipment-group-hint">
+              Штанга 10 г + диски 10/20/50. Перетащите диски на штангу — соберите массу
+              10/20/30/40/60/70/80/90 г. Затем повесьте узел на пружину.
+            </p>
+            <lab-composite-tray
+              id="composite-tray"
+              data-eq="composite-load"
+            ></lab-composite-tray>
+          </section>
+        </aside>
+      </main>
+<div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
