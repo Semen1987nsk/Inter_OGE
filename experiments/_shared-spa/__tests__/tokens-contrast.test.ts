@@ -26,6 +26,7 @@ describe('WCAG AA contrast — critical token pairs', () => {
     ['text-primary on bg-deep',         GRAY_100,   GRAY_800, 4.5],
     ['text-primary on bg-surface',      GRAY_100,   GRAY_700, 4.5],
     ['text-primary on bg-surface-hover',GRAY_100,   GRAY_600, 4.5],
+    ['text-primary on bg-darker',       GRAY_100,   GRAY_900, 4.5],
     ['text-secondary on bg-deep',       GRAY_200,   GRAY_800, 4.5],
     ['text-secondary on bg-surface',    GRAY_200,   GRAY_700, 4.5],
     ['text-muted on bg-deep',           GRAY_300,   GRAY_800, 4.5],
@@ -43,7 +44,3 @@ describe('WCAG AA contrast — critical token pairs', () => {
     expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(min);
   });
 });
-
-// Silence "unused" tooling for constants declared above but reserved for
-// future pairs (GRAY_900). Keeping them documents the full scale.
-void GRAY_900;
