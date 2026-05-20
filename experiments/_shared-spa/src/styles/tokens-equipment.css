@@ -1,0 +1,67 @@
+/**
+ * ЛАБОСФЕРА Design Tokens — Equipment (фотореалистичные приборы)
+ *
+ * Цвета подобраны под реальное физическое оборудование, чтобы виртуальная
+ * лаборатория визуально совпадала с тем, что школьник держит на столе.
+ * Источник истины: kit-02-forces.png + kit-01-hydrostatics.png.
+ *
+ * НЕ часть design-system — это domain-семантика. Shade-scales не делаем.
+ */
+
+:root {
+  /* Планшет пружины — насыщенный синий с белой шкалой и красным указателем */
+  --equip-board:           #1e5ba8;
+  --equip-board-dark:      #143e73;
+  --equip-board-edge:      #0f2f5c;
+  --equip-board-shine:     #2c6fc4;
+  --equip-scale-bg:        #fdfdfa;
+  --equip-scale-bg-tint:   #e8f0f8;
+  --equip-scale-line:      #1f3a5c;
+  --equip-scale-line-major:#0f2747;
+  --equip-scale-text:      #14233a;
+  --equip-scale-text-muted:#5d6e8a;
+  --equip-pointer:         #e63946;
+  --equip-pointer-shadow:  rgb(230 57 70 / 0.45);
+
+  /* Штатив — хромированный металл, чёрное массивное основание */
+  --equip-metal-shine:      #f0f2f5;
+  --equip-metal-light:      #d5dbe3;
+  --equip-metal:            #a8afb8;
+  --equip-metal-dark:       #6e7682;
+  --equip-metal-shadow:     #4a5260;
+  --equip-stand-base:       #1a1b1f;
+  --equip-stand-base-edge:  #2d2f33;
+  --equip-stand-base-shine: #3a3d44;
+
+  /* Пружины-витки — серебристый металл с лёгким холодным отливом */
+  --equip-spring:       #b8c0cb;
+  --equip-spring-dark:  #7a8290;
+  --equip-spring-shine: #e0e5ec;
+
+  /* Грузы — светлые стальные/хромированные цилиндры */
+  --equip-weight:            #aab2bd;
+  --equip-weight-light:      #d6dce4;
+  --equip-weight-dark:       #6e7682;
+  --equip-weight-edge:       #4a5260;
+  --equip-weight-label-bg:   #f8f8f4;
+  --equip-weight-label-text: #1a1b1f;
+
+  /* Динамометры — корпус жёлтый с прозрачной шкалой */
+  --equip-dyno-body:       #f5c842;
+  --equip-dyno-body-dark:  #c89c1f;
+  --equip-dyno-body-edge:  #8a6a14;
+  --equip-dyno-glass:      rgb(255 255 255 / 0.85);
+  --equip-dyno-glass-tint: rgb(220 235 255 / 0.7);
+
+  /* Древесные элементы (брусок) — светлая берёза */
+  --equip-wood:      #e8dcb8;
+  --equip-wood-dark: #c8b888;
+  --equip-wood-edge: #8d7e58;
+
+  /* Snap-зоны и подсветка drop-target */
+  --equip-snap-active:     #f2c94c;
+  --equip-snap-glow:       rgb(242 201 76 / 0.45);
+  --equip-snap-valid:      #10b981;
+  --equip-snap-valid-glow: rgb(16 185 129 / 0.4);
+  --equip-snap-invalid:    #ef4444;
+}
