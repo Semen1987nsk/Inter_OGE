@@ -15,9 +15,9 @@ template.innerHTML = `
   label {
     display: grid;
     grid-template-columns: auto 1fr auto;
-    gap: var(--space-3, 12px);
+    gap: var(--space-4, 16px);
     align-items: center;
-    padding: var(--space-2, 8px) var(--space-3, 12px);
+    padding: var(--space-2, 8px) var(--space-4, 16px);
     border-radius: var(--radius-md, 8px);
     cursor: pointer;
     transition: background var(--dur-fast, 150ms) var(--ease-out, ease-out);

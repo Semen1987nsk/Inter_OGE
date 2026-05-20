@@ -1,0 +1,15 @@
+/**
+ * ЛАБОСФЕРА Design Tokens — Physics (PhET convention)
+ *
+ * Семантика физических величин по PhET-стандарту.
+ * Эти токены — domain-семантика (не дизайн-система),
+ * shade-scales для них НЕ генерируем.
+ */
+
+:root {
+  --phys-force-applied: #f2811d;  /* приложенная сила, сила тяжести */
+  --phys-force-spring:  #2e6fb8;  /* сила упругости */
+  --phys-displacement:  #2ba84a;  /* удлинение, шкала Δl */
+  --phys-equilibrium:   #4a7fb8;  /* пунктир «исходная длина» */
+  --phys-active:        #f2c94c;  /* подсветка активного элемента */
+}

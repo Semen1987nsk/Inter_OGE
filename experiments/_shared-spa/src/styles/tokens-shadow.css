@@ -1,0 +1,31 @@
+/**
+ * ЛАБОСФЕРА Design Tokens — Shadows
+ *
+ * Two-part shadow: tight crisp + larger atmospheric.
+ * Adjusted для dark theme (выше opacity чем Adam Wathan canon для light).
+ * Glow shadows — single-blur, остаются для focus/snap состояний.
+ */
+
+:root {
+  /* Elevation shadows (two-part) */
+  --shadow-sm:
+    0 1px 2px rgb(0 0 0 / 0.5),
+    0 1px 3px rgb(0 0 0 / 0.3);
+
+  --shadow-md:
+    0 4px 6px rgb(0 0 0 / 0.5),
+    0 2px 4px rgb(0 0 0 / 0.3);
+
+  --shadow-lg:
+    0 10px 15px rgb(0 0 0 / 0.6),
+    0 4px 6px rgb(0 0 0 / 0.3);
+
+  --shadow-xl:
+    0 20px 25px rgb(0 0 0 / 0.6),
+    0 8px 10px rgb(0 0 0 / 0.4);
+
+  /* Glow shadows (single-blur) для focus/snap */
+  --shadow-glow-blue:   0 0 24px rgb(58 134 255 / 0.35);
+  --shadow-glow-orange: 0 0 24px rgb(255 190 11 / 0.35);
+  --shadow-glow-green:  0 0 24px rgb(16 185 129 / 0.35);
+}

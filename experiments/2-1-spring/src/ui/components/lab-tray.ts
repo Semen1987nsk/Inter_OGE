@@ -40,7 +40,7 @@ template.innerHTML = `
       inset 0 2px 6px rgb(0 0 0 / 0.6),
       inset 0 -1px 0 rgb(255 255 255 / 0.04),
       0 8px 20px rgb(0 0 0 / 0.45);
-    padding: var(--space-3, 12px) var(--space-4, 16px) var(--space-4, 16px);
+    padding: var(--space-4, 16px) var(--space-4, 16px) var(--space-4, 16px);
     overflow: hidden;
   }
 
@@ -49,7 +49,7 @@ template.innerHTML = `
     align-items: baseline;
     justify-content: space-between;
     gap: var(--space-4, 16px);
-    margin-bottom: var(--space-3, 12px);
+    margin-bottom: var(--space-4, 16px);
     padding: 0 var(--space-2, 8px);
     border-bottom: 1px dashed rgb(255 255 255 / 0.08);
     padding-bottom: var(--space-2, 8px);
@@ -78,7 +78,7 @@ template.innerHTML = `
       minmax(140px, 1fr)
       minmax(220px, 2fr)
       minmax(120px, 1fr);
-    gap: var(--space-3, 12px);
+    gap: var(--space-4, 16px);
     align-items: stretch;
   }
 
@@ -86,7 +86,7 @@ template.innerHTML = `
     background: var(--tray-cell-bg);
     border: 1px solid var(--tray-cell-border);
     border-radius: var(--radius-md, 8px);
-    padding: var(--space-3, 12px) var(--space-2, 8px) var(--space-2, 8px);
+    padding: var(--space-4, 16px) var(--space-2, 8px) var(--space-2, 8px);
     display: flex;
     flex-direction: column;
     gap: var(--space-2, 8px);
@@ -110,7 +110,7 @@ template.innerHTML = `
     flex-wrap: wrap;
     align-items: flex-end;
     justify-content: center;
-    gap: var(--space-3, 12px);
+    gap: var(--space-4, 16px);
   }
 
   /* Планшеты пружин в лотке — компактнее, чем на сцене */

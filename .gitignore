@@ -1,1 +1,7 @@
 node_modules/
+
+# Local backups during migrations
+*.bak
+
+# Local migration notes (uncommitted scratch)
+migration-notes-*.md
