@@ -102,6 +102,82 @@ export const ARCHIMEDES_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 1.3 «Исследование зависимости F_A от объёма погружённой части тела».
+ *
+ * ФИПИ-2026, Спецификация КИМ, Приложение 2, стр. 16, Комплект №1:
+ * «исследование зависимости архимедовой силы от объёма погружённой части
+ *  тела (цилиндр № 3)».
+ *
+ * КОДИФ §1.29 (стр. 14) — практическая работа из канонического перечня.
+ *
+ * Методичка ЛАБОСФЕРА §2.3.3:
+ *   Цилиндр №3 (пластик), V=56 см³, L=80 мм, S=V/L=0.7 см² = 0.7e-4 м².
+ *   3 контрольных уровня: 20/40/60 мм → V_погр 14/28/42 см³ →
+ *   F_А_теор 0.137/0.274/0.412 Н (g=9.8, ρ_воды=1000).
+ *   Допуск ΔF = ±0.02 Н, допуск отношения F_A/V между измерениями ≤15%.
+ *
+ * Cross-check: REFERENCE §30 (статус 1.3 ✅ после внедрения этого SPEC).
+ */
+export const ARCHIMEDES_VOLUME_SPEC: JournalSpec = {
+  experimentId: '1.3',
+  kitId: 'kit-1',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'h_mm', label: 'h, мм', source: 'direct', unit: 'мм', format: 'int' },
+    {
+      key: 'V_cm3',
+      label: 'V погр, см³',
+      source: 'derived',
+      unit: 'см³',
+      format: 'int',
+      tolerance: 0.10,
+      // V_погр(см³) = h(мм) × 0.7 см³/мм.
+      // Где 0.7 = S × 0.1 = 7 см² × 0.1 см/мм (S = V_цил/L = 56/8 = 7).
+      // (В методичке §2.3.3 опечатка «S=0,7 см²» — фактически 7 см².)
+      expectedFromRow: (row) => (row.h_mm ?? 0) * 0.7,
+    },
+    { key: 'P_air_N', label: 'P возд, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    { key: 'P_liq_N', label: 'P изм, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    {
+      key: 'F_A_meas_N',
+      label: 'F_A изм, Н',
+      source: 'derived',
+      unit: 'Н',
+      format: 'fixed2',
+      tolerance: 0.05,
+      expectedFromRow: (row) => (row.P_air_N ?? 0) - (row.P_liq_N ?? 0),
+    },
+    {
+      key: 'F_A_theor_N',
+      label: 'F_A теор, Н',
+      source: 'derived',
+      unit: 'Н',
+      format: 'fixed2',
+      tolerance: 0.05,
+      expectedFromRow: (row) => {
+        const V_cm3 = (row.h_mm ?? 0) * 0.7;
+        return RHO_WATER * G * V_cm3 * 1e-6;
+      },
+    },
+    {
+      key: 'delta_pct',
+      label: 'Δ, %',
+      source: 'derived',
+      unit: '%',
+      format: 'percent',
+      tolerance: 0.20,
+      expectedFromRow: (row) => {
+        const Fmeas = (row.P_air_N ?? 0) - (row.P_liq_N ?? 0);
+        const V_cm3 = (row.h_mm ?? 0) * 0.7;
+        const Ftheor = RHO_WATER * G * V_cm3 * 1e-6;
+        if (Math.abs(Ftheor) < 1e-9) return 0;
+        return ((Fmeas - Ftheor) / Ftheor) * 100;
+      },
+    },
+  ],
+};
+
 export const SPRING_SPEC: JournalSpec = {
   experimentId: '2.1',
   kitId: 'kit-2',
@@ -186,6 +262,7 @@ export const FRICTION_SPEC: JournalSpec = {
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
+  ARCHIMEDES_VOLUME_SPEC,
   SPRING_SPEC,
   FRICTION_SPEC,
 ];

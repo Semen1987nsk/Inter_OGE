@@ -207,6 +207,24 @@ export class LabBeaker extends HTMLElement {
     return Math.max(0, this.getWaterBottomY() - this.getWaterSurfaceY());
   }
 
+  /**
+   * X-границы ВНУТРЕННЕГО горлышка стакана (viewport-space). Используется
+   * оркестратором как guard при drag цилиндра — цилиндр не должен «пройти
+   * через стенку», т.е. центр цилиндра должен оставаться в [left, right].
+   *
+   * Внутренний контур горлышка в SVG: x=14..82 на y=22 (см. path выше).
+   * Чуть сужаем (inset 2 SVG-units) под толщину стенки.
+   */
+  getMouthBounds(): { left: number; right: number; center: number } {
+    const rect = this.getBoundingClientRect();
+    const scaleX = rect.width / 96;
+    const MOUTH_LEFT_SVG = 16;  // 14 + 2 (inset под стенку)
+    const MOUTH_RIGHT_SVG = 80; // 82 - 2
+    const left = rect.left + MOUTH_LEFT_SVG * scaleX;
+    const right = rect.left + MOUTH_RIGHT_SVG * scaleX;
+    return { left, right, center: (left + right) / 2 };
+  }
+
   #emitTap = (): void => {
     this.dispatchEvent(new CustomEvent('beaker-tap', { bubbles: true, composed: true }));
   };

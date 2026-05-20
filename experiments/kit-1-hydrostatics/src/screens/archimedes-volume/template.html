@@ -1,0 +1,246 @@
+<!--
+  Опыт 1.3 «F_А от объёма погружённой части тела».
+  ФИПИ-2026, Приложение 2, стр. 16, Комплект №1. См. REFERENCE §30.
+
+  Layout по канону §31:
+   - 2-колоночный grid (workbench | equipment-panel)
+   - Заголовок-степпер 1→2→3→4→5 (5 этапов: dyno → cyl → beaker → drag → запись)
+   - Floating measurement-panel в углу stage
+   - data-eq / data-draggable / data-dropzone — каноничные имена (§31.4):
+     dyno-1, cyl-3, beaker
+-->
+<main class="av-stage">
+  <section class="av-workbench" aria-label="Рабочая зона опыта 1.3">
+    <header class="av-header">
+      <ol class="av-steps" id="av-steps" aria-label="Этапы исследования F_А от объёма погружения">
+        <li class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Подвесьте динамометр</span><span class="step-label--short">Динамометр</span></li>
+        <li class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Подвесьте цилиндр №3</span><span class="step-label--short">Цилиндр №3</span></li>
+        <li class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Поставьте стакан с водой</span><span class="step-label--short">Стакан</span></li>
+        <li class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Погружайте цилиндр на 20/40/60 мм</span><span class="step-label--short">Погружение</span></li>
+        <li class="step" data-step="5"><span class="step-num">5</span><span class="step-label">3 записи в журнал</span><span class="step-label--short">3 записи</span></li>
+      </ol>
+      <div class="av-hint" id="av-hint" aria-live="polite">
+        Перетащите динамометр на штатив, затем цилиндр на крюк, затем стакан под цилиндр.
+      </div>
+      <button id="av-reset-btn" class="reset-btn" type="button"
+              aria-label="Сбросить опыт" title="Сбросить опыт 1.3">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="av-stage-area" id="av-stage-area">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <!-- SVG overlay для нити динамометр→цилиндр. Координаты считаются в JS
+           через getWeightHookPosition() / getThreadHookPosition() и
+           обновляются на каждом #render(). Position absolute поверх всей
+           stage-area, pointer-events: none. -->
+      <svg class="av-thread-overlay" id="av-thread-overlay"
+           xmlns="http://www.w3.org/2000/svg"
+           aria-hidden="true">
+        <defs>
+          <filter id="av-thread-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0.5" dy="1" stdDeviation="0.4" flood-opacity="0.45"/>
+          </filter>
+        </defs>
+        <line id="av-thread-line"
+              x1="0" y1="0" x2="0" y2="0"
+              stroke="#d8c890"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              filter="url(#av-thread-shadow)"
+              visibility="hidden" />
+      </svg>
+
+      <!-- Live-индикатор глубины погружения. Появляется в drag, рядом с цилиндром. -->
+      <div class="av-depth-label" id="av-depth-label" hidden aria-hidden="true">
+        <span class="av-depth-label__value" id="av-depth-label-value">0</span>
+        <span class="av-depth-label__unit">мм</span>
+      </div>
+
+      <!-- Рамка штатива -->
+      <div class="av-rig" id="av-rig">
+        <div class="av-stand-bar" aria-hidden="true"></div>
+
+        <!-- Drop-zone и mount для динамометра -->
+        <div class="av-dropzone av-dropzone--dyno"
+             id="av-dropzone-dyno"
+             data-dropzone="dyno-1"
+             data-dropzone-id="av-dyno-zone"
+             data-drop-active="false"
+             data-drop-hover="false">
+          <span class="av-dropzone-hint">↓ Подвесьте динамометр №1</span>
+        </div>
+
+        <div class="av-dyno-mount" id="av-dyno-mount" hidden
+             data-dropzone="cyl-3"
+             data-dropzone-id="av-dyno-hook"
+             data-drop-active="false"
+             data-drop-hover="false">
+          <button id="av-detach-dyno"
+                  class="lab-detach-btn av-detach-btn"
+                  type="button"
+                  aria-label="Снять динамометр со штатива"
+                  title="Снять динамометр со штатива"
+                  hidden>×</button>
+        </div>
+
+        <!-- Цилиндр (mount под dyno-mount, появляется после drop cyl-3).
+             Нить визуально между dyno-hook и cyl-thread-hook рисуется
+             отдельным SVG overlay (#av-thread-overlay выше). -->
+        <div class="av-cylinder-rig" id="av-cylinder-rig" hidden data-submerged-mm="0">
+          <button id="av-detach-cyl"
+                  class="lab-detach-btn av-detach-btn av-detach-btn--floating"
+                  type="button"
+                  aria-label="Снять цилиндр с динамометра"
+                  title="Снять цилиндр с динамометра"
+                  hidden>×</button>
+        </div>
+
+        <!-- Drop-zone и mount для стакана -->
+        <div class="av-dropzone av-dropzone--beaker"
+             id="av-dropzone-beaker"
+             data-dropzone="beaker"
+             data-dropzone-id="av-beaker-zone"
+             data-drop-active="false"
+             data-drop-hover="false">
+          <span class="av-dropzone-hint">↓ Поставьте стакан с водой</span>
+        </div>
+
+        <div class="av-beaker-mount" id="av-beaker-mount" hidden>
+          <!-- Detach-кнопка теперь ВНУТРИ mount: position: absolute relative
+               to beaker-mount даёт стабильную позицию без JS-пересчёта.
+               Раньше была fixed-overlay с координатами через getBoundingClientRect
+               на каждом render — улетала при ресайзе/scroll. -->
+          <button id="av-detach-beaker"
+                  class="lab-detach-btn av-detach-btn av-detach-btn--beaker-floating"
+                  type="button"
+                  aria-label="Убрать стакан со стола"
+                  title="Убрать стакан со стола"
+                  hidden>×</button>
+        </div>
+      </div>
+
+      <!-- Inline-controls под стендом: только drag-подсказка + кнопка «↑ Поднять».
+           Baseline P возд фиксируется АВТОМАТИЧЕСКИ при placeBeaker — см.
+           ArchimedesVolumeExperiment#placeBeaker (фидбек 2026-05-17 «не
+           опускается цилиндр в стакан» = кнопка baseline была за нижним
+           краем viewport, ученик её не видел). Кнопка-baseline убрана из
+           UI, но программный API fixateBaseline() сохранён для тестов. -->
+      <div class="av-submerge-controls" id="av-submerge-controls" hidden>
+        <span class="av-drag-tip" id="av-drag-tip" hidden>
+          🖐 Потяните цилиндр вниз в воду по шкале
+        </span>
+        <button id="av-btn-lift" type="button" class="av-inline-btn" disabled>↑ Поднять</button>
+        <!-- Скрытая кнопка baseline — оставлена для backward-compat selfcheck'ов. -->
+        <button id="av-btn-baseline" type="button" class="av-inline-btn av-inline-btn--primary" hidden
+                aria-hidden="true">Зафиксировать P возд</button>
+      </div>
+
+      <!-- Floating journal-panel в углу stage (канон §31) -->
+      <aside id="av-journal-panel"
+             class="measurement-panel"
+             aria-label="Журнал измерений опыта 1.3">
+        <header class="measurement-panel-header">
+          <button id="av-measurement-toggle" class="measurement-toggle" type="button"
+                  aria-expanded="true" aria-controls="av-measurement-body">
+            <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            <span class="measurement-title">Журнал измерений</span>
+            <span id="av-measurement-count" class="measurement-count" hidden>0</span>
+          </button>
+          <div id="av-record-mode-slot" class="record-mode-slot"></div>
+        </header>
+        <div id="av-measurement-body" class="measurement-body">
+          <div class="journal-empty" id="av-journal-empty">
+            Соберите установку (динамометр → цилиндр №3 → стакан), затем
+            зафиксируйте вес в воздухе и опускайте цилиндр по шкале на
+            20/40/60 мм. F_А = P возд − P изм.
+          </div>
+          <div id="av-record-pending-slot" class="record-pending-slot" hidden>
+            <button id="av-record-pending-btn" type="button" class="record-pending-btn"
+                    aria-label="Записать текущее измерение в журнал">
+              <span class="record-icon" aria-hidden="true">✏</span>
+              <span class="record-text">Записать в журнал</span>
+              <span id="av-record-pending-summary" class="record-summary"></span>
+            </button>
+          </div>
+          <div class="formula-display" id="av-formula-display" hidden>
+            <span class="formula-label">Формула:</span>
+            <span class="formula-expr">
+              <em>V</em><sub>погр</sub> = <em>h</em> · <em>S</em>,
+              <em>F</em><sub>А</sub> = <em>P</em><sub>возд</sub> − <em>P</em><sub>изм</sub>
+            </span>
+            <span class="formula-units">h — в мм, S = 0,7 см³/мм; F — в Н</span>
+          </div>
+          <div id="av-journal-host" class="journal-host" hidden></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <aside class="equipment-panel" aria-label="Оборудование комплекта №1 для опыта 1.3">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Измерительные приборы</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Динамометр 1 Н"
+          status="available"
+          id="av-card-dyno"
+          data-eq="dyno-1"
+          data-draggable="dyno-1"
+          data-dropzone="dyno-1"
+          data-dropzone-id="av-card-dyno-zone"
+        >
+          <lab-dynamometer id="av-dyno" range="1" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Цилиндр со шкалой</h3>
+      <p class="equipment-group-hint">
+        По ФИПИ — цилиндр №3 пластиковый, длина 80 мм, шкала 1 мм. Только он подходит.
+      </p>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Цилиндр № 3"
+          status="available"
+          id="av-card-cyl"
+          data-eq="cyl-3"
+          data-draggable="cyl-3"
+          data-recommended
+          data-dropzone="cyl-3"
+          data-dropzone-id="av-card-cyl-zone"
+        >
+          <lab-metal-weight id="av-cyl" material="plastic" id-num="3" no-legend></lab-metal-weight>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Расходные</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Стакан с водой"
+          status="available"
+          id="av-card-beaker"
+          data-eq="beaker"
+          data-draggable="beaker"
+          data-dropzone="beaker"
+          data-dropzone-id="av-card-beaker-zone"
+        >
+          <lab-beaker id="av-beaker" level="200" liquid="water"></lab-beaker>
+        </lab-equipment-card>
+      </div>
+    </section>
+  </aside>
+</main>
+<div id="av-live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

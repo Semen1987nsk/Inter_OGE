@@ -27,6 +27,7 @@ import './styles/kit-shell.css';
 import './styles/screen-stub.css';
 import './styles/density-experiment.css';
 import './styles/archimedes-experiment.css';
+import './styles/archimedes-volume-experiment.css';
 import '@shared/lib/journal/journal.css';
 
 // Web Components — приборы и шелл
@@ -49,6 +50,7 @@ import type { LabKitNav } from './ui/components/lab-kit-nav';
 import type { LabKitHeader } from './ui/components/lab-kit-header';
 import { DensitySolidScreen } from '@screens/density-solid/DensitySolidScreen';
 import { ArchimedesScreen } from '@screens/archimedes/ArchimedesScreen';
+import { ArchimedesVolumeScreen } from '@screens/archimedes-volume/ArchimedesVolumeScreen';
 import { homeUrl, readRoleFromUrl, persistRole, readPersistedRole, type Role } from './lib/urls';
 
 // ─── Role: ?role=teacher|student → body[data-role] + role-badge ───
@@ -75,7 +77,11 @@ const host = document.getElementById('screen-content')!;
 const navBar = document.getElementById('kit-nav') as LabKitNav;
 const header = document.getElementById('kit-header') as LabKitHeader;
 
-const screens: IScreen[] = [new DensitySolidScreen(), new ArchimedesScreen()];
+const screens: IScreen[] = [
+  new DensitySolidScreen(),
+  new ArchimedesScreen(),
+  new ArchimedesVolumeScreen(),
+];
 
 navBar.setScreens(screens.map((s) => s.meta));
 // Прогресс по комплекту: 5 опытов всего, в этап 6a добавлен опыт 1.2 (тоже

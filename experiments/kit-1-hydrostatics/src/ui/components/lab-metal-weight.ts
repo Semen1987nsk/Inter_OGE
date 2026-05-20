@@ -416,35 +416,94 @@ export class LabMetalWeight extends HTMLElement {
     this.#lblNum.setAttribute('x', String(SVG_WIDTH / 2));
 
     // 8) Focus-ring — стандартный размер.
-    // 9) Шкала на пластиковом цилиндре №3 — у правой кромки тела.
+    // 9) Шкала на пластиковом цилиндре №3 (ФИПИ Прил.2: «шкала вдоль
+    //    образующей с ценой деления 1 мм, длина не менее 80 мм»).
+    //
+    //    Геометрия: 80 мм реального цилиндра отрисовываются по высоте body
+    //    (BODY_TOP_Y..BODY_BOTTOM_Y = 78 SVG-юнитов). Major-риски каждые
+    //    10 мм с метками 20/40/60, minor — каждый 1 мм. Слева от этикетки
+    //    (этикетка справа), чёрные риски для видимости на бежевом пластике.
     while (this.#cylScale.firstChild) {
       this.#cylScale.removeChild(this.#cylScale.firstChild);
     }
-    if (material === 'plastic') {
+    if (material === 'plastic' && idNum === '3') {
       this.#cylScale.style.opacity = '1';
       const ns = 'http://www.w3.org/2000/svg';
-      const yStart = BODY_TOP_Y + 10;
-      const yEnd = BODY_BOTTOM_Y - 8;
-      const step = 4;
-      // Шкала прижата к правой кромке тела (которая теперь шире для №3).
-      const xRight = bodyX + bodyW - 4;
-      const xMajor = xRight - 4;
-      const xMinor = xRight - 2;
-      let i = 0;
-      for (let y = yStart; y <= yEnd; y += step) {
-        const major = i % 2 === 0;
+      const yTop = BODY_TOP_Y + 3;
+      const yBot = BODY_BOTTOM_Y - 3;
+      const totalH = yBot - yTop; // ~72 SVG-юнита ≈ 80 мм
+      const mmPerUnit = 80 / totalH;
+      // Светлая полоска-подложка по левой кромке для контраста рисок —
+      // имитирует «белую наклейку со шкалой» на реальном цилиндре №3.
+      const xLeft = bodyX + 1.5;
+      const stripeWidth = 9;
+      const stripe = document.createElementNS(ns, 'rect');
+      stripe.setAttribute('x', String(xLeft));
+      stripe.setAttribute('y', String(yTop - 1.5));
+      stripe.setAttribute('width', String(stripeWidth));
+      stripe.setAttribute('height', String(yBot - yTop + 3));
+      stripe.setAttribute('fill', '#fbf8ee');
+      stripe.setAttribute('stroke', 'rgba(0,0,0,0.25)');
+      stripe.setAttribute('stroke-width', '0.2');
+      stripe.setAttribute('rx', '0.6');
+      this.#cylScale.appendChild(stripe);
+
+      const xMinorEnd = xLeft + 3;
+      const xMidEnd = xLeft + 5;
+      const xMajorEnd = xLeft + 7;
+
+      // Минор (каждый 1 мм, кроме 5 и 10 кратных).
+      for (let mm = 1; mm < 80; mm++) {
+        if (mm % 5 === 0) continue;
+        const y = yTop + mm / mmPerUnit;
         const line = document.createElementNS(ns, 'line');
-        line.setAttribute('x1', String(major ? xMajor : xMinor));
+        line.setAttribute('x1', String(xLeft));
         line.setAttribute('y1', String(y));
-        line.setAttribute('x2', String(xRight));
+        line.setAttribute('x2', String(xMinorEnd));
         line.setAttribute('y2', String(y));
-        line.setAttribute(
-          'stroke',
-          major ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.3)',
-        );
-        line.setAttribute('stroke-width', major ? '0.4' : '0.3');
+        line.setAttribute('stroke', '#3a3a44');
+        line.setAttribute('stroke-width', '0.35');
         this.#cylScale.appendChild(line);
-        i++;
+      }
+
+      // Mid (каждые 5 мм, не major).
+      for (let mm = 5; mm < 80; mm += 5) {
+        if (mm % 10 === 0) continue;
+        const y = yTop + mm / mmPerUnit;
+        const line = document.createElementNS(ns, 'line');
+        line.setAttribute('x1', String(xLeft));
+        line.setAttribute('y1', String(y));
+        line.setAttribute('x2', String(xMidEnd));
+        line.setAttribute('y2', String(y));
+        line.setAttribute('stroke', '#1a1b1f');
+        line.setAttribute('stroke-width', '0.55');
+        this.#cylScale.appendChild(line);
+      }
+
+      // Мажор (каждые 10 мм) — длиннее, толще + числовые метки.
+      for (let mm = 10; mm <= 80; mm += 10) {
+        const y = yTop + mm / mmPerUnit;
+        const line = document.createElementNS(ns, 'line');
+        line.setAttribute('x1', String(xLeft));
+        line.setAttribute('y1', String(y));
+        line.setAttribute('x2', String(xMajorEnd));
+        line.setAttribute('y2', String(y));
+        line.setAttribute('stroke', '#0a0a14');
+        line.setAttribute('stroke-width', '0.9');
+        line.setAttribute('stroke-linecap', 'round');
+        this.#cylScale.appendChild(line);
+
+        if (mm === 20 || mm === 40 || mm === 60) {
+          const txt = document.createElementNS(ns, 'text');
+          txt.setAttribute('x', String(xMajorEnd + 0.8));
+          txt.setAttribute('y', String(y + 1.5));
+          txt.setAttribute('fill', '#0a0a14');
+          txt.setAttribute('font-family', "'JetBrains Mono', ui-monospace, monospace");
+          txt.setAttribute('font-size', '4.2');
+          txt.setAttribute('font-weight', '800');
+          txt.textContent = String(mm);
+          this.#cylScale.appendChild(txt);
+        }
       }
     } else {
       this.#cylScale.style.opacity = '0';

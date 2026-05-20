@@ -82,7 +82,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '1.5', title: 'Независимость F_A от массы тела' },
     ],
     photo: 'kit-1.png',
-    progress: { done: 2, total: 5 },
+    progress: { done: 3, total: 5 },
   },
 
   // КИТ-3 — электричество, planned

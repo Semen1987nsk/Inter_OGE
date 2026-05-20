@@ -1,0 +1,726 @@
+/*
+ * Стили опыта 1.3 «F_А от объёма погружённой части».
+ * ФИПИ-2026, Приложение 2, Комплект №1. См. REFERENCE §30.
+ *
+ * Layout по канону §31:
+ *   - 2 колонки: workbench (1fr) + equipment-panel (280–420px)
+ *   - Степпер этапов в header
+ *   - Floating measurement-panel в углу stage
+ *   - Reset-кнопка ↻ в правом углу header
+ *
+ * Базовые классы переиспользуются из density-experiment.css:
+ *   .measurement-panel, .measurement-toggle, .measurement-body,
+ *   .equipment-panel, .equipment-group, .equipment-grid-*,
+ *   .step, .reset-btn, .stage-corner, .lab-detach-btn, .record-pending-btn.
+ * Здесь — только специфика сцены 1.3 (`.av-*`).
+ */
+
+/* ─── Главный grid (по канону §31, как archimedes-stage) ──────────── */
+.av-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--layout-padding);
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+  /* Глобально отключаем выделение текста на сцене опыта. Браузерное
+     выделение при drag-е приборов выглядит как баг (синие прямоугольники
+     текста). Локальные input/textarea переопределяют это сами. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+.av-stage input,
+.av-stage textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+@media (min-width: 1600px) {
+  .av-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+}
+
+/* ─── Workbench ───────────────────────────────────────────────────── */
+.av-workbench {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+  min-width: 0;
+}
+
+.av-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.av-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.av-steps .step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 3px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 1.15;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+@media (max-width: 1450px) {
+  /* Узкий step-label, чтобы все 5 шагов помещались в одну строку header
+     на 1366×768 — иначе wrap = header растёт = stage сжимается. */
+  .av-steps .step-label { display: none; }
+  .av-steps .step .step-label--short { display: inline; }
+}
+.av-steps .step-label--short { display: none; }
+
+.av-steps .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.av-steps .step[data-state='done'] {
+  background: rgb(16 185 129 / 0.08);
+  border-color: rgb(16 185 129 / 0.3);
+  color: var(--color-success);
+}
+.av-steps .step[data-state='done'] .step-num {
+  background: var(--color-success, #10b981);
+  color: #0a1530;
+  position: relative;
+}
+.av-steps .step[data-state='done'] .step-num::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0a1530;
+  background: var(--color-success, #10b981);
+  border-radius: 50%;
+}
+
+.av-steps .step[data-state='active'] {
+  background: rgb(255 190 11 / 0.16);
+  border-color: rgb(255 190 11 / 0.7);
+  color: var(--color-brand-orange, #ffbe0b);
+  font-weight: 700;
+}
+.av-steps .step[data-state='active'] .step-num {
+  background: var(--color-brand-orange, #ffbe0b);
+  color: #0a1530;
+}
+
+.av-hint {
+  flex: 1;
+  min-width: 200px;
+  text-align: right;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ─── Stage-area (сцена) ──────────────────────────────────────────── */
+.av-stage-area {
+  position: relative;
+  background: linear-gradient(180deg, #1a2334 0%, #0f1623 100%);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-4);
+  border: 1px solid rgba(120, 140, 180, 0.08);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Стенд (штатив + динамометр + цилиндр + стакан) ──────────── */
+.av-rig {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 320px;
+  margin-bottom: var(--space-3);
+}
+
+/* Динамометр НЕ должен сжиматься (flex-shrink) при тесном вертикальном
+   layout-е — иначе шкала Н обрезается до нижних делений. */
+.av-rig lab-dynamometer {
+  flex-shrink: 0;
+}
+.av-rig lab-beaker {
+  flex-shrink: 0;
+}
+.av-rig .av-cylinder-rig {
+  flex-shrink: 0;
+}
+
+.av-stand-bar {
+  width: 240px;
+  height: 6px;
+  background: linear-gradient(180deg, #353d4f 0%, #1e2330 100%);
+  border-radius: 3px;
+  margin-bottom: -6px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.av-dyno-mount {
+  position: relative;
+  display: inline-block;
+}
+
+/* SVG-overlay для нити динамометр→цилиндр. Position absolute поверх всего
+   stage-area; не перехватывает клики. Координаты `<line x1 y1 x2 y2>`
+   считаются в JS через getWeightHookPosition / getThreadHookPosition.
+   z-index: 2 — выше beaker (z=1), ниже cylinder body (z=3). */
+.av-thread-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  overflow: visible;
+}
+
+/* Live-индикатор «h = X мм» рядом с цилиндром. Position absolute координируется
+   в JS через #updateDepthLabel — рядом с верхней кромкой цилиндра. */
+.av-depth-label {
+  position: absolute;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 3px 7px;
+  background: rgba(20, 28, 42, 0.88);
+  border: 1px solid rgba(120, 140, 180, 0.32);
+  border-radius: 4px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary, #c5d1da);
+  pointer-events: none;
+  z-index: 6;
+  white-space: nowrap;
+  transition: border-color 180ms ease-out, color 180ms ease-out;
+}
+.av-depth-label[data-state="active"] {
+  border-color: var(--color-brand-orange, #ffbe0b);
+  color: var(--color-brand-orange, #ffbe0b);
+}
+.av-depth-label__value {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  font-feature-settings: "tnum";
+}
+.av-depth-label__unit {
+  font-size: 9px;
+  font-weight: 500;
+  opacity: 0.75;
+}
+
+.av-cylinder-rig {
+  position: relative;
+  /* Раньше был margin-top: -10px чтобы скомпенсировать DIV-нить высоты 36px.
+     Теперь нить — SVG overlay, ничего не занимает в layout. Отступ контролируется
+     самим rig'ом через flex родителя. ~36 px воздуха между крюком динамо и
+     верхом цилиндра — визуально читается как «висит на нитке». */
+  margin-top: 36px;
+  z-index: 3;
+  /* transform управляется JS-ом (continuous drag-by-thread).
+     Плавность во время drag НЕ нужна — пальцу нужен 1:1 отклик.
+     Анимация только при programmatic API (snap / reset). */
+  transition: transform 220ms cubic-bezier(0.42, 0, 0.58, 1);
+  touch-action: none; /* блокирует scroll на touch-девайсах при drag */
+}
+
+/* Размеры цилиндра и стакана в сцене 1.3 — единый стиль с опытом 1.2
+   (archimedes-experiment.css §19.11.16). На 1366×768 высота stage ~520 px,
+   и стенд (dyno+thread+cyl+beaker) должен полностью помещаться.
+
+   Расчёт (2026-05-18, единый стиль с 1.2):
+   - cyl `--w-size: 58px` → host 58×135, body ~50 × ~106 px (√(56/25)≈1.5)
+     mmToPx ≈ 106/80 = 1.33 px/мм
+   - beaker `width: 130px` → host 130×176, mouth_opening ≈ 92 px
+   - water column при level=200 ≈ 93 px (svg 68.8 × scaleY 1.35)
+     ⇒ availableDepth ≈ 80 px ⇒ maxHMm ≈ 60 мм + air-gap ⇒ полное погружение работает
+   - body 50 ⊂ mouth 92 ✅ (пропорция 0.54 — точно по ФИПИ-фото 27/55 мм)
+   - body_height 106 + beaker_height 176 + thread 36 + dyno 220 ≈ 438 px стенд
+     ⇒ помещается в stage 520 px на 1366×768. */
+.av-cylinder-rig #av-cyl {
+  --w-size: 58px;
+}
+.av-rig lab-beaker {
+  width: 130px;
+}
+/* В правой карточке-комплекте цилиндр должен быть КРУПНЕЕ, чтобы шкала
+   1 мм была читаемой (на сцене он уменьшен до 58 px для компактности).
+   В карточке свободного места достаточно. */
+#av-card-cyl #av-cyl {
+  --w-size: 110px;
+}
+/* Стакан в карточке-комплекте — чуть меньше чем на сцене (130) ради
+   единообразия высоты карточек dyno/cyl/beaker. */
+#av-card-beaker #av-beaker {
+  width: 110px;
+}
+.av-cylinder-rig[data-can-drag="true"] {
+  cursor: grab;
+}
+.av-cylinder-rig[data-can-drag="true"]:active {
+  cursor: grabbing;
+}
+.av-cylinder-rig[data-can-drag="false"][data-need-baseline="true"] {
+  cursor: not-allowed;
+}
+/* Во время активного drag — отключаем transition (живой 1:1 отклик). */
+body.av-cylinder-dragging .av-cylinder-rig {
+  transition: none;
+}
+
+.av-beaker-mount {
+  position: relative;
+  margin-top: -8px;
+  z-index: 1; /* стакан ПОД цилиндром — цилиндр виден сквозь прозрачные стенки */
+}
+
+/* Detach-кнопка стакана — ВНУТРИ av-beaker-mount как position:absolute.
+   Раньше была fixed-overlay с пересчётом координат в JS на каждом рендере;
+   при scroll/resize крестик «уплывал», на узких viewport'ах прятался за
+   measurement-panel. Сейчас просто прибиваем к правому верху mount,
+   stacking-context контролирует только сам mount. */
+.av-detach-btn--beaker-floating {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 60;
+}
+
+/* ─── Drop-zones (видны только при drag-active) ──────────────────── */
+@keyframes av-slot-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 175, 0.0);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(56, 189, 175, 0.18);
+  }
+}
+@keyframes av-drop-zone-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 175, 0.55), 0 0 14px rgba(56, 189, 175, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(56, 189, 175, 0), 0 0 22px rgba(56, 189, 175, 0.5);
+    transform: scale(1.03);
+  }
+}
+
+.av-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed transparent;
+  border-radius: 12px;
+  transition: all 200ms ease-out;
+  pointer-events: none;
+}
+/* Empty dropzone idle pulse — лёгкое мерцание чтобы ученик заметил «сюда».
+   Только когда drag НЕ активен и зона видима. */
+body:not(.has-drag-active) .av-dropzone:not([hidden]) {
+  animation: av-slot-pulse 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body:not(.has-drag-active) .av-dropzone {
+    animation: none;
+  }
+}
+.av-dropzone--dyno {
+  min-width: 160px;
+  min-height: 80px;
+  margin-bottom: 4px;
+}
+.av-dropzone--beaker {
+  min-width: 140px;
+  min-height: 60px;
+  margin-top: 4px;
+}
+
+.av-dropzone-hint {
+  font-size: var(--text-xs);
+  color: transparent;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: color 180ms ease-out;
+}
+
+body.has-drag-active .av-dropzone[data-drop-active="true"] {
+  border-color: rgba(74, 159, 199, 0.55);
+  background: rgba(74, 159, 199, 0.06);
+  pointer-events: auto;
+}
+body.has-drag-active .av-dropzone[data-drop-active="true"] .av-dropzone-hint {
+  color: rgba(174, 209, 230, 0.7);
+}
+body.has-drag-active .av-dropzone[data-drop-hover="true"] {
+  border-color: var(--color-brand-orange, #ffbe0b);
+  background: rgba(255, 190, 11, 0.1);
+  border-style: solid;
+  animation: av-drop-zone-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-drag-active .av-dropzone[data-drop-hover="true"] {
+    animation: none;
+  }
+}
+body.has-drag-active .av-dropzone[data-drop-hover="true"] .av-dropzone-hint {
+  color: var(--color-brand-orange, #ffbe0b);
+}
+
+.av-dyno-mount[data-drop-active="true"][data-drop-hover="true"] {
+  outline: 2px solid var(--color-brand-orange, #ffbe0b);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* ─── Detach × кнопки (на установленных приборах) ────────────────
+   Стиль выровнен с эталоном density-solid `.density-detach-btn`:
+   - круг 24px, top-right -8px outside corner
+   - красная граница rgba(255,100,100,0.65) на тёмном фоне rgba(40,12,12,0.92)
+   - hover: цветной фон #ff6b6b, scale 1.1
+   - focus-visible: orange ring (accessibility) */
+.av-detach-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(40, 12, 12, 0.92);
+  border: 1.5px solid rgba(255, 100, 100, 0.65);
+  color: #ff6b6b;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  z-index: 50;
+  opacity: 0.85;
+  transition: all 160ms ease-out;
+}
+.av-detach-btn:hover {
+  opacity: 1;
+  background: #ff6b6b;
+  color: #1a0808;
+  transform: scale(1.1);
+}
+.av-detach-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange, #ffbe0b);
+  outline-offset: 2px;
+}
+.av-detach-btn[hidden] {
+  display: none;
+}
+
+/* Декоративные подсказки внутри measurement-panel не должны перехватывать
+   клики (детач-кнопки beaker могут оказаться под ними при компактном
+   layout-е). */
+#av-journal-empty,
+#av-formula-display {
+  pointer-events: none;
+}
+
+/* ─── Floating measurement-panel (override базового density-стиля под канон §31) ─── */
+/* Базовый .measurement-panel из density-experiment.css растягивается по ширине
+   stage и блокирует interactivity beaker-mount. Здесь — компактный
+   floating в правом нижнем углу stage (как в archimedes 1.2). */
+#av-journal-panel.measurement-panel {
+  position: absolute;
+  right: var(--space-4, 16px);
+  bottom: var(--space-4, 16px);
+  width: min(320px, 38%);
+  max-height: 60%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  background: rgba(20, 28, 42, 0.92);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(120, 140, 180, 0.18);
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+#av-journal-panel .measurement-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(120, 140, 180, 0.12);
+  gap: 8px;
+}
+
+#av-journal-panel .measurement-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary, #f3f6fb);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+#av-journal-panel .measurement-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-brand-orange, #ffbe0b);
+  color: #0a1530;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#av-journal-panel .measurement-body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+#av-journal-empty {
+  font-size: var(--text-sm, 0.85rem);
+  color: var(--color-text-muted, #93a0b8);
+  line-height: 1.4;
+}
+
+#av-formula-display {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--color-brand-orange, #ffbe0b);
+  border-radius: 4px;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #c4cde0);
+}
+
+#av-formula-display .formula-label {
+  font-weight: 600;
+  color: var(--color-text-primary, #f3f6fb);
+  margin-right: 6px;
+}
+
+#av-formula-display .formula-expr em {
+  font-style: italic;
+  color: var(--color-brand-orange, #ffbe0b);
+}
+
+#av-formula-display .formula-units {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted, #93a0b8);
+}
+
+#av-record-pending-slot {
+  margin-top: 10px;
+}
+
+#av-record-pending-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #4a9fc7 0%, #357ba0 100%);
+  border: 1px solid rgba(74, 159, 199, 0.6);
+  border-radius: 5px;
+  color: white;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease-out;
+}
+
+#av-record-pending-btn:hover {
+  background: linear-gradient(180deg, #5cb0d6 0%, #4188af 100%);
+}
+
+#av-record-pending-summary {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+#av-journal-host {
+  margin-top: 10px;
+}
+.av-detach-btn:hover {
+  background: rgba(240, 70, 70, 1);
+  transform: scale(1.1);
+}
+.av-detach-btn--floating {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+/* ─── Inline-кнопки погружения — floating top-left stage ─────────
+   Раньше .av-submerge-controls был обычным block-element ПОД стендом
+   внутри av-stage-area (column flex). На 1366×768 stage был коротким
+   (558 px), и controls выходили за нижний край stage на ~23 px.
+   Floating overlay в top-left решает это и оставляет основное место
+   stage для оборудования. */
+.av-submerge-controls {
+  position: absolute;
+  top: var(--space-3, 12px);
+  left: var(--space-3, 12px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(20, 28, 42, 0.85);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(120, 140, 180, 0.18);
+  border-radius: var(--radius-md, 8px);
+  z-index: 4;
+}
+.av-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #2d3a52 0%, #1d2638 100%);
+  color: var(--color-text-primary, #f3f6fb);
+  border: 1px solid rgba(120, 140, 180, 0.25);
+  border-radius: 5px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease-out;
+}
+.av-inline-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3a4863 0%, #28324a 100%);
+  border-color: rgba(120, 140, 180, 0.5);
+}
+.av-inline-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.av-inline-btn--primary {
+  background: linear-gradient(180deg, #4a9fc7 0%, #357ba0 100%);
+  border-color: rgba(74, 159, 199, 0.6);
+  color: white;
+}
+.av-inline-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5cb0d6 0%, #4188af 100%);
+}
+.av-inline-btn--depth {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.av-drag-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 190, 11, 0.12);
+  border: 1px dashed rgba(255, 190, 11, 0.5);
+  border-radius: var(--radius-pill, 999px);
+  color: var(--color-brand-orange, #ffbe0b);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  animation: av-drag-tip-pulse 1800ms ease-in-out infinite;
+}
+@keyframes av-drag-tip-pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* ─── Drag-overlay (ghost) — переиспользуем `.density-drag-overlay`
+       из DragDropController density-solid, без отдельного класса.
+       Если нужны нюансы — здесь оверрайды. */
+
+/* На узких viewport (≤1300px, типично ноутбук 1280×720) ещё сильнее ужимаем
+   оборудование, чтобы стенд + журнал поместились в коротком stage height.
+   Stage ~489 px, rig чистый = dyno 220 + thread 36 + cyl 86 + beaker 156 ≈ 498.
+   Решение: scale dyno на 0.92 (effective height 202) + меньше padding. */
+@media (max-width: 1300px) {
+  .av-cylinder-rig #av-cyl {
+    --w-size: 52px;
+  }
+  .av-rig lab-beaker {
+    width: 115px;
+  }
+  .av-stand-bar {
+    width: 200px;
+  }
+  .av-rig lab-dynamometer {
+    /* Сокращаем размер через CSS-переменные хоста — это меняет layout-box,
+       transform: scale не работает (transform applied AFTER layout). */
+    --dyno-w: 65px;
+    --dyno-h: 188px;
+  }
+  .av-stage-area {
+    padding: 8px;
+  }
+  .av-rig {
+    margin-bottom: 4px;
+  }
+  #av-journal-panel.measurement-panel {
+    width: min(290px, 38%);
+    max-height: 55%;
+  }
+}
+
+/* Responsive — мобилки */
+@media (max-width: 900px) {
+  .av-stage {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+  .equipment-panel {
+    grid-column: 1 / -1;
+  }
+}
