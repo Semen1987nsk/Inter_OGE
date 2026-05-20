@@ -19,7 +19,16 @@
     "./lib/journal/render": "./src/lib/journal/render.ts",
     "./lib/journal/pending": "./src/lib/journal/pending.ts",
     "./lib/journal/recorder": "./src/lib/journal/recorder.ts",
-    "./lib/journal/journal.css": "./src/lib/journal/journal.css"
+    "./lib/journal/journal.css": "./src/lib/journal/journal.css",
+    "./styles/tokens.css":            "./src/styles/tokens.css",
+    "./styles/tokens-colors.css":     "./src/styles/tokens-colors.css",
+    "./styles/tokens-typography.css": "./src/styles/tokens-typography.css",
+    "./styles/tokens-spacing.css":    "./src/styles/tokens-spacing.css",
+    "./styles/tokens-shadow.css":     "./src/styles/tokens-shadow.css",
+    "./styles/tokens-motion.css":     "./src/styles/tokens-motion.css",
+    "./styles/tokens-physics.css":    "./src/styles/tokens-physics.css",
+    "./styles/tokens-equipment.css":  "./src/styles/tokens-equipment.css",
+    "./styles/tokens-layout.css":     "./src/styles/tokens-layout.css"
   },
   "scripts": {
     "test": "vitest run",

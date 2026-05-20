@@ -1,0 +1,20 @@
+/**
+ * ЛАБОСФЕРА Design Tokens — Barrel
+ *
+ * Единая точка импорта для опытов. Подключает все категории токенов.
+ *
+ * Использование в опыте:
+ *   @import "@labosfera/shared-spa/styles/tokens.css";
+ *
+ * Если опыт не нуждается в equipment/physics/layout (например, home) —
+ * импортируй category-файлы выборочно вместо barrel.
+ */
+
+@import "./tokens-colors.css";
+@import "./tokens-typography.css";
+@import "./tokens-spacing.css";
+@import "./tokens-shadow.css";
+@import "./tokens-motion.css";
+@import "./tokens-physics.css";
+@import "./tokens-equipment.css";
+@import "./tokens-layout.css";
