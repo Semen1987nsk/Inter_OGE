@@ -19,7 +19,7 @@ template.innerHTML = `
     align-items: center;
     justify-content: center;
     gap: var(--space-2, 8px);
-    padding: var(--space-3, 12px) var(--space-6, 24px);
+    padding: var(--space-4, 16px) var(--space-6, 24px);
     border-radius: var(--radius-md, 8px);
     font-family: var(--font-display, 'Space Grotesk', sans-serif);
     font-size: var(--text-body, 1rem);
