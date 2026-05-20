@@ -31,7 +31,7 @@
 .archimedes-workbench {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: var(--space-3);
+  gap: var(--space-4);
   min-height: 0;
   min-width: 0;
 }
@@ -39,7 +39,7 @@
 .archimedes-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -686,8 +686,8 @@ lab-dynamometer[data-overload='true'] {
 .archimedes-equipment-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-4);
   background: rgb(6 13 20 / 0.5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -803,11 +803,11 @@ lab-dynamometer[data-overload='true'] {
 @media (max-width: 1023px) {
   .archimedes-stage {
     grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
-    gap: var(--space-3);
-    padding: var(--space-3);
+    gap: var(--space-4);
+    padding: var(--space-4);
   }
   .ar-journal-panel {
-    width: min(420px, calc(100% - var(--space-3) * 2));
+    width: min(420px, calc(100% - var(--space-4) * 2));
   }
 }
 
@@ -825,7 +825,7 @@ lab-dynamometer[data-overload='true'] {
     flex-direction: row;
     overflow-x: auto;
     overflow-y: hidden;
-    gap: var(--space-3);
+    gap: var(--space-4);
     padding: var(--space-2);
     scroll-snap-type: x proximity;
     /* Fade-edge справа намекает на скролл к остальному оборудованию. */
