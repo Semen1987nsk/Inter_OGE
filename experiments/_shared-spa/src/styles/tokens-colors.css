@@ -1,0 +1,122 @@
+/**
+ * ЛАБОСФЕРА Design Tokens — Colors
+ *
+ * Двухслойная модель:
+ *   1. Shade-palettes (raw HSL) — gray, blue, orange, green, red, amber × 10 ступеней
+ *   2. Semantic tokens — существующие --color-* имена, переопределены через var()
+ *
+ * WCAG 4.5:1 для normal text, 3:1 для large text — проверяется в
+ * __tests__/tokens-contrast.test.ts. Меняя HSL — обнови тест.
+ */
+
+:root {
+  /* ─── Gray (cool slate, hue 213°) ───────────────────────────── */
+  --gray-50:  hsl(213, 31%, 96%);
+  --gray-100: hsl(213, 27%, 88%);
+  --gray-200: hsl(213, 23%, 76%);
+  --gray-300: hsl(213, 19%, 60%);
+  --gray-400: hsl(213, 16%, 44%);
+  --gray-500: hsl(213, 17%, 32%);
+  --gray-600: hsl(213, 21%, 24%);
+  --gray-700: hsl(213, 27%, 19%);
+  --gray-800: hsl(213, 39%, 11%);
+  --gray-900: hsl(213, 47%, 6%);
+
+  /* ─── Blue (Labosfera signature, hue 217°) ──────────────────── */
+  --blue-50:  hsl(217, 100%, 96%);
+  --blue-100: hsl(217, 100%, 88%);
+  --blue-200: hsl(217, 100%, 78%);
+  --blue-300: hsl(217, 100%, 70%);
+  --blue-400: hsl(217, 100%, 65%);
+  --blue-500: hsl(217, 100%, 62%);
+  --blue-600: hsl(217, 88%, 56%);
+  --blue-700: hsl(217, 88%, 50%);
+  --blue-800: hsl(217, 80%, 40%);
+  --blue-900: hsl(217, 80%, 28%);
+
+  /* ─── Orange (Labosfera secondary, hue 44°) ─────────────────── */
+  --orange-50:  hsl(44, 100%, 96%);
+  --orange-100: hsl(44, 100%, 88%);
+  --orange-200: hsl(44, 100%, 76%);
+  --orange-300: hsl(44, 100%, 65%);
+  --orange-400: hsl(44, 100%, 58%);
+  --orange-500: hsl(44, 100%, 53%);
+  --orange-600: hsl(38, 95%, 45%);
+  --orange-700: hsl(34, 92%, 40%);
+  --orange-800: hsl(30, 90%, 32%);
+  --orange-900: hsl(28, 85%, 22%);
+
+  /* ─── Green (success, hue 160°) ─────────────────────────────── */
+  --green-50:  hsl(160, 80%, 96%);
+  --green-100: hsl(160, 75%, 88%);
+  --green-200: hsl(160, 70%, 76%);
+  --green-300: hsl(160, 65%, 60%);
+  --green-400: hsl(160, 60%, 48%);
+  --green-500: hsl(160, 84%, 39%);
+  --green-600: hsl(160, 84%, 32%);
+  --green-700: hsl(160, 80%, 25%);
+  --green-800: hsl(160, 75%, 18%);
+  --green-900: hsl(160, 70%, 12%);
+
+  /* ─── Red (error, hue 0°) ───────────────────────────────────── */
+  --red-50:  hsl(0, 86%, 97%);
+  --red-100: hsl(0, 86%, 92%);
+  --red-200: hsl(0, 86%, 84%);
+  --red-300: hsl(0, 86%, 73%);
+  --red-400: hsl(0, 90%, 67%);
+  --red-500: hsl(0, 84%, 60%);
+  --red-600: hsl(0, 75%, 50%);
+  --red-700: hsl(0, 72%, 42%);
+  --red-800: hsl(0, 70%, 33%);
+  --red-900: hsl(0, 65%, 25%);
+
+  /* ─── Amber (warning, hue 38°) ──────────────────────────────── */
+  --amber-50:  hsl(38, 100%, 96%);
+  --amber-100: hsl(38, 96%, 89%);
+  --amber-200: hsl(38, 95%, 76%);
+  --amber-300: hsl(38, 95%, 64%);
+  --amber-400: hsl(38, 92%, 56%);
+  --amber-500: hsl(38, 92%, 50%);
+  --amber-600: hsl(34, 90%, 44%);
+  --amber-700: hsl(30, 85%, 38%);
+  --amber-800: hsl(28, 80%, 30%);
+  --amber-900: hsl(26, 75%, 22%);
+
+  /* ─── Semantic mapping (сохраняем существующие --color-* имена) ─ */
+  --color-bg-deep:          var(--gray-800);
+  --color-bg-surface:       var(--gray-700);
+  --color-bg-surface-hover: var(--gray-600);
+  --color-bg-darker:        var(--gray-900);
+  --color-bg-overlay:       rgb(6 13 20 / 0.85);
+
+  --color-text-primary:   var(--gray-100);
+  --color-text-secondary: var(--gray-200);
+  --color-text-muted:     var(--gray-300);
+  --color-text-inverse:   var(--gray-800);
+
+  --color-brand-blue:         var(--blue-500);
+  --color-brand-blue-light:   var(--blue-300);
+  --color-brand-blue-dark:    var(--blue-600);
+  --color-brand-orange:       var(--orange-500);
+  --color-brand-orange-light: var(--orange-200);
+  --color-brand-orange-dark:  var(--orange-600);
+
+  --color-success:    var(--green-500);
+  --color-success-bg: hsl(160 84% 39% / 0.1);
+  --color-error:      var(--red-500);
+  --color-error-bg:   hsl(0 84% 60% / 0.1);
+  --color-warning:    var(--amber-500);
+  --color-warning-bg: hsl(38 92% 50% / 0.1);
+
+  --color-border:        rgb(255 255 255 / 0.1);
+  --color-border-strong: rgb(255 255 255 / 0.2);
+
+  /* ─── Градиенты ─────────────────────────────────────────────── */
+  --gradient-cta: linear-gradient(135deg, var(--orange-500) 0%, var(--blue-500) 100%);
+  --gradient-hero: linear-gradient(180deg, var(--gray-800) 0%, var(--gray-700) 100%);
+  --gradient-brand-text: linear-gradient(
+    90deg,
+    var(--color-brand-blue) 0%,
+    var(--color-brand-orange) 100%
+  );
+}
