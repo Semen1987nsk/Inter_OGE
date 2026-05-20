@@ -782,7 +782,7 @@ npm run format      # prettier
 
 ### UI
 
-- [ ] Использованы только токены из `tokens.css` (нет хардкоженных цветов).
+- [ ] Использованы только токены из `@labosfera/shared-spa/styles/tokens.css` (нет хардкоженных цветов; локальный `tokens.css` — только `@import` barrel).
 - [ ] Палитра приборов соответствует фото реального комплекта.
 - [ ] Адаптив проверен на брейкпоинтах ≥1600 / 1280 / 1024 / 768.
 - [ ] Шкалы читаемы без зума на 1280×800.
@@ -809,6 +809,35 @@ npm run format      # prettier
 - [ ] Реф-документ опыта обновлён (если были новые паттерны — описаны).
 - [ ] [TEST_PLAN.md](tests/TEST_PLAN.md) актуален: новые баги превратились в PI или TestCase.
 - [ ] В [experiments/README.md](../README.md) обновлена строка про этот опыт.
+
+### Дизайн-токены (Phase 1 — 2026-05-19)
+
+С 2026-05-19 токены живут в `@labosfera/shared-spa/styles/`. Локальный
+`experiments/2-1-spring/src/styles/tokens.css` — только `@import` barrel.
+
+```css
+/* experiments/2-1-spring/src/styles/tokens.css */
+@import "@labosfera/shared-spa/styles/tokens.css";
+```
+
+Что внутри `_shared-spa/src/styles/`:
+
+- `tokens-colors.css` — 6 shade-палитр (gray/blue/orange/green/red/amber) × 10 ступеней (50…900) + semantic mapping (все существующие `--color-*` имена сохранены).
+- `tokens-typography.css` — Tailwind-derived 10-ступенчатый modular scale (12 → 60px, ratio ≈1.25).
+- `tokens-spacing.css` — линейный canonical scale 4/8/16/24/32/48/64 + 80/96 для home.
+- `tokens-shadow.css` — two-part elevation shadows (tight crisp + larger atmospheric) + glow.
+- `tokens-motion.css` — easings + durations + `prefers-reduced-motion` guard.
+- `tokens-physics.css` — `--phys-*` PhET convention (domain-семантика).
+- `tokens-equipment.css` — `--equip-*` под фото реальных комплектов.
+- `tokens-layout.css` — z-index стек + layout-параметры сцены.
+
+WCAG 4.5:1 для normal text и 3:1 для large text — проверяется vitest-тестом `_shared-spa/__tests__/tokens-contrast.test.ts` (16 критичных пар). Меняя HSL — обнови тест.
+
+**Запрещено:** добавлять локальные определения `--color-*` / `--space-*` / `--shadow-*` / `--text-*` в этот опыт. Если нужен новый токен — добавляй в `_shared-spa/src/styles/`.
+
+**Убранные spacing-токены** (Phase 1 migration): `--space-3` (12px), `--space-5` (20px), `--space-10` (40px) — мигрированы на ближайший canonical (`--space-4` / `--space-6` / `--space-8` / `--space-12`).
+
+См. спеку `.business/спеки/2026-05-19-design-tokens-unification.md` и Plan A `.business/спеки/2026-05-19-design-tokens-unification-plan-A.md`.
 
 ### Журнал v2 (§21) — обязательно для нового опыта
 
