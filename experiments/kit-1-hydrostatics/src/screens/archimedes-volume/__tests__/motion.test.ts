@@ -112,6 +112,7 @@ describe('Опыт 1.3 — чистка clutter', () => {
     const label = root.querySelector('#av-depth-label') as HTMLElement;
     expect(label.hidden).toBe(false);
     expect(label.style.left).toMatch(/^\d+px$/);
+    expect(label.style.left).not.toBe('0px'); // clamp Math.max(4,...) => минимум 4px
   });
 });
 

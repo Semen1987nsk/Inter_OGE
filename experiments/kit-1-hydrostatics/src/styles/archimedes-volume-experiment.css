@@ -319,6 +319,8 @@ body.av-cylinder-dragging .av-cylinder-rig {
    при scroll/resize крестик «уплывал», на узких viewport'ах прятался за
    measurement-panel. Сейчас просто прибиваем к правому верху mount,
    stacking-context контролирует только сам mount. */
+/* right:-14px немного выступает за beaker-mount — стакан центрирован в широкой
+   stage, поэтому не попадает под overflow:hidden stage-area (проверяется e2e). */
 .av-detach-btn--beaker-floating {
   position: absolute;
   top: 6px;

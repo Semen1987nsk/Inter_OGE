@@ -1113,7 +1113,7 @@ export class ArchimedesVolumeExperiment {
     const topY = cyl.getBodyTopY() - stageRect.top;
     // СЛЕВА от цилиндра: detach-× цилиндра и стакана живут справа, поэтому
     // метку уводим влево, чтобы ничего не перекрывалось (clutter-fix).
-    const labelW = label.getBoundingClientRect().width || 56;
+    const labelW = label.getBoundingClientRect().width || 56; // 56 ≈ ширина метки «60 мм» до первого layout
     const xLeft = cylRect.left - stageRect.left - labelW - 8;
     label.style.top = `${topY.toFixed(0)}px`;
     label.style.left = `${Math.max(4, xLeft).toFixed(0)}px`;
