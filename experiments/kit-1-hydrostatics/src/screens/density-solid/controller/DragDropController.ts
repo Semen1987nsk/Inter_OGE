@@ -15,6 +15,12 @@
  */
 
 const DRAG_THRESHOLD_PX = 6;
+/** Чувствительность наклона ghost'а к скорости курсора (deg на px мгновенного смещения). */
+const GHOST_TILT_SENSITIVITY = 0.5;
+/** Максимальный наклон ghost'а (°). Cap держит микро-дрожание незаметным. */
+const GHOST_TILT_MAX_DEG = 4;
+/** Подъём ghost'а при перетаскивании (scale). */
+const GHOST_LIFT_SCALE = 1.04;
 
 interface ActiveDrag {
   pointerId: number;
@@ -129,8 +135,8 @@ export class DragDropController {
       let extra = '';
       if (!a.reduceMotion) {
         const instantDx = ev.clientX - a.lastX;
-        const tilt = Math.max(-4, Math.min(4, instantDx * 0.5));
-        extra = ` scale(1.04) rotate(${tilt.toFixed(2)}deg)`;
+        const tilt = Math.max(-GHOST_TILT_MAX_DEG, Math.min(GHOST_TILT_MAX_DEG, instantDx * GHOST_TILT_SENSITIVITY));
+        extra = ` scale(${GHOST_LIFT_SCALE}) rotate(${tilt.toFixed(2)}deg)`;
       }
       a.lastX = ev.clientX;
       a.ghost.style.transform = `translate(${ghostCx}px, ${ghostCy}px) translate(-50%, -50%)${extra}`;

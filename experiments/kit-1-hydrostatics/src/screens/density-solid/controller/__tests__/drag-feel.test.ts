@@ -50,4 +50,21 @@ describe('DragDropController — drag-feel', () => {
     expect(m).not.toBeNull();
     expect(Math.abs(parseFloat(m?.[1] ?? 'NaN'))).toBeLessThanOrEqual(4);
   });
+
+  it('reduce-motion: ghost без scale и rotate', () => {
+    const orig = window.matchMedia;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    window.matchMedia = (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent() { return false; } }) as any;
+    try {
+      card.dispatchEvent(pointer('pointerdown', 140, 140));
+      window.dispatchEvent(pointer('pointermove', 160, 140));
+      window.dispatchEvent(pointer('pointermove', 220, 140));
+      const ghost = document.querySelector('.density-drag-ghost') as HTMLElement;
+      expect(ghost).not.toBeNull();
+      expect(ghost.style.transform).not.toContain('scale');
+      expect(ghost.style.transform).not.toContain('rotate');
+    } finally {
+      window.matchMedia = orig;
+    }
+  });
 });
