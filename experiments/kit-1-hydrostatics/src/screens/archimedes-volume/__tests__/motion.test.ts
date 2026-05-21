@@ -52,10 +52,26 @@ describe('Опыт 1.3 — entrance-анимация', () => {
     expect(mount.classList.contains('av-beaker-mount--entering')).toBe(true);
   });
 
+  it('entrance-класс beaker-mount снимается после animationend', () => {
+    exp.placeDynamometer();
+    exp.attachCylinder();
+    exp.placeBeaker();
+    const mount = root.querySelector('#av-beaker-mount')!;
+    expect(mount.classList.contains('av-beaker-mount--entering')).toBe(true);
+    mount.dispatchEvent(new Event('animationend'));
+    expect(mount.classList.contains('av-beaker-mount--entering')).toBe(false);
+  });
+
   it('cylinder-rig получает opacity-entrance-класс при attachCylinder', () => {
     exp.placeDynamometer();
     exp.attachCylinder();
     const rig = root.querySelector('#av-cylinder-rig')!;
     expect(rig.classList.contains('av-cylinder-rig--entering')).toBe(true);
+  });
+
+  it('dyno-mount получает entrance-класс при placeDynamometer', () => {
+    exp.placeDynamometer();
+    const mount = root.querySelector('#av-dyno-mount')!;
+    expect(mount.classList.contains('av-dyno-mount--entering')).toBe(true);
   });
 });
