@@ -1111,8 +1111,11 @@ export class ArchimedesVolumeExperiment {
     const stageRect = this.#refs.stageArea.getBoundingClientRect();
     const cylRect = cyl.getBoundingClientRect();
     const topY = cyl.getBodyTopY() - stageRect.top;
-    const xRight = cylRect.right - stageRect.left + 6; // 6px gap от правой кромки cyl
+    // СЛЕВА от цилиндра: detach-× цилиндра и стакана живут справа, поэтому
+    // метку уводим влево, чтобы ничего не перекрывалось (clutter-fix).
+    const labelW = label.getBoundingClientRect().width || 56;
+    const xLeft = cylRect.left - stageRect.left - labelW - 8;
     label.style.top = `${topY.toFixed(0)}px`;
-    label.style.left = `${xRight.toFixed(0)}px`;
+    label.style.left = `${Math.max(4, xLeft).toFixed(0)}px`;
   }
 }

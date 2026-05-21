@@ -76,6 +76,45 @@ describe('Опыт 1.3 — entrance-анимация', () => {
   });
 });
 
+describe('Опыт 1.3 — чистка clutter', () => {
+  let host: HTMLElement;
+  let screen: ArchimedesVolumeScreen;
+  let exp: ArchimedesVolumeExperiment;
+  let root: HTMLElement;
+
+  beforeEach(async () => {
+    await registerComponents();
+    document.body.replaceChildren();
+    host = document.createElement('main');
+    host.id = 'screen-content';
+    document.body.appendChild(host);
+    try { localStorage.clear(); } catch { /* ignore */ }
+    screen = new ArchimedesVolumeScreen();
+    screen.mount(host);
+    exp = (window as unknown as { archimedesVolumeExperiment?: ArchimedesVolumeExperiment })
+      .archimedesVolumeExperiment!;
+    expect(exp).toBeTruthy();
+    root = host;
+  });
+
+  afterEach(() => {
+    screen.unmount();
+    document.body.replaceChildren();
+    globalThis.gc?.();
+  });
+
+  it('depth-label виден и left — валидное число (позиционирование слева)', () => {
+    exp.placeDynamometer();
+    exp.attachCylinder();
+    exp.placeBeaker();
+    exp.fixateBaseline();
+    exp.submergeTo(20);
+    const label = root.querySelector('#av-depth-label') as HTMLElement;
+    expect(label.hidden).toBe(false);
+    expect(label.style.left).toMatch(/^\d+px$/);
+  });
+});
+
 describe('lab-beaker — реализм воды', () => {
   it('playFill() навешивает класс налива на группу жидкости', () => {
     const beaker = document.createElement('lab-beaker') as any;
