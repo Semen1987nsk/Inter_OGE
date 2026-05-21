@@ -161,6 +161,7 @@ export class LabBeaker extends HTMLElement {
   #water: SVGRectElement;
   #meniscus: SVGEllipseElement;
   #liquid: SVGGElement;
+  #fillAbort: AbortController | null = null;
 
   constructor() {
     super();
@@ -231,13 +232,23 @@ export class LabBeaker extends HTMLElement {
   }
 
   /** Проигрывает «налив + успокоение» (затухающий slosh). Идемпотентно
-   *  перезапускается: снимаем класс, форс-reflow, навешиваем заново. */
+   *  перезапускается: отменяем прошлый listener, снимаем класс, форс-reflow,
+   *  навешиваем заново. */
   playFill(): void {
     const g = this.#liquid;
+    this.#fillAbort?.abort();
+    const ctrl = new AbortController();
+    this.#fillAbort = ctrl;
     g.classList.remove('bk-liquid--filling');
+    // offsetWidth недоступен у SVGElement — getBoundingClientRect это
+    // канонический reflow-триггер для SVG-узла (перезапуск keyframe).
     void (g as unknown as HTMLElement).getBoundingClientRect();
     g.classList.add('bk-liquid--filling');
-    g.addEventListener('animationend', () => g.classList.remove('bk-liquid--filling'), { once: true });
+    g.addEventListener(
+      'animationend',
+      () => { g.classList.remove('bk-liquid--filling'); this.#fillAbort = null; },
+      { once: true, signal: ctrl.signal },
+    );
   }
 
   /**

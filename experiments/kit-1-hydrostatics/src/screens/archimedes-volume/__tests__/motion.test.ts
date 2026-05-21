@@ -93,4 +93,14 @@ describe('lab-beaker — реализм воды', () => {
     expect(beaker.shadowRoot.querySelector('.bk-contact-shadow')).not.toBeNull();
     beaker.remove();
   });
+
+  it('playFill() идемпотентен при повторном вызове', () => {
+    const beaker = document.createElement('lab-beaker') as any;
+    document.body.appendChild(beaker);
+    beaker.playFill();
+    beaker.playFill();
+    const liquid = beaker.shadowRoot.querySelector('.bk-liquid');
+    expect(liquid.classList.contains('bk-liquid--filling')).toBe(true);
+    beaker.remove();
+  });
 });
