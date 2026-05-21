@@ -29,6 +29,10 @@ interface ActiveDrag {
   eqId: string;
   ghost: HTMLElement | null;
   candidateZone: HTMLElement | null;
+  /** Предыдущий clientX — для мгновенного направления наклона ghost'а. */
+  lastX: number;
+  /** prefers-reduced-motion: при true ghost не наклоняем и не увеличиваем. */
+  reduceMotion: boolean;
 }
 
 export interface EquipmentDropDetail {
@@ -92,6 +96,10 @@ export class DragDropController {
       eqId,
       ghost: null,
       candidateZone: null,
+      lastX: ev.clientX,
+      reduceMotion:
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     };
   };
 
@@ -118,7 +126,14 @@ export class DragDropController {
       document.body.classList.add('has-drag-active');
       const ghostCx = ev.clientX - a.grabOffsetX;
       const ghostCy = ev.clientY - a.grabOffsetY;
-      a.ghost.style.transform = `translate(${ghostCx}px, ${ghostCy}px) translate(-50%, -50%)`;
+      let extra = '';
+      if (!a.reduceMotion) {
+        const instantDx = ev.clientX - a.lastX;
+        const tilt = Math.max(-4, Math.min(4, instantDx * 0.5));
+        extra = ` scale(1.04) rotate(${tilt.toFixed(2)}deg)`;
+      }
+      a.lastX = ev.clientX;
+      a.ghost.style.transform = `translate(${ghostCx}px, ${ghostCy}px) translate(-50%, -50%)${extra}`;
       const zone = this.#findDropzoneAt(ev.clientX, ev.clientY, a.eqId);
       if (zone !== a.candidateZone) {
         if (a.candidateZone) a.candidateZone.dataset['dropHover'] = 'false';
