@@ -180,14 +180,12 @@ export class DragDropController {
       ghost.remove();
       return;
     }
-    const done = (): void => ghost.remove();
-    ghost.addEventListener('transitionend', done, { once: true });
+    const timerId = setTimeout(() => ghost.remove(), 400);
+    ghost.addEventListener('transitionend', () => { clearTimeout(timerId); ghost.remove(); }, { once: true });
     // opacity transition задан в CSS (.density-drag-ghost). Триггерим на следующем кадре.
     requestAnimationFrame(() => {
       ghost.style.opacity = '0';
     });
-    // Fallback на случай, если transitionend не сработает.
-    setTimeout(done, 400);
   }
 
   #handlePointerCancel = (): void => {
