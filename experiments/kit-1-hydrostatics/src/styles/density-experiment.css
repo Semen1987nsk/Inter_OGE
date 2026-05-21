@@ -1853,7 +1853,8 @@ lab-equipment-card[data-future-experiment]::after {
   left: 0;
   pointer-events: none;
   opacity: 0.95;
-  filter: drop-shadow(0 16px 24px rgb(0 0 0 / 0.55));
+  filter: drop-shadow(0 20px 28px rgb(0 0 0 / 0.6));
+  transition: opacity var(--dur-snap, 220ms) var(--ease-accelerate, ease-in);
   transform-origin: center;
   /* НИКАКИХ keyframe-анимаций здесь: animation на transform затирала
      inline-стиль translate(x,y) и ghost на 200ms «улетал» в угол сцены —

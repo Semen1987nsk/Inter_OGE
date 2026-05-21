@@ -319,11 +319,49 @@ body.av-cylinder-dragging .av-cylinder-rig {
    при scroll/resize крестик «уплывал», на узких viewport'ах прятался за
    measurement-panel. Сейчас просто прибиваем к правому верху mount,
    stacking-context контролирует только сам mount. */
+/* right:-14px немного выступает за beaker-mount — стакан центрирован в широкой
+   stage, поэтому не попадает под overflow:hidden stage-area (проверяется e2e). */
 .av-detach-btn--beaker-floating {
   position: absolute;
-  top: -10px;
-  right: -10px;
+  top: 6px;
+  right: -14px;
   z-index: 60;
+}
+
+/* ─── Entrance-анимации приборов ──────────────────────────────────
+   Стакан «ставится сверху», динамометр — лёгкий scale-fade, цилиндр —
+   ТОЛЬКО opacity (у av-cylinder-rig transform управляется JS-ом drag'ом,
+   keyframe на transform с ним конфликтовал бы). */
+@media (prefers-reduced-motion: no-preference) {
+  .av-beaker-mount--entering {
+    animation: av-beaker-enter var(--dur-enter, 300ms) var(--ease-decelerate, ease-out) both;
+  }
+  .av-dyno-mount--entering {
+    animation: av-dyno-enter var(--dur-enter, 300ms) var(--ease-decelerate, ease-out) both;
+  }
+  .av-cylinder-rig--entering {
+    animation: av-fade-in var(--dur-enter, 300ms) var(--ease-decelerate, ease-out) both;
+  }
+}
+/* «ставится сверху»: лёгкий drop-in + рост из 92% */
+@keyframes av-beaker-enter {
+  from { opacity: 0; transform: translateY(-14px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes av-dyno-enter {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes av-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .av-beaker-mount--entering,
+  .av-dyno-mount--entering,
+  .av-cylinder-rig--entering {
+    animation: av-fade-in 120ms linear both;
+  }
 }
 
 /* ─── Drop-zones (видны только при drag-active) ──────────────────── */

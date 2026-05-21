@@ -15,6 +15,12 @@
  */
 
 const DRAG_THRESHOLD_PX = 6;
+/** Чувствительность наклона ghost'а к скорости курсора (deg на px мгновенного смещения). */
+const GHOST_TILT_SENSITIVITY = 0.5;
+/** Максимальный наклон ghost'а (°). Cap держит микро-дрожание незаметным. */
+const GHOST_TILT_MAX_DEG = 4;
+/** Подъём ghost'а при перетаскивании (scale). */
+const GHOST_LIFT_SCALE = 1.04;
 
 interface ActiveDrag {
   pointerId: number;
@@ -29,6 +35,10 @@ interface ActiveDrag {
   eqId: string;
   ghost: HTMLElement | null;
   candidateZone: HTMLElement | null;
+  /** Предыдущий clientX — для мгновенного направления наклона ghost'а. */
+  lastX: number;
+  /** prefers-reduced-motion: при true ghost не наклоняем и не увеличиваем. */
+  reduceMotion: boolean;
 }
 
 export interface EquipmentDropDetail {
@@ -92,6 +102,10 @@ export class DragDropController {
       eqId,
       ghost: null,
       candidateZone: null,
+      lastX: ev.clientX,
+      reduceMotion:
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     };
   };
 
@@ -118,7 +132,14 @@ export class DragDropController {
       document.body.classList.add('has-drag-active');
       const ghostCx = ev.clientX - a.grabOffsetX;
       const ghostCy = ev.clientY - a.grabOffsetY;
-      a.ghost.style.transform = `translate(${ghostCx}px, ${ghostCy}px) translate(-50%, -50%)`;
+      let extra = '';
+      if (!a.reduceMotion) {
+        const instantDx = ev.clientX - a.lastX;
+        const tilt = Math.max(-GHOST_TILT_MAX_DEG, Math.min(GHOST_TILT_MAX_DEG, instantDx * GHOST_TILT_SENSITIVITY));
+        extra = ` scale(${GHOST_LIFT_SCALE}) rotate(${tilt.toFixed(2)}deg)`;
+      }
+      a.lastX = ev.clientX;
+      a.ghost.style.transform = `translate(${ghostCx}px, ${ghostCy}px) translate(-50%, -50%)${extra}`;
       const zone = this.#findDropzoneAt(ev.clientX, ev.clientY, a.eqId);
       if (zone !== a.candidateZone) {
         if (a.candidateZone) a.candidateZone.dataset['dropHover'] = 'false';
@@ -143,9 +164,29 @@ export class DragDropController {
           console.error('DragDropController.onDrop threw', err);
         }
       }
+      // Отвязываем ghost от active-стейта, чтобы #cleanupActive не удалил его
+      // мгновенно — даём догаснуть (crossfade с entrance реального объекта).
+      this.#fadeOutGhost(a.ghost);
+      a.ghost = null;
     }
     this.#cleanupActive();
   };
+
+  #fadeOutGhost(ghost: HTMLElement): void {
+    const reduce =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      ghost.remove();
+      return;
+    }
+    const timerId = setTimeout(() => ghost.remove(), 400);
+    ghost.addEventListener('transitionend', () => { clearTimeout(timerId); ghost.remove(); }, { once: true });
+    // opacity transition задан в CSS (.density-drag-ghost). Триггерим на следующем кадре.
+    requestAnimationFrame(() => {
+      ghost.style.opacity = '0';
+    });
+  }
 
   #handlePointerCancel = (): void => {
     this.#cleanupActive();

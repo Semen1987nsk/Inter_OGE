@@ -329,6 +329,7 @@ export class ArchimedesVolumeExperiment {
     this.#mountInStage('beaker');
     this.#store.set({ ...s, staged: { ...s.staged, beaker: true } });
     this.#announce('Стакан с водой на месте');
+    (this.#refs.beaker as HTMLElement & { playFill?: () => void }).playFill?.();
     // Stages всё установлено — калибруем геометрию (mm↔px + offset «дно ⊨ вода»).
     // Откладываем на 2 кадра: layout + lab-beaker meniscus transition завершатся.
     // Активируем air-gap ДО calibration, чтобы первый рендер сразу подвесил
@@ -605,6 +606,18 @@ export class ArchimedesVolumeExperiment {
     mount.appendChild(comp);
     mount.hidden = false;
     card.dataset['attached'] = 'true';
+    this.#playEntrance(which, mount);
+  }
+
+  #playEntrance(which: 'dyno' | 'cyl' | 'beaker', mount: HTMLElement): void {
+    const cls =
+      which === 'beaker' ? 'av-beaker-mount--entering'
+      : which === 'dyno' ? 'av-dyno-mount--entering'
+      : 'av-cylinder-rig--entering';
+    mount.classList.remove(cls);
+    void mount.offsetWidth; // force reflow so re-adding restarts the animation
+    mount.classList.add(cls);
+    mount.addEventListener('animationend', () => mount.classList.remove(cls), { once: true });
   }
 
   #parkInCard(which: 'dyno' | 'cyl' | 'beaker'): void {
@@ -680,6 +693,11 @@ export class ArchimedesVolumeExperiment {
   }
 
   #handleCylinderPointerDown = (ev: PointerEvent): void => {
+    // Крестик detach лежит ВНУТРИ cylinder-rig: его pointerdown НЕ должен
+    // запускать drag-by-thread. Иначе preventDefault ниже глушит синтетический
+    // click → крестик «не работает» (фидбек 2026-05-21). Пропускаем такие
+    // pointerdown, чтобы click дошёл до кнопки.
+    if ((ev.target as HTMLElement | null)?.closest('button, .av-detach-btn')) return;
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
     const s = this.#store.get();
     // Drag доступен только если установка собрана и baseline зафиксирован.
@@ -1098,8 +1116,11 @@ export class ArchimedesVolumeExperiment {
     const stageRect = this.#refs.stageArea.getBoundingClientRect();
     const cylRect = cyl.getBoundingClientRect();
     const topY = cyl.getBodyTopY() - stageRect.top;
-    const xRight = cylRect.right - stageRect.left + 6; // 6px gap от правой кромки cyl
+    // СЛЕВА от цилиндра: detach-× цилиндра и стакана живут справа, поэтому
+    // метку уводим влево, чтобы ничего не перекрывалось (clutter-fix).
+    const labelW = label.getBoundingClientRect().width || 56; // 56 ≈ ширина метки «60 мм» до первого layout
+    const xLeft = cylRect.left - stageRect.left - labelW - 8;
     label.style.top = `${topY.toFixed(0)}px`;
-    label.style.left = `${xRight.toFixed(0)}px`;
+    label.style.left = `${Math.max(4, xLeft).toFixed(0)}px`;
   }
 }
