@@ -164,9 +164,31 @@ export class DragDropController {
           console.error('DragDropController.onDrop threw', err);
         }
       }
+      // Отвязываем ghost от active-стейта, чтобы #cleanupActive не удалил его
+      // мгновенно — даём догаснуть (crossfade с entrance реального объекта).
+      this.#fadeOutGhost(a.ghost);
+      a.ghost = null;
     }
     this.#cleanupActive();
   };
+
+  #fadeOutGhost(ghost: HTMLElement): void {
+    const reduce =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      ghost.remove();
+      return;
+    }
+    const done = (): void => ghost.remove();
+    ghost.addEventListener('transitionend', done, { once: true });
+    // opacity transition задан в CSS (.density-drag-ghost). Триггерим на следующем кадре.
+    requestAnimationFrame(() => {
+      ghost.style.opacity = '0';
+    });
+    // Fallback на случай, если transitionend не сработает.
+    setTimeout(done, 400);
+  }
 
   #handlePointerCancel = (): void => {
     this.#cleanupActive();

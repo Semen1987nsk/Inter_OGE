@@ -67,4 +67,20 @@ describe('DragDropController — drag-feel', () => {
       window.matchMedia = orig;
     }
   });
+
+  it('onDrop вызывается СИНХРОННО на pointerup (mount не задерживается)', () => {
+    const zone = document.createElement('div');
+    zone.setAttribute('data-dropzone', 'beaker');
+    zone.setAttribute('data-dropzone-id', 'zone-1');
+    document.body.appendChild(zone);
+    zone.getBoundingClientRect = () => ({ left: 300, top: 300, width: 100, height: 100, right: 400, bottom: 400, x: 300, y: 300, toJSON() {} } as DOMRect);
+    document.elementsFromPoint = () => [zone];
+
+    card.dispatchEvent(pointer('pointerdown', 140, 140));
+    window.dispatchEvent(pointer('pointermove', 350, 350)); // ghost + hover zone
+    window.dispatchEvent(pointer('pointerup', 350, 350));
+    expect(onDrop).toHaveBeenCalledTimes(1);
+    expect(onDrop).toHaveBeenCalledWith({ eqId: 'beaker', dropzoneId: 'zone-1' });
+    zone.remove();
+  });
 });
