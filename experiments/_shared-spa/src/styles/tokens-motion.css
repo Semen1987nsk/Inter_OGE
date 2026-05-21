@@ -14,6 +14,15 @@
   --dur-base:   250ms;
   --dur-slow:   400ms;
   --dur-spring: 600ms;
+
+  /* Вход элементов на сцену (M3 emphasized-decelerate): быстрый старт, мягкая остановка */
+  --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  /* Уход элементов: мягкий старт, ускорение к концу */
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+
+  --dur-enter: 300ms;  /* появление прибора на сцене */
+  --dur-snap:  220ms;  /* crossfade ghost → реальный объект */
+  --dur-water: 500ms;  /* налив + успокоение воды */
 }
 
 /* Reduced motion — отключаем все анимации (требование a11y) */
@@ -23,5 +32,8 @@
     --dur-base:   0ms;
     --dur-slow:   0ms;
     --dur-spring: 0ms;
+    --dur-enter: 0ms;
+    --dur-snap:  0ms;
+    --dur-water: 0ms;
   }
 }
