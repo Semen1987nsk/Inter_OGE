@@ -159,3 +159,53 @@ describe('lab-beaker — реализм воды', () => {
     }
   });
 });
+
+describe('Опыт 1.3 — крестик detach цилиндра кликается', () => {
+  let host: HTMLElement;
+  let screen: ArchimedesVolumeScreen;
+  let exp: ArchimedesVolumeExperiment;
+  let root: HTMLElement;
+
+  beforeEach(async () => {
+    await registerComponents();
+    document.body.replaceChildren();
+    host = document.createElement('main');
+    host.id = 'screen-content';
+    document.body.appendChild(host);
+    try { localStorage.clear(); } catch { /* ignore */ }
+    screen = new ArchimedesVolumeScreen();
+    screen.mount(host);
+    exp = (window as unknown as { archimedesVolumeExperiment?: ArchimedesVolumeExperiment })
+      .archimedesVolumeExperiment!;
+    expect(exp).toBeTruthy();
+    root = host;
+  });
+
+  afterEach(() => {
+    screen.unmount();
+    document.body.replaceChildren();
+    globalThis.gc?.();
+  });
+
+  // Регрессия: крестик цилиндра лежит ВНУТРИ #av-cylinder-rig, у которого
+  // drag-by-thread pointerdown-handler. После fixateBaseline guard этого
+  // handler'а пропускает → он вызывал preventDefault на pointerdown крестика
+  // и глушил синтетический click → крестик «не работал». Фикс: handler
+  // игнорирует pointerdown, пришедший на detach-кнопку.
+  it('pointerdown на крестике НЕ запускает drag-by-thread и не глушит click', () => {
+    exp.placeDynamometer();
+    exp.attachCylinder();
+    exp.placeBeaker();
+    exp.fixateBaseline(); // pAirN set → guard в #handleCylinderPointerDown пропускает
+    const btn = root.querySelector('#av-detach-cyl') as HTMLElement;
+    // Сбрасываем класс перед dispatch: #calibrateGeometry / прошлые тесты могли
+    // оставить его на body (afterEach не чистит className) — иначе ассерт ловит
+    // чужой leak, а не поведение ЭТОГО pointerdown.
+    document.body.classList.remove('av-cylinder-dragging');
+    const ev = new PointerEvent('pointerdown', { pointerId: 1, button: 0, bubbles: true, cancelable: true });
+    btn.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false); // click крестика НЕ должен глушиться
+    expect(document.body.classList.contains('av-cylinder-dragging')).toBe(false);
+    window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true }));
+  });
+});

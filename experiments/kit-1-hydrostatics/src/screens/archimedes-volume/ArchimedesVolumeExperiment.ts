@@ -693,6 +693,11 @@ export class ArchimedesVolumeExperiment {
   }
 
   #handleCylinderPointerDown = (ev: PointerEvent): void => {
+    // Крестик detach лежит ВНУТРИ cylinder-rig: его pointerdown НЕ должен
+    // запускать drag-by-thread. Иначе preventDefault ниже глушит синтетический
+    // click → крестик «не работает» (фидбек 2026-05-21). Пропускаем такие
+    // pointerdown, чтобы click дошёл до кнопки.
+    if ((ev.target as HTMLElement | null)?.closest('button, .av-detach-btn')) return;
     if (ev.button !== 0 && ev.pointerType === 'mouse') return;
     const s = this.#store.get();
     // Drag доступен только если установка собрана и baseline зафиксирован.
