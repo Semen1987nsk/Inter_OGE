@@ -143,4 +143,19 @@ describe('lab-beaker — реализм воды', () => {
     expect(liquid.classList.contains('bk-liquid--filling')).toBe(true);
     beaker.remove();
   });
+
+  it('playFill() под reduce не оставляет класс налива', () => {
+    const orig = window.matchMedia;
+    (window.matchMedia as any) = (q: string) => ({ matches: true, media: q, onchange: null, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent() { return false; } });
+    try {
+      const beaker = document.createElement('lab-beaker') as any;
+      document.body.appendChild(beaker);
+      beaker.playFill();
+      const liquid = beaker.shadowRoot.querySelector('.bk-liquid');
+      expect(liquid.classList.contains('bk-liquid--filling')).toBe(false);
+      beaker.remove();
+    } finally {
+      window.matchMedia = orig;
+    }
+  });
 });

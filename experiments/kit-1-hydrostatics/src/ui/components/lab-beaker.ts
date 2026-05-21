@@ -235,6 +235,15 @@ export class LabBeaker extends HTMLElement {
    *  перезапускается: отменяем прошлый listener, снимаем класс, форс-reflow,
    *  навешиваем заново. */
   playFill(): void {
+    if (typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Под reduce slosh не нужен; класс не навешиваем (иначе он завис бы —
+      // animationend не сработает, т.к. keyframe за no-preference).
+      this.#fillAbort?.abort();
+      this.#fillAbort = null;
+      this.#liquid.classList.remove('bk-liquid--filling');
+      return;
+    }
     const g = this.#liquid;
     this.#fillAbort?.abort();
     const ctrl = new AbortController();
