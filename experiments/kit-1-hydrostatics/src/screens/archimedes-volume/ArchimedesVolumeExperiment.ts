@@ -605,6 +605,18 @@ export class ArchimedesVolumeExperiment {
     mount.appendChild(comp);
     mount.hidden = false;
     card.dataset['attached'] = 'true';
+    this.#playEntrance(which, mount);
+  }
+
+  #playEntrance(which: 'dyno' | 'cyl' | 'beaker', mount: HTMLElement): void {
+    const cls =
+      which === 'beaker' ? 'av-beaker-mount--entering'
+      : which === 'dyno' ? 'av-dyno-mount--entering'
+      : 'av-cylinder-rig--entering';
+    mount.classList.remove(cls);
+    void mount.offsetWidth; // force reflow so re-adding restarts the animation
+    mount.classList.add(cls);
+    mount.addEventListener('animationend', () => mount.classList.remove(cls), { once: true });
   }
 
   #parkInCard(which: 'dyno' | 'cyl' | 'beaker'): void {
