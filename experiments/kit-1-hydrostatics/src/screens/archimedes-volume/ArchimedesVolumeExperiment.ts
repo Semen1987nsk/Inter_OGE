@@ -329,6 +329,7 @@ export class ArchimedesVolumeExperiment {
     this.#mountInStage('beaker');
     this.#store.set({ ...s, staged: { ...s.staged, beaker: true } });
     this.#announce('Стакан с водой на месте');
+    (this.#refs.beaker as HTMLElement & { playFill?: () => void }).playFill?.();
     // Stages всё установлено — калибруем геометрию (mm↔px + offset «дно ⊨ вода»).
     // Откладываем на 2 кадра: layout + lab-beaker meniscus transition завершатся.
     // Активируем air-gap ДО calibration, чтобы первый рендер сразу подвесил

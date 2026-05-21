@@ -78,6 +78,20 @@ template.innerHTML = `
     opacity: 0;
     transition: opacity 150ms;
   }
+  .bk-contact-shadow { pointer-events: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .bk-liquid--filling {
+      animation: bk-slosh var(--dur-water, 500ms) ease-out both;
+      transform-origin: 48px 70px;
+      transform-box: view-box;
+    }
+  }
+  @keyframes bk-slosh {
+    0%   { transform: skewX(1.2deg); }
+    40%  { transform: skewX(-0.8deg); }
+    70%  { transform: skewX(0.4deg); }
+    100% { transform: skewX(0); }
+  }
 </style>
 
 <svg class="frame" viewBox="0 0 96 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -96,7 +110,14 @@ template.innerHTML = `
     <clipPath id="bkClip">
       <path d="M14 22 L82 22 L78 116 L18 116 Z" />
     </clipPath>
+    <radialGradient id="bkShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.36)" />
+      <stop offset="65%" stop-color="rgba(0,0,0,0.13)" />
+      <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+    </radialGradient>
   </defs>
+
+  <ellipse class="bk-contact-shadow" cx="48" cy="125" rx="36" ry="4.5" fill="url(#bkShadow)" />
 
   <!-- Носик-сливная кромка -->
   <path d="M14 16 L24 12 L20 22 L14 22 Z"
@@ -111,7 +132,7 @@ template.innerHTML = `
            stroke="var(--glass-stroke)" stroke-width="0.8" />
 
   <!-- Жидкость (clipped) -->
-  <g clip-path="url(#bkClip)">
+  <g class="bk-liquid" clip-path="url(#bkClip)">
     <rect id="bk-water" class="water-rect" x="14" y="116" width="68" height="0"
           fill="url(#bkWater)" />
     <ellipse id="bk-meniscus" cx="48" cy="116" rx="28" ry="1.5"
@@ -139,6 +160,7 @@ export class LabBeaker extends HTMLElement {
   #shadow: ShadowRoot;
   #water: SVGRectElement;
   #meniscus: SVGEllipseElement;
+  #liquid: SVGGElement;
 
   constructor() {
     super();
@@ -146,6 +168,7 @@ export class LabBeaker extends HTMLElement {
     this.#shadow.appendChild(template.content.cloneNode(true));
     this.#water = this.#shadow.getElementById('bk-water') as unknown as SVGRectElement;
     this.#meniscus = this.#shadow.getElementById('bk-meniscus') as unknown as SVGEllipseElement;
+    this.#liquid = this.#shadow.querySelector('.bk-liquid') as unknown as SVGGElement;
     this.addEventListener('click', this.#emitTap);
     this.addEventListener('keydown', this.#handleKey);
     this.#renderWater();
@@ -171,7 +194,7 @@ export class LabBeaker extends HTMLElement {
     this.#water.setAttribute('y', `${yTop}`);
     this.#water.setAttribute('height', `${height}`);
     this.#meniscus.setAttribute('cy', `${yTop}`);
-    this.#meniscus.style.opacity = total > 0 ? '0.55' : '0';
+    this.#meniscus.style.opacity = total > 0 ? '0.7' : '0';
   }
 
   /**
@@ -205,6 +228,16 @@ export class LabBeaker extends HTMLElement {
   /** Высота столба воды в DOM-px (≥0). */
   getWaterColumnHeightPx(): number {
     return Math.max(0, this.getWaterBottomY() - this.getWaterSurfaceY());
+  }
+
+  /** Проигрывает «налив + успокоение» (затухающий slosh). Идемпотентно
+   *  перезапускается: снимаем класс, форс-reflow, навешиваем заново. */
+  playFill(): void {
+    const g = this.#liquid;
+    g.classList.remove('bk-liquid--filling');
+    void (g as unknown as HTMLElement).getBoundingClientRect();
+    g.classList.add('bk-liquid--filling');
+    g.addEventListener('animationend', () => g.classList.remove('bk-liquid--filling'), { once: true });
   }
 
   /**

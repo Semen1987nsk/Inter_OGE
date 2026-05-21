@@ -75,3 +75,22 @@ describe('Опыт 1.3 — entrance-анимация', () => {
     expect(mount.classList.contains('av-dyno-mount--entering')).toBe(true);
   });
 });
+
+describe('lab-beaker — реализм воды', () => {
+  it('playFill() навешивает класс налива на группу жидкости', () => {
+    const beaker = document.createElement('lab-beaker') as any;
+    beaker.setAttribute('level', '200');
+    document.body.appendChild(beaker);
+    beaker.playFill();
+    const liquid = beaker.shadowRoot.querySelector('.bk-liquid');
+    expect(liquid.classList.contains('bk-liquid--filling')).toBe(true);
+    beaker.remove();
+  });
+
+  it('контактная тень присутствует в SVG', () => {
+    const beaker = document.createElement('lab-beaker') as any;
+    document.body.appendChild(beaker);
+    expect(beaker.shadowRoot.querySelector('.bk-contact-shadow')).not.toBeNull();
+    beaker.remove();
+  });
+});
