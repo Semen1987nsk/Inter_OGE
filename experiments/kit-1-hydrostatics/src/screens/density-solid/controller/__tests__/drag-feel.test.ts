@@ -53,7 +53,6 @@ describe('DragDropController — drag-feel', () => {
 
   it('reduce-motion: ghost без scale и rotate', () => {
     const orig = window.matchMedia;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     window.matchMedia = (q: string) => ({ matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, onchange: null, dispatchEvent() { return false; } }) as any;
     try {
       card.dispatchEvent(pointer('pointerdown', 140, 140));

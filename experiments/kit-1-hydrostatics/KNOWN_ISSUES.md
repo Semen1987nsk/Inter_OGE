@@ -33,115 +33,139 @@
 
 ---
 
-## 1.1 — drag-drop.spec.ts: 2 e2e-теста падают
+## ✅ RESOLVED 2026-05-22 — drag-drop.spec.ts (на самом деле 4 теста, v2-журнал)
 
-**Файл:** `e2e/drag-drop.spec.ts`
-**Тесты:**
+**Файл:** `e2e/drag-drop.spec.ts`.
 
-1. `RETURN-TO-KIT: drag прибора со сцены на свою карточку убирает в комплект`
-   (строка ~180)
-2. `REVERSE: цилиндр из мензурки drag-ом обратно на весы` (строка ~219)
+### Старая запись была НЕВЕРНА
+Запись утверждала, что падают `RETURN-TO-KIT` (~180) и `REVERSE` (~219) из-за
+Playwright-симуляции pointer. Прогон 2026-05-22 показал: **эти два проходят**.
+Падали **4 ДРУГИХ** теста (happy-path, overlay→мензурка, пустая мензурка, reset)
+— все на `#journal-body tr` count = 0.
 
-### Симптом
+### Настоящая причина (3 слоя v2-миграции журнала)
+`drag-drop.spec.ts` пропустили при миграции журнала на shared `renderJournalTable`
+(unified v2). Sibling `density-manual-flow.spec.ts` обновили, этот — нет:
+1. **Устаревшие селекторы**: `#journal-body tr` → `.lab-journal-body tr`;
+   `input.j-v`/`input.j-rho` → `input[data-key="V_cm3"]`/`[data-key="rho_kg_m3"]`.
+2. **v2 record-pending flow**: в semi-auto (default) измерение копится как
+   pending — строка появляется только после клика `#record-pending-btn`. Тесты
+   ждали авто-запись после dip → добавлен клик перед проверкой count.
+3. **v2 per-column вердикты**: `.j-verdict--ok` теперь 2 элемента (V_cm3 + ρ),
+   а не 1 → `toBeVisible()` → `toHaveCount(2)`.
 
-Оба теста ожидают, что после reverse-drag элемент станет hidden:
-
-```
-Error: expect(locator).toBeHidden() failed
-Locator:  locator('#cylinder')   /  '#weight-in-cylinder'
-Expected: hidden
-Received: visible
-Timeout:  5000ms
-```
-
-В реальном браузере (DevTools, mouse-driven) reverse-drag отрабатывает
-корректно — приборы возвращаются в комплект, overlay прячется. Падение —
-только в Playwright-симуляции pointer-events: drag-ghost не доезжает до
-target из-за разницы в pointer event timing между реальным мышью и
-Playwright `dispatchEvent`.
-
-### Что НЕ делать сейчас
-
-- Не править `DragDropController.ts` опыта 1.1 «по ходу 1.2». Опыт 1.1
-  закрыт 151 тестом и работает в проде; trash-фикс под Playwright
-  может уронить рабочее поведение.
-- Не убирать тесты — они полезны как regression-якорь, когда возьмёмся
-  чинить целенаправленно.
-
-### Когда чинить
-
-**Sprint 1.3** (опыт «F_A vs объём погружённой части»). Там цилиндр
-№3 переиспользует тот же drag-mechanism. Ожидаемый фикс — синхронизация
-`pointermove` + `pointerup` через `await page.waitForFunction(...)`
-вместо немедленного assert; либо переход на native HTML5 drag для
-симметричного поведения в Playwright и live-DOM.
-
-### Не блокирует
-
-- 498 vitest-тестов 1.1 + 1.2 — все зелёные.
-- Опыт 1.2 e2e — отдельный спец-файл `archimedes.spec.ts`, не пересекается.
-- Production-сборка — `npm run build` чистая.
-- Реальное ученическое UX в браузере — не нарушено.
+### Результат
+9/9 drag-drop зелёные. Заодно починен `archimedes.spec.ts` SMOKE: nav-табов
+стало 3 (добавлен 1.3), тест ждал `toHaveCount(2)` → `toHaveCount(3)`.
 
 ---
 
-## 1.2 — archimedes-visual.spec.ts: 8 baseline'ов environment-stale (2026-05-20)
+## ✅ RESOLVED 2026-05-22 — archimedes-visual.spec.ts: 8 baseline'ов
 
-**Файл:** `e2e/archimedes-visual.spec.ts` (8 снапшотов: dynamometer-empty/in-air/
-in-water-full, overload-cyl1, journal-1row/3rows, kit-nav-tab-1-2, mobile-768).
+**Файл:** `e2e/archimedes-visual.spec.ts` + `*-snapshots/` (8 снапшотов).
 
-### Симптом
-Все 8 `toHaveScreenshot` падают на текущей машине: diff подсвечивает **всю
-страницу** — заголовок, табы навигации, степпер, карточки оборудования, текст —
-а не локальную область прибора. Крупнейший diff `mobile-768` ≈ 8% пикселей.
+### Настоящая причина (уточнена)
+Не только «environmental drift». Diff показывал `Expected 1016×660, received
+1016×648` — сцена стала на 12px НИЖЕ. Это следствие **намеренной** правки
+паритета (commit c35e407): `.archimedes-stage-area` `min-height: 660px → 0`
+(чтобы уголки+журнал влезали). Baseline'ы предшествовали ей → расходились
+по высоте на всех 8. Плюс степпер стал бирюзовым (тоже паритет).
 
-### Причина (доказана)
-Это **pre-existing environmental drift**, НЕ регрессия от motion-полировки
-(сессия 2026-05-20). Доказательство: при полном откате общего `lab-beaker.ts`
-к base-коммиту `ee2af71` (т.е. без мениска/контактной тени/playFill) тест
-`mobile-768` **падает идентично**. К тому же `kit-nav-tab-current-1-2` —
-снапшот, которого правки `lab-beaker` физически не касаются — тоже «красный».
-Вывод: committed-baseline'ы захвачены в другом окружении (другая машина /
-версия Chromium / шрифтовый рендер), поэтому не совпадают с локальным Chromium
-независимо от изменений кода.
+### Как починено
+1. **6 снапшотов** регенерированы `--update-snapshots` — отражают текущую
+   корректную раскладку (min-height:0, бирюзовый степпер). На viewport'ах
+   1440×900 / 768×1024 beaker-clamp НЕ срабатывает (высокие сцены), так что
+   правка 1.2-канваса их не задевает.
+2. **2 journal-снапшота** (`journal-after-1-row`, `journal-after-3-rows`)
+   таргетили `lab-journal`, который после v2-миграции журнала **скрыт**
+   (`<lab-journal hidden>`, data-store; видимый журнал в `#ar-journal-host`).
+   Скриншот hidden-элемента невозможен. Переориентировано на видимый
+   `#ar-journal-panel`, регенерировано.
 
-### Что НЕ сделано (сознательно)
-- **Baseline'ы 1.2 НЕ обновлены** в ветке `feat/1-3-beaker-motion`. Обновлять их
-  на этой машине = смешать «мою» правку (контактная тень/мениск, реальное
-  улучшение, проверено глазами — стакан 1.2 рендерится корректно) с absorb'ом
-  environmental drift, и перенести проблему на исходное окружение. Это отдельная
-  инфраструктурная задача.
+Все 8 зелёные. Источник истины win32-снапшотов = эта dev-машина (CI на Linux
+ищет `-linux`-baseline'ы, win32 не использует — см. caveat ниже).
 
-### Когда чинить
-Отдельным коммитом «refresh visual baselines» на канонічном окружении (CI или
-зафиксированная dev-машина), договорившись где «истина» снапшотов. Тогда же
-закрепить версию Playwright/Chromium и (желательно) генерацию baseline в CI,
-а не локально. Поведенческие e2e опыта 1.3 (`archimedes-volume-motion.spec.ts`:
-depth-label слева, reduced-motion) — environment-independent и зелёные.
-
-### Не блокирует
-- 808 vitest-тестов kit-1 (1.1+1.2+1.3) — зелёные.
-- Опыт 1.2 в браузере — рендерится корректно (контактная тень + мениск —
-  улучшение, не поломка; сверено визуально 2026-05-20).
-- Опыт 1.3 motion-полировка — поведенческие e2e зелёные.
-
-> ⚠️ Тот же caveat применим к новому baseline'у 1.3 `av-assembled-chromium-win32.png`:
-> он сгенерирован локально 2026-05-20 и стабилен на этой машине, но на другом
-> окружении может разойтись по тем же причинам. Источник истины снапшотов нужно
-> зафиксировать (см. «Когда чинить»).
+> ⚠️ Снапшоты `-chromium-win32.png` валидны только для локального Windows-
+> Chromium этой машины. CI (`ci.yml`, ubuntu) гоняет `--project=chromium`
+> на Linux → ищет `-chromium-linux.png` (их нет в репо). То есть visual-
+> regression фактически зелёный только локально. Долгосрочно: либо
+> контейнеризовать генерацию baseline, либо gitignore'ить снапшоты и
+> генерировать per-env. Тот же caveat — для `av-assembled-chromium-win32.png`.
 
 ---
 
-## eslint не установлен
+## ✅ RESOLVED 2026-05-22 — 1.2 сцена на ≤1280×720 (height-aware beaker clamp)
 
-**Симптом:** `npm run lint` в `experiments/kit-1-hydrostatics/` падает с
-«eslint не является внутренней или внешней командой».
+**Файл:** `src/styles/archimedes-experiment.css` `.ar-mount--beaker`.
 
-**Причина:** в `package.json` Кит-1 `devDependencies` не включают
-`eslint` и его конфиги (наследуется от шаблона 2-1-spring, где eslint
-тоже не установлен явно). Скрипт `lint` присутствует «на будущее».
+### Была проблема
+Цилиндр висит на ФИКСИРОВАННОЙ высоте ~322px от верха сцены
+(`#computeCylinderBaseTop`: dynoTop 12 + hookY 201 + thread 18 + body —
+stage-height-независимо). Стакан же якорился `bottom: 200px` от НИЗА сцены.
+На коротких сценах (vp-height ≤ ~768 → stage ≤ ~480px) `beaker_bottom =
+stageH − 200` поднимался ВЫШЕ нижней кромки цилиндра → цилиндр висел под дном
+стакана (замер на 1280×720: на 92px ниже), dip не работал (offset клампился к 0).
 
-**Когда чинить:** при следующем `npm install` в Кит-1 — добавить
-`eslint@^9` + `@typescript-eslint/*` + `eslint-config-prettier`
-(такой же набор, как в Кит-2). Не критично для DoD-1.2: typecheck
-strict на 0 ошибок покрывает все неявные типовые проблемы.
+### Как починено
+`bottom: clamp(0px, calc(100% - 358px), 200px)` — стакан больше не поднимается
+выше 358px от верха (= cyl_bottom 322 + 36px зазор, проверенная композиция
+1440×810). `100%` = высота сцены (% от containing block для absolute `bottom`).
+На сценах ≥559px (vp-height ≥ 810) значение = 200px → **высокие экраны не
+изменились** (byte-identical). Cause-level CSS-фикс, БЕЗ рискованного flex-
+рефактора 498-тестового экрана и БЕЗ изменения dip-физики (она measurement-based).
+
+### Проверено вживую (Playwright + getBoundingClientRect)
+
+Формат: `vp → stage-высота · стакан-от-верха · цилиндр-внутри · dip-зазор · margin-до-пола`.
+
+- `1280×720` → 431 · 360 · да · 34px · 71px
+- `1366×768` → 479 · 360 · да · 34px · 119px
+- `1440×810` → 559 · 360 · да · 34px · 199px
+- `1440×900` → 649 · 447 (=bottom:200, без изменений) · да · 36px · 202px
+
+Все 4 уголка + журнал в кадре на всех высотах. 146 unit/state-тестов 1.2 +
+810 vitest зелёные; typecheck 0. Остаточный edge: при vp-height < 720px (вне
+заявленного scope 1280/1366/1440) приборы крупны для сцены — нужно ещё и
+шринкать через `--w-size` (как 1.1/1.3); clamp-пол 0 защищает стакан от
+ухода ниже сцены.
+
+---
+
+## ✅ RESOLVED — eslint работает (запись устарела)
+
+**Было:** запись утверждала, что eslint не установлен. Неактуально: с 2026-05-15
+в `package.json` есть `eslint@^9.39.4` + `@eslint/js` + `typescript-eslint`,
+а `eslint.config.js` ссылается на `_shared-spa/eslint.config.shared.js`.
+`npm run lint` запускается. 2026-05-22 вычищены 3 авто-фиксимых warning'а
+(`prefer-const` + 2 лишних `eslint-disable`-директивы) → 0 проблем.
+
+---
+
+## ✅ RESOLVED 2026-05-22 — 2 pre-existing падения (обнаружены полным e2e-прогоном)
+
+Полный прогон e2e выявил падения, НЕ связанные с правками паритета (diff не
+трогал 1.1-оркестратор и detach-opacity). Оба оказались **протухшими тестами**,
+не багами кода — починены правкой ТОЛЬКО тестов (`src/` не тронут).
+
+### density-manual-flow.spec.ts ×3 — тесты кодировали §20.4, код реализует §21
+Тесты ждали §20.4-поведение (`fully-manual` = pending-кнопка, строки нет до
+клика). Реально код реализует §21 UX-v2 (`DensityExperiment.ts` ~596-696):
+- `fully-manual` → `#commitEmptyManualRow()` создаёт строку СРАЗУ на dip
+  (count 1), pending-кнопки НЕТ; direct предзаполнены "0", derived пусты, все
+  5 колонок — editable input'ы, ✓-кнопки нет (без verdict-подсказок).
+- `semi-auto` (DEFAULT) → pending-плашка, строка после клика `#record-pending-btn`.
+- `fully-auto` → полная строка сразу.
+Переписаны под фактическое §21 (проверено реальным Playwright, НЕ синтетическим
+dispatchEvent): тест 1 = fully-manual immediate-row; тест 2 = semi-auto pending →
+toggle «Авто» commit; тест 3 = semi-auto pending → detach `#detach-submerged`
+reset. 3/3 зелёные.
+
+### archimedes-dip-geometry.spec.ts DETACH-2 — устаревший порог opacity
+Тест ждал базовую opacity detach-кнопки `≥ 0.5` (§19.11.15). Это superseded
+§15.4 (2026-05-14): крестик НЕЙТРАЛЬНЫЙ (серый, base **0.32**, растёт до 0.85 на
+hover). Эталон 1.1 (`.detach-btn`) использует те же **0.32** — т.е. 1.2 уже в
+паритете. CSS правильный, тест устарел → обновлён на `≥0.3 && <0.85` (присутствие
++ не-hover state) с пояснением §15.4. Зелёный.
+
+> Итог сессии 2026-05-22: vitest 810/810, typecheck 0, lint 0, **e2e 124/124**
+> (все 12 спек-файлов). Все известные падения kit-1 закрыты.

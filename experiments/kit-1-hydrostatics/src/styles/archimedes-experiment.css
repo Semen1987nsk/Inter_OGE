@@ -116,14 +116,14 @@
 }
 
 .archimedes-steps .step[data-state='active'] {
-  background: rgb(255 190 11 / 0.16);
-  border-color: rgb(255 190 11 / 0.7);
-  color: var(--color-brand-orange, #ffbe0b);
+  background: rgb(56 189 175 / 0.15);
+  border-color: rgb(56 189 175 / 0.6);
+  color: #38bdaf;
   font-weight: 700;
 }
 .archimedes-steps .step[data-state='active'] .step-num {
-  background: var(--color-brand-orange, #ffbe0b);
-  color: #0a1530;
+  background: #38bdaf;
+  color: #06151c;
 }
 
 /* warning — мягкое напоминание «вы пропустили обязательный шаг» (например,
@@ -186,12 +186,12 @@
      выглядит «как будто двойным кликом выделен». */
   user-select: none;
   -webkit-user-select: none;
-  /* §19.11.16: min-height 660px — гарантия что layout помещает все три
-     прибора на любом viewport. На 1280×720 без min-height stage сжимается
-     до ~492px → цилиндр уходит ниже стакана уже в air. Если viewport
-     меньше — родитель показывает scroll, ученик прокручивает (лучше чем
-     обрезанный layout). */
-  min-height: 660px;
+  /* min-height: 0 — паритет с эталоном 1.1 (.workbench-stage) и 1.3
+     (.av-stage-area): сцену сжимает грид-трек minmax(0,1fr), чтобы 4 уголка
+     и журнал всегда были в кадре. Раньше тут был жёсткий пол 660px (он
+     выталкивал уголки/журнал за вьюпорт). Влезание полного стенда на узких
+     vp гарантируется респонсив-уменьшением приборов (см. @media ниже). */
+  min-height: 0;
   /* Чтобы overflow:hidden не обрезал цилиндр в воде на маленьких vp,
      даём наружу через overflow-y:auto в родителе (см. archimedes-screen.css,
      если есть) или просто разрешаем прокрутку. Stage сам остаётся overflow:hidden
@@ -342,7 +342,19 @@ body.has-drag-active .ar-mount--dyno[data-drop-hover='true'] {
      Полный dip clamp'ится `DIP_SAFETY_BOT_PX=12` ниже beaker.bottom=456,
      final cyl_bottom=444 ≤ guard, partialDip=true при 1440×900. На
      1920×1080 stage ~856 → guard ~644, никаких ограничений. См. §19.11.16. */
-  bottom: 200px;
+  /* Height-aware clamp (2026-05-22): цилиндр висит на ФИКСИРОВАННОЙ высоте
+     ~322px от верха сцены (#computeCylinderBaseTop: dynoTop 12 + hookY 201 +
+     thread 18 + body). Стакан же якорился bottom:200 от НИЗА → на коротких
+     сценах (vp-height ≤ ~768 → stage ≤ ~480) стакан «всплывал» выше цилиндра,
+     и нижняя кромка цилиндра пробивала дно стакана (см. KNOWN_ISSUES).
+     Фикс: beaker_bottom_от_верха = max(stageH-200, 358), т.е. стакан никогда
+     не поднимается выше 358px от верха (= cyl_bottom 322 + 36px зазор —
+     проверенная рабочая композиция 1440×810). На stage ≥ 559 (vp-height ≥ 810)
+     значение = 200px, т.е. высокие сцены НЕ меняются. `100%` в calc =
+     высота сцены (% от containing block для absolute `bottom`). Нижний пол
+     0px (clamp) — на degenerate-крошечных vp (<720px высоты, вне scope)
+     стакан не уедет НИЖЕ пола сцены; цилиндр там всё равно не влезёт. */
+  bottom: clamp(0px, calc(100% - 358px), 200px);
   left: var(--scene-center-x, 50%);
   transform: translateX(-50%);
   transition: transform 600ms cubic-bezier(0.42, 0, 0.58, 1);
@@ -675,10 +687,20 @@ lab-dynamometer[data-overload='true'] {
   position: absolute;
   right: var(--space-4);
   bottom: var(--space-4);
-  width: min(520px, calc(100% - var(--space-4) * 2));
+  width: min(440px, calc(100% - var(--space-4) * 2));
   max-height: calc(100% - var(--space-4) * 2);
+  display: flex;
+  flex-direction: column;
+  background: rgb(6 13 20 / 0.78);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 12;
-  overflow: auto;
+  overflow: hidden;
   pointer-events: auto;
 }
 

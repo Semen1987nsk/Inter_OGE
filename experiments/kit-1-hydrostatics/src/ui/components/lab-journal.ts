@@ -483,7 +483,6 @@ export class LabJournal extends HTMLElement {
     const idx = this.#rows.findIndex((r) => r.timestamp === ts);
     if (idx < 0) {
       if (import.meta.env?.DEV) {
-        // eslint-disable-next-line no-console
         console.warn(`[lab-journal] updateRow: ts=${ts} не найден`);
       }
       return;

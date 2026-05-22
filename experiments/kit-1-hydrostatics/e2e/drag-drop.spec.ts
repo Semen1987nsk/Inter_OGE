@@ -39,7 +39,7 @@ async function dragFromTo(
   await page.mouse.move(sx + 25, sy + 25, { steps: 5 });
   await page.mouse.move(dx, dy, { steps: 10 });
   await page.mouse.up();
-  // Микропауза, чтобы Store успел отрендерить новую DOM (input.j-v и пр)
+  // Микропауза, чтобы Store успел отрендерить новую DOM (журнал v2 и пр)
   await page.waitForTimeout(50);
 }
 
@@ -71,18 +71,25 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     // Шаг 4: цилиндр в мензурку — карточка cyl-1 placed, тащим overlay со сцены
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
 
+    // §21 v2 (semi-auto = default): измерение копится как pending — ученик
+    // жмёт «Записать в журнал», программа пишет m/V₁/V₂. Без клика строки нет.
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0); // regression: не авто-запись
+    await page.locator('#record-pending-btn').click();
+
     // Журнал: 1 запись с верными m, V₁, V₂
-    await expect(page.locator('#journal-body tr')).toHaveCount(1);
-    const cells = await page.locator('#journal-body tr td').allTextContents();
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
+    const cells = await page.locator('.lab-journal-body tr td').allTextContents();
     expect(cells[2]).toBe('195');
     expect(cells[3]).toBe('100');
     expect(cells[4]).toBe('125');
 
-    // Шаг 5: ученик заполняет V и ρ, нажимает ✓ → verdict OK
-    await page.locator('#journal-body tr input.j-v').fill('25');
-    await page.locator('#journal-body tr input.j-rho').fill('7800');
-    await page.locator('#journal-body tr button.j-check').click();
-    await expect(page.locator('.j-verdict--ok')).toBeVisible();
+    // Шаг 5: ученик заполняет V и ρ, нажимает ✓ → verdict OK.
+    // §21 v2: каждая derived-колонка (V_cm3, ρ) получает свой вердикт —
+    // обе верны (V=25=V₂−V₁; ρ=7800=m/V·1000 для стали) → ровно 2 «ok».
+    await page.locator('.lab-journal-body tr input[data-key="V_cm3"]').fill('25');
+    await page.locator('.lab-journal-body tr input[data-key="rho_kg_m3"]').fill('7800');
+    await page.locator('.lab-journal-body tr button.j-check').click();
+    await expect(page.locator('.j-verdict--ok')).toHaveCount(2);
   });
 
   test('drag overlay-цилиндра с весов в мензурку = одна непрерывная операция', async ({
@@ -100,7 +107,10 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     // Drag overlay → мензурка (не возвращаясь к карточке)
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
 
-    await expect(page.locator('#journal-body tr')).toHaveCount(1);
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
+    await page.locator('#record-pending-btn').click();
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
     await expect(page.locator('#weight-on-balance')).toBeHidden();
     await expect(page.locator('#weight-in-cylinder')).toBeVisible();
   });
@@ -113,8 +123,11 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     await dragFromTo(page, 'lab-equipment-card[data-eq="cyl-3"]', '[data-dropzone-id="balance"]');
     // После placement карточка placed → второй шаг через overlay-balance
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
-    await expect(page.locator('#journal-body tr')).toHaveCount(1);
-    const cells = await page.locator('#journal-body tr td').allTextContents();
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
+    await page.locator('#record-pending-btn').click();
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
+    const cells = await page.locator('.lab-journal-body tr td').allTextContents();
     expect(cells[2]).toBe('66');  // m cyl-3 = 66g
     expect(cells[3]).toBe('0');   // V₁ = 0 (пустая)
     expect(cells[4]).toBe('56');  // V₂ = 0 + 56 (пластик)
@@ -161,9 +174,12 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     await dragFromTo(page, 'lab-equipment-card[data-eq="beaker"]', '[data-dropzone-id="cylinder"]');
     await dragFromTo(page, 'lab-equipment-card[data-eq="cyl-1"]', '[data-dropzone-id="balance"]');
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
-    await expect(page.locator('#journal-body tr')).toHaveCount(1);
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
+    await page.locator('#record-pending-btn').click();
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
     await page.locator('#reset-btn').click();
-    await expect(page.locator('#journal-body tr')).toHaveCount(0);
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
     await expect(page.locator('#balance')).toBeHidden();
     await expect(page.locator('#cylinder')).toBeHidden();
   });

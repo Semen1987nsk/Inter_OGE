@@ -1016,7 +1016,7 @@ export class ArchimedesExperiment {
       }
       const P_liquid_rounded = roundForRange(s.forceTargetN, s.dynoRange ?? 1);
       let undoTsForRow: number;
-      let prevPhase: ScenarioPhase = s.phase;
+      const prevPhase: ScenarioPhase = s.phase;
       let prevP_liquid: number | null = null;
       if (s.currentRowTs === null) {
         // Защита: P_возд не был записан — пишем строку целиком.

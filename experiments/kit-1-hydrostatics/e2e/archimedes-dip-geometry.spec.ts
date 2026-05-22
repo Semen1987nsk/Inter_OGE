@@ -319,13 +319,20 @@ test.describe('E2E detach-buttons — discoverability §15.4 + §19.11.15 always
     ).toBe(beforeRows);
   });
 
-  test('DETACH-2: opacity ≥ 0.5 базово, не на hover — discoverability', async ({ page }) => {
+  test('DETACH-2: базовая opacity нейтральная ~0.32 (§15.4), видима без hover', async ({ page }) => {
     await setupArchimedes(page);
     await page.evaluate(() => window.archimedesExperiment!.placeDynamometer(1));
     const opacity = await page.locator('#ar-detach-dyno').evaluate(
       (el) => window.getComputedStyle(el).opacity,
     );
-    expect(parseFloat(opacity)).toBeGreaterThanOrEqual(0.5);
+    // §15.4 (2026-05-14): крестик НЕЙТРАЛЬНЫЙ (серый, base 0.32) — не «кричит»
+    // как раньше (красный → впечатление «ошибка/выделено»). Эталон 1.1
+    // (.detach-btn) использует те же 0.32 — паритет. Discoverability =
+    // присутствует (не hidden / не 0) + растёт до 0.85 на hover. Раньше тест
+    // ждал ≥0.5 (§19.11.15), что противоречило §15.4 и эталону 1.1.
+    const o = parseFloat(opacity);
+    expect(o).toBeGreaterThanOrEqual(0.3); // присутствует, дискаверабл
+    expect(o).toBeLessThan(0.85); // это base-состояние, не hover
   });
 
   test('DETACH-3: цилиндр в воде → ВСЕ 3 крестика видны (§19.11.15 always-visible)', async ({
