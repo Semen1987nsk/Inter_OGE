@@ -73,6 +73,7 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
 
     // §21 v2 (semi-auto = default): измерение копится как pending — ученик
     // жмёт «Записать в журнал», программа пишет m/V₁/V₂. Без клика строки нет.
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0); // regression: не авто-запись
     await page.locator('#record-pending-btn').click();
 
     // Журнал: 1 запись с верными m, V₁, V₂
@@ -106,7 +107,8 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     // Drag overlay → мензурка (не возвращаясь к карточке)
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
 
-    // §21 v2: pending → запись по клику.
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
     await page.locator('#record-pending-btn').click();
     await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
     await expect(page.locator('#weight-on-balance')).toBeHidden();
@@ -121,7 +123,8 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     await dragFromTo(page, 'lab-equipment-card[data-eq="cyl-3"]', '[data-dropzone-id="balance"]');
     // После placement карточка placed → второй шаг через overlay-balance
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
-    // §21 v2: pending → запись по клику.
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
     await page.locator('#record-pending-btn').click();
     await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
     const cells = await page.locator('.lab-journal-body tr td').allTextContents();
@@ -171,7 +174,8 @@ test.describe('E2E — Опыт 1.1 Плотность', () => {
     await dragFromTo(page, 'lab-equipment-card[data-eq="beaker"]', '[data-dropzone-id="cylinder"]');
     await dragFromTo(page, 'lab-equipment-card[data-eq="cyl-1"]', '[data-dropzone-id="balance"]');
     await dragFromTo(page, '#weight-on-balance', '[data-dropzone-id="cylinder"]');
-    // §21 v2: pending → запись по клику.
+    // §21 v2: pending → запись по клику (строки до клика быть не должно).
+    await expect(page.locator('.lab-journal-body tr')).toHaveCount(0);
     await page.locator('#record-pending-btn').click();
     await expect(page.locator('.lab-journal-body tr')).toHaveCount(1);
     await page.locator('#reset-btn').click();
