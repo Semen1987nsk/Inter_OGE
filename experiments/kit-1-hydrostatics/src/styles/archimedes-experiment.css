@@ -342,7 +342,19 @@ body.has-drag-active .ar-mount--dyno[data-drop-hover='true'] {
      Полный dip clamp'ится `DIP_SAFETY_BOT_PX=12` ниже beaker.bottom=456,
      final cyl_bottom=444 ≤ guard, partialDip=true при 1440×900. На
      1920×1080 stage ~856 → guard ~644, никаких ограничений. См. §19.11.16. */
-  bottom: 200px;
+  /* Height-aware clamp (2026-05-22): цилиндр висит на ФИКСИРОВАННОЙ высоте
+     ~322px от верха сцены (#computeCylinderBaseTop: dynoTop 12 + hookY 201 +
+     thread 18 + body). Стакан же якорился bottom:200 от НИЗА → на коротких
+     сценах (vp-height ≤ ~768 → stage ≤ ~480) стакан «всплывал» выше цилиндра,
+     и нижняя кромка цилиндра пробивала дно стакана (см. KNOWN_ISSUES).
+     Фикс: beaker_bottom_от_верха = max(stageH-200, 358), т.е. стакан никогда
+     не поднимается выше 358px от верха (= cyl_bottom 322 + 36px зазор —
+     проверенная рабочая композиция 1440×810). На stage ≥ 559 (vp-height ≥ 810)
+     значение = 200px, т.е. высокие сцены НЕ меняются. `100%` в calc =
+     высота сцены (% от containing block для absolute `bottom`). Нижний пол
+     0px (clamp) — на degenerate-крошечных vp (<720px высоты, вне scope)
+     стакан не уедет НИЖЕ пола сцены; цилиндр там всё равно не влезёт. */
+  bottom: clamp(0px, calc(100% - 358px), 200px);
   left: var(--scene-center-x, 50%);
   transform: translateX(-50%);
   transition: transform 600ms cubic-bezier(0.42, 0, 0.58, 1);

@@ -78,9 +78,9 @@ test.describe('E2E — Опыт 1.2 Архимедова сила', () => {
       'Архимедова сила',
     );
 
-    // Top-tabs: 2 таба (1.1 + 1.2), 1.2 — current.
+    // Top-tabs: 3 таба (1.1 + 1.2 + 1.3), 1.2 — current.
     const navButtons = page.locator('lab-kit-nav').locator(':scope >> button');
-    await expect(navButtons).toHaveCount(2);
+    await expect(navButtons).toHaveCount(3);
     await expect(page.locator('lab-kit-nav')).toHaveAttribute('active', 'archimedes');
 
     // Equipment-panel содержит 4 цилиндра + 2 динамометра + стакан (всего 7 карточек).

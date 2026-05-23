@@ -153,7 +153,7 @@ test.describe('Visual regression — Опыт 1.2', () => {
       () => window.archimedesExperiment!.getJournalRows().length,
     );
     expect(rowCount).toBe(1);
-    await expect(page.locator('lab-journal')).toHaveScreenshot(
+    await expect(page.locator('#ar-journal-panel')).toHaveScreenshot(
       'journal-after-1-row.png',
       { maxDiffPixels: 200, animations: 'disabled' },
     );
@@ -190,7 +190,7 @@ test.describe('Visual regression — Опыт 1.2', () => {
       () => window.archimedesExperiment!.getJournalRows().length,
     );
     expect(rowCount).toBe(3);
-    await expect(page.locator('lab-journal')).toHaveScreenshot(
+    await expect(page.locator('#ar-journal-panel')).toHaveScreenshot(
       'journal-after-3-rows-with-formula.png',
       { maxDiffPixels: 200, animations: 'disabled' },
     );
