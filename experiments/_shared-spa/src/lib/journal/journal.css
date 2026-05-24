@@ -156,13 +156,14 @@
   transform: translateY(0);
 }
 
-/* В fully-manual и fully-auto колонка ✓ скрывается полностью. */
-.lab-journal-table[data-mode='fully-manual'] th:last-child,
-.lab-journal-table[data-mode='fully-manual'] td:last-child,
-.lab-journal-table[data-mode='fully-auto'] th:last-child,
-.lab-journal-table[data-mode='fully-auto'] td:last-child {
-  display: none;
-}
+/*
+ * В fully-manual и fully-auto ✓-колонку скрывать НЕ нужно: renderJournalTable
+ * добавляет ✓-ячейку ТОЛЬКО в semi-auto (render.ts), поэтому в этих режимах
+ * последняя ячейка — это последняя колонка ДАННЫХ (derived: μ / A,Дж / ρ / k).
+ * Старое правило `th:last-child/td:last-child { display:none }` ошибочно прятало
+ * именно её (в fully-manual — поле, куда ученик вводит ответ). Убрано 2026-05-24.
+ * Баг был латентным: happy-dom не применяет CSS-раскладку, ловится только в браузере.
+ */
 
 /* ─── Verdict-бейджи (legacy для совместимости) ────────────────── */
 

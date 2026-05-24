@@ -1,5 +1,5 @@
 /**
- * FrictionExperiment — оркестратор опыта 2.2 «Трение скольжения».
+ * FrictionExperiment — оркестратор опытов 2.2 «Трение скольжения» и 2.3 «Работа силы трения».
  *
  * Workflow:
  *   1. Drag брусок → поверхность направляющей (snap-zone TRACK).
@@ -33,6 +33,7 @@ import {
   roundTo,
   staticToKineticTransition,
   totalMass,
+  workOfFriction,
 } from '@physics/friction/FrictionModel';
 import {
   type FrictionMeasurement,
@@ -49,6 +50,29 @@ import {
   type StackedWeight,
   WEIGHT_CONFIG,
 } from '@/types/friction/setup';
+
+// §20.4 + §21 — единый журнал v2 + record-mode toggle (зеркаль spring-stiffness).
+import {
+  getRecordMode,
+  injectRecordModeToggleStyles,
+  renderRecordModeToggle,
+  type RecordMode,
+} from '@labosfera/shared-spa/lib/record-mode';
+import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
+import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
+import { parseRu } from '@labosfera/shared-spa/lib/journal/format';
+import {
+  FRICTION_SPEC,
+  FRICTION_WORK_SPEC,
+} from '@labosfera/shared-spa/lib/journal/specs';
+import type {
+  JournalRow,
+  JournalSpec,
+  JournalVerdict,
+} from '@labosfera/shared-spa/lib/journal/types';
+
+/** Тот же ключ record-mode, что использует spring-stiffness в kit-2. */
+const RECORD_MODE_KIT = 'kit-2';
 
 export interface ExperimentRefs {
   stage: HTMLElement;
@@ -74,12 +98,17 @@ export interface ExperimentRefs {
   steps: HTMLElement; // task switcher (A/B/C/D)
   surfaceToggle: HTMLElement; // переключатель поверхности A/B
   weighBtn: HTMLButtonElement; // кнопка «Взвесить брусок»
-  recordForm: HTMLFormElement; // форма ручного ввода в журнал
-  rfMblock: HTMLInputElement;
-  rfMweights: HTMLOutputElement;
-  rfFriction: HTMLInputElement;
-  rfCancel: HTMLButtonElement;
-  rfSubmit: HTMLButtonElement;
+  /** Живой readout пройденного пути s (виден только в Task B). */
+  pathReadout: HTMLElement;
+  pathReadoutValue: HTMLElement;
+  /** §20.4 — slot для record-mode toggle. */
+  recordModeSlot?: HTMLElement | undefined;
+  /** §21 — контейнер для shared `renderJournalTable`. */
+  journalHost?: HTMLElement | undefined;
+  /** §21.10 — pending-плашка «Записать в журнал» (semi-auto). */
+  recordPendingSlot?: HTMLElement | undefined;
+  recordPendingBtn?: HTMLButtonElement | undefined;
+  recordPendingSummary?: HTMLElement | undefined;
 }
 
 export class FrictionExperiment {
@@ -101,6 +130,18 @@ export class FrictionExperiment {
   #slidingRafId: number | null = null;
   #slidingStartTime = 0;
   #slidingStartPosMm = 0;
+  /** Пройденный за текущее скольжение путь (мм) = block.positionMm − slidingStartPosMm. */
+  #slidDistanceMm = 0;
+  /** id таймера авто-перехода в ready-to-record (250ms). Чистится в #stopSliding/destroy. */
+  #readyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  // §21 — журнал v2: drafts (черновики input'ов) и verdicts (результаты ✓-проверки).
+  // ключ = timestamp измерения (sentinel -1 = empty manual row).
+  #journalDrafts = new Map<number, Record<string, number>>();
+  #journalVerdicts = new Map<number, Record<string, JournalVerdict>>();
+  #detachRecordModeToggle: (() => void) | null = null;
+  /** Сигнатура последней записанной строки — для дедупликации pending-плашки. */
+  #lastRecordedSignature = '';
 
   constructor(refs: ExperimentRefs) {
     this.#refs = refs;
@@ -130,6 +171,11 @@ export class FrictionExperiment {
 
   // ─── Public API (для тестов и отладки) ─────────────────────
 
+  /** Записанные измерения (read-only snapshot для тестов и отладки). */
+  get measurements(): ReadonlyArray<FrictionMeasurement> {
+    return this.#store.get().measurements;
+  }
+
   /** Поставить брусок на направляющую. */
   attachBlock(): boolean {
     const card = this.#cardByEquipmentId.get('block');
@@ -157,9 +203,26 @@ export class FrictionExperiment {
     return this.#stackWeight(el, equipmentId);
   }
 
+  /**
+   * Программный API для тестов: детерминированно «прокатить» брусок на заданную
+   * позицию (мм) от начала направляющей. Эквивалентно тому, что делает RAF-цикл
+   * #startSliding, но без зависимости от тайминга. Обновляет readout пути.
+   */
+  slideBlockTo(positionMm: number): void {
+    if (!this.#attachedBlockEl) return;
+    const clamped = Math.max(0, Math.min(350, positionMm));
+    this.#store.update((st) => ({
+      block: st.block ? { ...st.block, positionMm: clamped } : { positionMm: clamped },
+    }));
+    this.#slidDistanceMm = Math.max(0, clamped - this.#slidingStartPosMm);
+    this.#updatePathReadout();
+  }
+
   /** Программно приложить силу к динамометру (для автотестов и для pointer-pull). */
   applyForce(force: number): void {
     if (!this.#attachedDynoEl) return;
+    // Граница системы: публичный метод — защита от NaN/Infinity (Math.max молча пропускает NaN).
+    if (!Number.isFinite(force)) return;
     const s = this.#store.get();
     const totalM = (this.#attachedBlockEl?.mass ?? 0) + totalMass(s.weightsOnBlock);
     if (totalM <= 0) return;
@@ -192,10 +255,18 @@ export class FrictionExperiment {
     }
 
     if (transition.isSliding) {
-      // После 250ms скольжения — авто-переход в ready-to-record (показания стабильны)
-      setTimeout(() => {
+      // После 250ms скольжения — авто-переход в ready-to-record (показания стабильны).
+      // applyForce во время тяги вызывается на каждый pointermove → пересоздаём таймер,
+      // а не плодим их; id храним, чтобы очистить при #stopSliding/reset/destroy (без утечки).
+      if (this.#readyTimeoutId !== null) clearTimeout(this.#readyTimeoutId);
+      this.#readyTimeoutId = setTimeout(() => {
+        this.#readyTimeoutId = null;
         if (this.#store.get().measurementStep === 'sliding') {
           this.#store.set({ measurementStep: 'ready-to-record' });
+          // fully-auto: программа сама пишет измерение, как только стабилизировалось.
+          if (this.#recordMode() === 'fully-auto') {
+            this.recordMeasurement();
+          }
           this.#refreshUi();
         }
       }, 250);
@@ -227,6 +298,9 @@ export class FrictionExperiment {
         }));
         this.#updateMountPosition();
       }
+      // Путь скольжения = смещение бруска от точки срыва. Обновляем readout «s = NN,N см».
+      this.#slidDistanceMm = Math.max(0, clampedPos - this.#slidingStartPosMm);
+      this.#updatePathReadout();
       if (clampedPos >= MAX_TRAVEL_MM) {
         // Дошли до конца — останавливаемся
         this.#slidingRafId = null;
@@ -237,17 +311,61 @@ export class FrictionExperiment {
     this.#slidingRafId = requestAnimationFrame(tick);
   }
 
+  /**
+   * Текущий путь, пройденный бруском за скольжение (мм).
+   * Берётся из state (block.positionMm − slidingStartPosMm), чтобы быть корректным
+   * даже если RAF не успел обновить #slidDistanceMm (happy-dom тесты без rAF-цикла).
+   */
+  #currentSlidDistanceMm(): number {
+    const posMm = this.#store.get().block?.positionMm ?? 0;
+    const fromState = Math.max(0, posMm - this.#slidingStartPosMm);
+    return Math.max(fromState, this.#slidDistanceMm);
+  }
+
+  /** Обновляет живой readout пути «s = NN,N см» (виден только в Task B). */
+  #updatePathReadout(): void {
+    const s = this.#store.get();
+    const visible = s.activeTask === 'B-work' && this.#attachedBlockEl !== null;
+    if (!visible) {
+      this.#refs.pathReadout.hidden = true;
+      return;
+    }
+    this.#refs.pathReadout.hidden = false;
+    const cm = this.#currentSlidDistanceMm() / 10;
+    // RU-формат: запятая как десятичный разделитель (ученик списывает как с линейки).
+    this.#refs.pathReadoutValue.textContent = `s = ${cm.toFixed(1).replace('.', ',')} см`;
+  }
+
   #stopSliding(): void {
     if (this.#slidingRafId !== null) {
       cancelAnimationFrame(this.#slidingRafId);
       this.#slidingRafId = null;
+    }
+    if (this.#readyTimeoutId !== null) {
+      clearTimeout(this.#readyTimeoutId);
+      this.#readyTimeoutId = null;
     }
   }
 
   /** Переключить активную задачу (A/B/C/D). */
   setActiveTask(task: TaskId): void {
     this.#store.set({ activeTask: task });
+    this.#updatePathReadout();
     this.#refreshUi();
+  }
+
+  /** §21 — SPEC журнала по активной задаче: B → work, иначе → μ. */
+  #currentSpec(): JournalSpec {
+    return this.#store.get().activeTask === 'B-work' ? FRICTION_WORK_SPEC : FRICTION_SPEC;
+  }
+
+  /**
+   * Короткая метка поверхности для ячейки журнала («А»/«Б»). Полная
+   * («Направляющая (А)») распирала колонку до 213px и схлопывала derived-колонку
+   * (μ / A,Дж) в 0 — заголовок «Поверхность» и так понятен, плюс свотчи на сцене.
+   */
+  #surfaceShort(id: SurfaceId): string {
+    return id === 'A' ? 'А' : 'Б';
   }
 
   /** Переключить поверхность (A/B). */
@@ -258,8 +376,9 @@ export class FrictionExperiment {
   }
 
   /**
-   * Программный API для тестов: записывает в журнал значения, заданные параметрами,
-   * как если бы их ввёл ученик в форму. Реальные пользователи — через #openRecordForm().
+   * Записывает измерение в журнал. Реальные пользователи запускают это через
+   * pending-плашку «Записать в журнал» (semi-auto) или авто (fully-auto);
+   * опц. параметры — для программного ввода в автотестах.
    */
   recordMeasurement(opts?: { mBlockG?: number; frictionN?: number }): void {
     const s = this.#store.get();
@@ -275,6 +394,16 @@ export class FrictionExperiment {
     const mu = coefficientFromForces(frictionN, N);
     if (mu === null) return;
 
+    // Task B «Работа силы трения»: фиксируем пройденный путь и работу A = F·s.
+    // Для остальных задач (A/C/D) путь и работа не нужны — null (без регресса).
+    // s округляем до 0,1 см (как видит ученик в журнале/линейке), distanceMm выводим ИЗ s —
+    // тогда сохранённая work тождественна тому, что проверит SPEC (F·s_см/100), без рассинхрона.
+    const isWorkTask = s.activeTask === 'B-work';
+    const sCm = isWorkTask ? roundTo(this.#currentSlidDistanceMm() / 10, 1) : null;
+    const distanceMm = sCm !== null ? roundTo(sCm * 10, 1) : null;
+    const work =
+      isWorkTask && distanceMm !== null ? roundTo(workOfFriction(frictionN, distanceMm), 4) : null;
+
     const measurement: FrictionMeasurement = {
       id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: Date.now(),
@@ -283,56 +412,58 @@ export class FrictionExperiment {
       normalForce: roundTo(N, 3),
       frictionForce: roundTo(frictionN, 3),
       mu: roundTo(mu, 3),
-      distanceMm: null,
-      work: null,
+      distanceMm,
+      work,
     };
     this.#store.update((st) => ({
       measurements: [...st.measurements, measurement],
       measurementStep: 'recorded',
     }));
+    // §21.10 — сигнатура для дедупликации pending-плашки.
+    this.#lastRecordedSignature = this.#pendingSignature();
     this.#refreshUi();
-    this.#announce(
-      `Записано: μ = ${measurement.mu.toFixed(2)}, F тр = ${measurement.frictionForce.toFixed(2)} Н.`,
-    );
-  }
-
-  /** Открывает форму ручного ввода значений в журнал. */
-  #openRecordForm(): void {
-    const s = this.#store.get();
-    if (s.measurementStep !== 'ready-to-record') return;
-    // Префилл: масса грузов автоматически (наклейки видны), F пустое (ученик списывает с дин)
-    const mWeights = totalMass(s.weightsOnBlock);
-    this.#refs.rfMweights.value = String(mWeights);
-    // Если масса бруска уже введена в прошлый раз — сохраняем, иначе пусто
-    // (храним последнее введённое значение в localStorage для удобства)
-    const stored = localStorage.getItem('friction-mblock');
-    if (stored) this.#refs.rfMblock.value = stored;
-    this.#refs.rfFriction.value = '';
-    this.#refs.recordForm.hidden = false;
-    this.#refs.rfMblock.focus();
-  }
-
-  #closeRecordForm(): void {
-    this.#refs.recordForm.hidden = true;
-  }
-
-  #submitRecordForm(): void {
-    const mBlockG = parseFloat(this.#refs.rfMblock.value);
-    const frictionN = parseFloat(this.#refs.rfFriction.value);
-    if (!Number.isFinite(mBlockG) || mBlockG <= 0) {
-      this.#hints.flash('Введите массу бруска (положительное число в граммах).');
-      this.#refs.rfMblock.focus();
-      return;
+    if (isWorkTask && distanceMm !== null && work !== null) {
+      this.#announce(
+        `Записано: F тр = ${measurement.frictionForce.toFixed(2)} Н, s = ${(distanceMm / 10)
+          .toFixed(1)
+          .replace('.', ',')} см, A = ${work.toFixed(3).replace('.', ',')} Дж.`,
+      );
+    } else {
+      this.#announce(
+        `Записано: μ = ${measurement.mu.toFixed(2)}, F тр = ${measurement.frictionForce.toFixed(2)} Н.`,
+      );
     }
-    if (!Number.isFinite(frictionN) || frictionN <= 0) {
-      this.#hints.flash('Введите показание динамометра (положительное число в Н).');
-      this.#refs.rfFriction.focus();
-      return;
+  }
+
+  /** §20.4 — текущий режим записи (читается с localStorage + URL). */
+  #recordMode(): RecordMode {
+    return getRecordMode(RECORD_MODE_KIT);
+  }
+
+  /** §20.4 — обработчик смены режима через toggle. */
+  #handleRecordModeChange(): void {
+    // В fully-auto: если уже ready — автоматически записать сразу при переключении.
+    if (
+      this.#recordMode() === 'fully-auto' &&
+      this.#store.get().measurementStep === 'ready-to-record'
+    ) {
+      this.recordMeasurement();
     }
-    // Сохраняем mBlock на следующий раз
-    localStorage.setItem('friction-mblock', String(mBlockG));
-    this.recordMeasurement({ mBlockG, frictionN });
-    this.#closeRecordForm();
+    this.#refreshUi();
+  }
+
+  /** Cleanup при unmount (FrictionScreen.unmount): снять все window-листенеры и таймеры/RAF. */
+  destroy(): void {
+    this.#stopSliding(); // чистит RAF + #readyTimeoutId (иначе таймер сработает на размонтированном экране)
+    window.removeEventListener('resize', this.#onResize);
+    // На случай unmount во время активной тяги — снять pull-листенеры (no-op если их нет).
+    window.removeEventListener('pointermove', this.#onPullMove);
+    window.removeEventListener('pointerup', this.#onPullEnd);
+    window.removeEventListener('pointercancel', this.#onPullEnd);
+    this.#pullActive = false;
+    this.#pullPointerId = null;
+    this.#detachRecordModeToggle?.();
+    this.#detachRecordModeToggle = null;
   }
 
   /**
@@ -370,9 +501,16 @@ export class FrictionExperiment {
     this.#attachedBlockEl = null;
     this.#attachedDynoEl = null;
     this.#attachedWeightEls = [];
+    this.#slidDistanceMm = 0;
+    this.#slidingStartPosMm = 0;
     this.#store.set({ ...INITIAL_SETUP_STATE });
     this.#drag.removeSnapZone('block-top');
     this.#drag.removeSnapZone('block-hook');
+    // §21 — журнал v2: drafts (черновики ввода) и verdicts (вердикты ✓) сбрасываем.
+    this.#journalDrafts.clear();
+    this.#journalVerdicts.clear();
+    this.#lastRecordedSignature = '';
+    this.#refs.pathReadout.hidden = true;
     this.#refreshUi();
     this.#announce('Установка сброшена. Все приборы вернулись в комплект.');
   }
@@ -412,18 +550,27 @@ export class FrictionExperiment {
     // Reset
     this.#refs.resetBtn.addEventListener('click', () => this.reset());
 
-    // Кнопка «Записать в журнал» — ОТКРЫВАЕТ форму ручного ввода (не записывает сразу)
-    this.#refs.recordBtn.addEventListener('click', () => this.#openRecordForm());
+    // §20.4 — toggle режима записи (semi-auto / fully-manual / fully-auto).
+    if (this.#refs.recordModeSlot) {
+      injectRecordModeToggleStyles();
+      this.#detachRecordModeToggle = renderRecordModeToggle(this.#refs.recordModeSlot, {
+        kitId: RECORD_MODE_KIT,
+        onChange: () => this.#handleRecordModeChange(),
+      });
+    }
+
+    // §21.10 — pending-плашка для semi-auto: click → recordMeasurement.
+    if (this.#refs.recordPendingBtn) {
+      this.#refs.recordPendingBtn.addEventListener('click', () => {
+        this.recordMeasurement();
+      });
+    }
+
+    // Кнопка «Записать в журнал» в шапке: запись текущего готового измерения.
+    this.#refs.recordBtn.addEventListener('click', () => this.recordMeasurement());
 
     // Кнопка «Взвесить брусок» — flash-подсказка с показанием дин (упрощённый режим взвешивания)
     this.#refs.weighBtn.addEventListener('click', () => this.#weighBlock());
-
-    // Форма ввода
-    this.#refs.rfCancel.addEventListener('click', () => this.#closeRecordForm());
-    this.#refs.recordForm.addEventListener('submit', (ev) => {
-      ev.preventDefault();
-      this.#submitRecordForm();
-    });
 
     // Surface toggle (A/B)
     this.#refs.surfaceToggle.addEventListener('click', (ev) => {
@@ -448,7 +595,7 @@ export class FrictionExperiment {
       this.#refs.measurementToggle.setAttribute('aria-expanded', collapsed ? 'true' : 'false');
     });
 
-    window.addEventListener('resize', () => this.#updateMountPosition());
+    window.addEventListener('resize', this.#onResize);
     requestAnimationFrame(() =>
       requestAnimationFrame(() => this.#updateMountPosition()),
     );
@@ -530,6 +677,7 @@ export class FrictionExperiment {
     this.#drag.addSnapZone(this.#makeBlockHookZone());
 
     this.#updateDropZonePositions();
+    this.#updatePathReadout();
     this.#refreshUi();
     this.#announce('Брусок установлен на направляющую.');
     return true;
@@ -673,6 +821,9 @@ export class FrictionExperiment {
     window.addEventListener('pointerup', this.#onPullEnd);
     window.addEventListener('pointercancel', this.#onPullEnd);
   };
+
+  /** Стабильная ссылка на resize-хендлер — чтобы снять в destroy() (без утечки при re-mount). */
+  #onResize = (): void => this.#updateMountPosition();
 
   #onPullMove = (ev: PointerEvent): void => {
     if (!this.#pullActive || ev.pointerId !== this.#pullPointerId) return;
@@ -953,6 +1104,7 @@ export class FrictionExperiment {
     this.#refreshMeasurementPanel();
     this.#refreshRecordButton();
     this.#refreshGraph();
+    this.#updatePathReadout();
   }
 
   #refreshSurfaceToggle(): void {
@@ -997,51 +1149,313 @@ export class FrictionExperiment {
       this.#refs.measurementCount.hidden = true;
     }
 
-    // Формула: показываем когда есть журнал
+    // Формула: показываем когда есть журнал; текст зависит от задачи.
+    this.#refreshFormula(hasData);
+
+    // §21 — журнал v2 (renderJournalTable). v1 fallback скрыт.
+    this.#renderJournal();
+
+    // Result panel.
+    this.#refreshResultPanel();
+  }
+
+  /** Переключает текст формулы по активной задаче (μ для A/C/D, A=F·s для B). */
+  #refreshFormula(hasData: boolean): void {
     const formulaEl = document.getElementById('formula-display');
     if (formulaEl) formulaEl.hidden = !hasData;
-
-    // Table
-    if (hasData) {
-      this.#refs.journalEmpty.hidden = true;
-      this.#refs.journalTable.hidden = false;
-      this.#refs.journalBody.innerHTML = s.measurements
-        .map(
-          (m, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${m.surfaceId}</td>
-          <td>${m.totalMassGrams}</td>
-          <td>${m.normalForce.toFixed(2)}</td>
-          <td>${m.frictionForce.toFixed(2)}</td>
-          <td>${m.mu.toFixed(2)}</td>
-        </tr>
-      `,
-        )
-        .join('');
+    const expr = document.getElementById('formula-expr');
+    const units = document.getElementById('formula-units');
+    if (!expr || !units) return;
+    if (this.#store.get().activeTask === 'B-work') {
+      this.#setFormulaText(
+        expr,
+        units,
+        '<em>A</em> = <em>F</em><sub>тр</sub> · <em>s</em>',
+        'путь <em>s</em> — в метрах, работа <em>A</em> — в джоулях',
+      );
     } else {
-      this.#refs.journalEmpty.hidden = false;
-      this.#refs.journalTable.hidden = true;
-      this.#refs.journalBody.innerHTML = '';
+      this.#setFormulaText(
+        expr,
+        units,
+        '<em>m</em><sub>общ</sub> = <em>m</em><sub>бр</sub> + <em>m</em><sub>гр</sub>, ' +
+          '<em>N</em> = <em>m</em><sub>общ</sub> · <em>g</em>, ' +
+          '<em>μ</em> = <em>F</em><sub>тр</sub> / <em>N</em>',
+        'массу — в кг, <em>g</em> = 9,8 м/с²',
+      );
     }
+  }
 
-    // Result panel: средний μ для текущей поверхности (если ≥ 2 измерений)
+  /** Статические формулы (без пользовательского ввода) — раскладываем в DOM. */
+  #setFormulaText(expr: HTMLElement, units: HTMLElement, exprHtml: string, unitsHtml: string): void {
+    expr.innerHTML = exprHtml;
+    units.innerHTML = unitsHtml;
+  }
+
+  #refreshResultPanel(): void {
+    const s = this.#store.get();
     const sId = s.surfaceId;
+    // В Task B показываем среднюю работу; иначе — средний μ.
+    if (s.activeTask === 'B-work') {
+      const subset = s.measurements.filter((m) => m.surfaceId === sId && m.work !== null);
+      if (subset.length >= 1) {
+        const meanA = subset.reduce((a, m) => a + (m.work ?? 0), 0) / subset.length;
+        this.#renderResultPanel(
+          SURFACE_CONFIG[sId].label,
+          subset.length,
+          'Ā (средняя работа)',
+          `${meanA.toFixed(3).replace('.', ',')} Дж`,
+        );
+      } else {
+        this.#refs.resultPanel.hidden = true;
+        this.#refs.resultPanel.innerHTML = '';
+      }
+      return;
+    }
     const subset = s.measurements.filter((m) => m.surfaceId === sId);
     if (subset.length >= 1) {
       const meanMu = subset.reduce((a, m) => a + m.mu, 0) / subset.length;
-      const surfaceLabel = SURFACE_CONFIG[sId].label;
-      this.#refs.resultPanel.hidden = false;
-      this.#refs.resultPanel.innerHTML = `
-        <h4 class="result-title">Текущий результат — ${surfaceLabel}</h4>
-        <div class="result-grid">
-          <div class="result-row"><span>Измерений:</span> <strong>${subset.length}</strong></div>
-          <div class="result-row"><span>μ̄ (среднее):</span> <strong>${meanMu.toFixed(2)}</strong></div>
-        </div>
-      `;
+      this.#renderResultPanel(
+        SURFACE_CONFIG[sId].label,
+        subset.length,
+        'μ̄ (среднее)',
+        meanMu.toFixed(2),
+      );
     } else {
       this.#refs.resultPanel.hidden = true;
       this.#refs.resultPanel.innerHTML = '';
+    }
+  }
+
+  /** Рендерит result-panel из доверенных частей (label + числовые значения). */
+  #renderResultPanel(
+    surfaceLabel: string,
+    count: number,
+    metricLabel: string,
+    metricValue: string,
+  ): void {
+    this.#refs.resultPanel.replaceChildren();
+    const title = document.createElement('h4');
+    title.className = 'result-title';
+    title.textContent = `Текущий результат — ${surfaceLabel}`;
+    const grid = document.createElement('div');
+    grid.className = 'result-grid';
+    const mkRow = (label: string, value: string): HTMLElement => {
+      const row = document.createElement('div');
+      row.className = 'result-row';
+      const sp = document.createElement('span');
+      sp.textContent = label;
+      const strong = document.createElement('strong');
+      strong.textContent = value;
+      row.append(sp, ' ', strong);
+      return row;
+    };
+    grid.append(mkRow('Измерений:', String(count)), mkRow(`${metricLabel}:`, metricValue));
+    this.#refs.resultPanel.append(title, grid);
+    this.#refs.resultPanel.hidden = false;
+  }
+
+  /**
+   * §21 — рендер журнала через shared `renderJournalTable`.
+   * SPEC выбирается по активной задаче: B → FRICTION_WORK_SPEC, иначе → FRICTION_SPEC.
+   * direct (m / F_тр / s) пишет программа; ученик в semi-auto/fully-manual вводит
+   * derived (N, μ или A) в input + ✓ проверка. Старая v1-таблица — скрытый fallback.
+   */
+  #renderJournal(): void {
+    const s = this.#store.get();
+    const mode = this.#recordMode();
+    const spec = this.#currentSpec();
+    const isWork = spec === FRICTION_WORK_SPEC;
+
+    // §21 UX-v2: в fully-manual журнал РАСКРЫТ с пустой строкой даже без записей.
+    const showEmptyManual =
+      mode === 'fully-manual' && s.measurements.length === 0 && this.#attachedBlockEl !== null;
+    const hasData = s.measurements.length > 0 || showEmptyManual;
+
+    // v1 fallback таблица — всегда скрыта когда есть journal-host (v2).
+    this.#refs.journalTable.hidden = true;
+    this.#refs.journalBody.innerHTML = '';
+
+    if (!this.#refs.journalHost) {
+      // Шаблон без journal-host — деградируем (не должно случаться в проде).
+      this.#refs.journalEmpty.hidden = hasData;
+      return;
+    }
+
+    this.#refs.journalEmpty.hidden = hasData;
+    this.#refs.journalHost.hidden = !hasData;
+
+    const rows: JournalRow[] = s.measurements.map((m, i) =>
+      this.#measurementToRow(m, i, mode, isWork),
+    );
+
+    if (showEmptyManual) {
+      const draft = this.#journalDrafts.get(-1) ?? {};
+      rows.push({
+        idx: 1,
+        timestamp: -1,
+        values: isWork
+          ? {
+              idx: 1,
+              surface: this.#surfaceShort(s.surfaceId),
+              F_friction_N: draft['F_friction_N'] ?? null,
+              s_cm: draft['s_cm'] ?? null,
+              work_J: draft['work_J'] ?? null,
+            }
+          : {
+              idx: 1,
+              surface: this.#surfaceShort(s.surfaceId),
+              m_g: draft['m_g'] ?? null,
+              F_friction_N: draft['F_friction_N'] ?? null,
+              N_N: draft['N_N'] ?? null,
+              mu: draft['mu'] ?? null,
+            },
+        verdicts: {},
+      });
+    }
+
+    renderJournalTable(this.#refs.journalHost, spec, rows, {
+      mode,
+      onCellInput: (rowIdx, key, value) => {
+        const m = s.measurements[rowIdx - 1];
+        const ts = m ? m.timestamp : -1;
+        const draft = this.#journalDrafts.get(ts) ?? {};
+        if (value === null) delete draft[key];
+        else draft[key] = value;
+        this.#journalDrafts.set(ts, draft);
+      },
+      onVerify: (rowIdx) => {
+        const m = s.measurements[rowIdx - 1];
+        if (!m) return;
+        const ts = m.timestamp;
+        const draft = { ...(this.#journalDrafts.get(ts) ?? {}) };
+        const tr = this.#refs.journalHost?.querySelector<HTMLTableRowElement>(
+          `tr[data-row-idx="${rowIdx}"]`,
+        );
+        if (tr) {
+          tr.querySelectorAll<HTMLInputElement>('input[data-key]').forEach((input) => {
+            const key = input.dataset['key'];
+            if (!key) return;
+            const parsed = parseRu(input.value);
+            if (parsed !== null) draft[key] = parsed;
+          });
+        }
+        this.#journalDrafts.set(ts, draft);
+        const baseRow = this.#measurementToRow(m, rowIdx - 1, mode, isWork);
+        const tempRow: JournalRow = {
+          idx: rowIdx,
+          timestamp: ts,
+          values: { ...baseRow.values },
+        };
+        // Перекрываем derived значениями из черновика (то, что ввёл ученик).
+        for (const col of spec.columns) {
+          if (col.source === 'derived') {
+            tempRow.values[col.key] = draft[col.key] ?? null;
+          }
+        }
+        const verdicts = verifyRow(spec.columns, tempRow);
+        this.#journalVerdicts.set(ts, verdicts);
+        if (tr) {
+          for (const [key, verdict] of Object.entries(verdicts)) {
+            const td = tr.querySelector<HTMLTableCellElement>(`td[data-key="${key}"]`);
+            if (!td) continue;
+            td.classList.remove(
+              'j-verdict', 'j-verdict--ok', 'j-verdict--close', 'j-verdict--wrong', 'j-verdict--empty',
+            );
+            td.dataset['verdict'] = verdict;
+            if (verdict !== 'empty') td.classList.add('j-verdict', `j-verdict--${verdict}`);
+            const input = td.querySelector<HTMLInputElement>('input[data-key]');
+            if (input) input.dataset['verdict'] = verdict;
+          }
+        }
+      },
+    });
+
+    // §21.10 — pending-плашка только для semi-auto при ready && новой подписи.
+    this.#updateRecordPending();
+  }
+
+  /** Строит JournalRow из measurement по SPEC (work или μ). */
+  #measurementToRow(
+    m: FrictionMeasurement,
+    i: number,
+    mode: RecordMode,
+    isWork: boolean,
+  ): JournalRow {
+    const draft = this.#journalDrafts.get(m.timestamp) ?? {};
+    const surfaceLabel = this.#surfaceShort(m.surfaceId);
+    if (isWork) {
+      const sCm = m.distanceMm !== null ? roundTo(m.distanceMm / 10, 1) : 0;
+      return {
+        idx: i + 1,
+        timestamp: m.timestamp,
+        values: {
+          idx: i + 1,
+          surface: surfaceLabel,
+          F_friction_N: m.frictionForce,
+          s_cm: sCm,
+          work_J: mode === 'fully-auto' ? (m.work ?? 0) : (draft['work_J'] ?? null),
+        },
+        verdicts: this.#journalVerdicts.get(m.timestamp) ?? {},
+      };
+    }
+    return {
+      idx: i + 1,
+      timestamp: m.timestamp,
+      values: {
+        idx: i + 1,
+        surface: surfaceLabel,
+        m_g: m.totalMassGrams,
+        F_friction_N: m.frictionForce,
+        N_N: mode === 'fully-auto' ? m.normalForce : (draft['N_N'] ?? null),
+        mu: mode === 'fully-auto' ? m.mu : (draft['mu'] ?? null),
+      },
+      verdicts: this.#journalVerdicts.get(m.timestamp) ?? {},
+    };
+  }
+
+  /**
+   * Сигнатура текущего готового измерения — для дедупликации pending-плашки.
+   * В Task B включает путь s (иначе повторное скольжение с тем же F не показало бы плашку).
+   */
+  #pendingSignature(): string {
+    const s = this.#store.get();
+    const m = (this.#attachedBlockEl?.mass ?? 0) + totalMass(s.weightsOnBlock);
+    const F = this.#attachedDynoEl
+      ? Number(this.#attachedDynoEl.getAttribute('force') ?? 0)
+      : 0;
+    if (s.activeTask === 'B-work') {
+      const sCm = roundTo(this.#currentSlidDistanceMm() / 10, 1);
+      return `B|${m}|${F.toFixed(2)}|${sCm}`;
+    }
+    return `${s.activeTask}|${m}|${F.toFixed(2)}`;
+  }
+
+  /** §21.10 — управление видимостью pending-плашки «Записать в журнал». */
+  #updateRecordPending(): void {
+    if (!this.#refs.recordPendingSlot) return;
+    const slot = this.#refs.recordPendingSlot;
+    const mode = this.#recordMode();
+    const s = this.#store.get();
+    const ready = s.measurementStep === 'ready-to-record';
+    const signature = this.#pendingSignature();
+    const visible = mode === 'semi-auto' && ready && signature !== this.#lastRecordedSignature;
+    if (visible) {
+      slot.hidden = false;
+      if (this.#refs.recordPendingSummary) {
+        const F = this.#attachedDynoEl
+          ? Number(this.#attachedDynoEl.getAttribute('force') ?? 0)
+          : 0;
+        if (s.activeTask === 'B-work') {
+          const sCm = roundTo(this.#currentSlidDistanceMm() / 10, 1);
+          this.#refs.recordPendingSummary.textContent =
+            ` (F тр=${F.toFixed(2)} Н, s=${sCm.toFixed(1).replace('.', ',')} см)`;
+        } else {
+          const m = (this.#attachedBlockEl?.mass ?? 0) + totalMass(s.weightsOnBlock);
+          this.#refs.recordPendingSummary.textContent = ` (m=${m} г, F тр=${F.toFixed(2)} Н)`;
+        }
+      }
+    } else {
+      slot.hidden = true;
     }
   }
 

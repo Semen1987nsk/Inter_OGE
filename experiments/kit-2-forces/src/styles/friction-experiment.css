@@ -448,6 +448,49 @@ lab-equipment-card lab-dynamometer-h {
   pointer-events: auto;
 }
 
+/* ─── Живой readout пройденного пути s (Task B «Работа силы трения») ──────
+   Виден только в задаче B. Показывает s как реальную линейку — ученик
+   списывает значение для расчёта работы A = F·s. */
+
+.path-readout {
+  position: absolute;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 14px;
+  background: rgb(6 13 20 / 0.78);
+  border: 1px solid var(--color-brand-orange, #ffbe0b);
+  border-radius: var(--radius-md, 10px);
+  z-index: 13;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.path-readout[hidden] {
+  display: none;
+}
+
+.path-readout-label {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.6);
+}
+
+.path-readout-value {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-brand-orange, #ffbe0b);
+  font-variant-numeric: tabular-nums;
+}
+
 /* ─── Surface toggle (переключатель А/Б) ───────────────────────── */
 
 .surface-toggle {
