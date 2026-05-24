@@ -259,12 +259,45 @@ export const FRICTION_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 2.3 «Работа силы трения» — A = F_тр · s.
+ * Отдельный SPEC, т.к. форма журнала другая, чем у 2.2 (μ): нужны путь s и работа A.
+ * Друг друга не подменяют — оркестратор выбирает SPEC по активной задаче (B → этот).
+ */
+export const FRICTION_WORK_SPEC: JournalSpec = {
+  experimentId: '2.3',
+  kitId: 'kit-2',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'surface', label: 'Поверхность', source: 'meta' },
+    {
+      key: 'F_friction_N',
+      label: 'F тр, Н',
+      source: 'direct',
+      unit: 'Н',
+      format: 'fixed2',
+    },
+    { key: 's_cm', label: 's, см', source: 'direct', unit: 'см', format: 'fixed1' },
+    {
+      key: 'work_J',
+      label: 'A, Дж',
+      source: 'derived',
+      unit: 'Дж',
+      format: 'fixed3',
+      tolerance: 0.1,
+      // A = F_тр · s; s переводим из см в метры (÷100). Результат в Дж.
+      expectedFromRow: (row) => (row.F_friction_N ?? 0) * ((row.s_cm ?? 0) / 100),
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
   ARCHIMEDES_VOLUME_SPEC,
   SPRING_SPEC,
   FRICTION_SPEC,
+  FRICTION_WORK_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {

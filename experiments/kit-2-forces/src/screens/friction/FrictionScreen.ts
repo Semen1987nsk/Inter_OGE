@@ -51,12 +51,15 @@ export class FrictionScreen implements IScreen {
       steps: host.querySelector<HTMLElement>('#steps')!,
       surfaceToggle: host.querySelector<HTMLElement>('#surface-toggle')!,
       weighBtn: host.querySelector('#weigh-btn') as HTMLButtonElement,
-      recordForm: host.querySelector('#record-form') as HTMLFormElement,
-      rfMblock: host.querySelector('#rf-mblock') as HTMLInputElement,
-      rfMweights: host.querySelector('#rf-mweights') as HTMLOutputElement,
-      rfFriction: host.querySelector('#rf-friction') as HTMLInputElement,
-      rfCancel: host.querySelector('#rf-cancel') as HTMLButtonElement,
-      rfSubmit: host.querySelector('#rf-submit') as HTMLButtonElement,
+      pathReadout: host.querySelector<HTMLElement>('#path-readout')!,
+      pathReadoutValue: host.querySelector<HTMLElement>('#path-readout-value')!,
+      // §20.4 + §21 — journal v2 slots (могут отсутствовать в legacy шаблонах).
+      recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
+      journalHost: host.querySelector<HTMLElement>('#journal-host') ?? undefined,
+      recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
+      recordPendingBtn:
+        (host.querySelector('#record-pending-btn') as HTMLButtonElement | null) ?? undefined,
+      recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
     };
 
     this.#experiment = new FrictionExperiment(refs);
@@ -66,6 +69,7 @@ export class FrictionScreen implements IScreen {
 
   unmount(): void {
     if (!this.#experiment) return;
+    this.#experiment.destroy();
     this.#experiment.reset();
     delete (window as unknown as { frictionExperiment?: FrictionExperiment }).frictionExperiment;
     this.#experiment = null;

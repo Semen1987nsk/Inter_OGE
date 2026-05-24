@@ -60,6 +60,13 @@
             <div class="track-container" id="track-container">
               <lab-friction-track id="track" surface="A"></lab-friction-track>
 
+              <!-- Живой индикатор пройденного пути (Task B «Работа силы трения»).
+                   Показывает s, как реальная линейка — ученик списывает значение. -->
+              <div class="path-readout" id="path-readout" role="status" aria-live="polite" hidden>
+                <span class="path-readout-label">Пройденный путь</span>
+                <span class="path-readout-value" id="path-readout-value">s = 0,0 см</span>
+              </div>
+
               <!-- Snap-зоны (видимость управляется JS-ом) -->
               <div class="drop-zone drop-zone--track" id="drop-zone-track" aria-hidden="true" hidden>
                 <span class="drop-zone-label">Поставьте брусок на направляющую</span>
@@ -94,6 +101,8 @@
                   <span class="measurement-title">Журнал измерений</span>
                   <span id="measurement-count" class="measurement-count" hidden>0</span>
                 </button>
+                <!-- §20.4 — record-mode toggle (semi-auto / fully-manual / fully-auto). -->
+                <div id="record-mode-slot" class="record-mode-slot"></div>
                 <button
                   id="record-btn"
                   class="record-btn"
@@ -110,40 +119,30 @@
                   Поставьте брусок, прицепите динамометр и потяните до начала скольжения. Затем нажмите «Записать в журнал».
                 </div>
 
-                <!-- Форма ручного ввода в журнал. Появляется после нажатия «Записать в журнал»
-                     при готовом измерении. Ученик САМ списывает значения с приборов. -->
-                <form id="record-form" class="record-form" hidden>
-                  <h4 class="record-form-title">Запишите значения с приборов</h4>
-                  <div class="record-field">
-                    <label for="rf-mblock">Масса бруска <em>m</em><sub>бр</sub>, г:</label>
-                    <input type="number" id="rf-mblock" inputmode="numeric" step="1" min="0" max="500" placeholder="напр. 50" />
-                    <small class="hint">Если ещё не взвешивали — нажмите «Взвесить брусок» наверху сцены.</small>
-                  </div>
-                  <div class="record-field record-field-readonly">
-                    <label>Масса грузов <em>m</em><sub>гр</sub>, г:</label>
-                    <output id="rf-mweights">0</output>
-                    <small class="hint">Авто (сумма наклеек на грузах).</small>
-                  </div>
-                  <div class="record-field">
-                    <label for="rf-friction">Показание динамометра <em>F</em><sub>тр</sub>, Н:</label>
-                    <input type="number" id="rf-friction" inputmode="decimal" step="0.01" min="0" max="5" placeholder="напр. 0.30" />
-                  </div>
-                  <div class="record-form-actions">
-                    <button type="button" id="rf-cancel" class="rf-cancel">Отмена</button>
-                    <button type="submit" id="rf-submit" class="rf-submit">В журнал</button>
-                  </div>
-                </form>
-                <!-- Формула расчёта (видна когда есть журнал) — стандарт REFERENCE -->
+                <!-- Формула расчёта (видна когда есть журнал) — стандарт REFERENCE.
+                     Текст переключается JS-ом по активной задаче (μ для A/C/D, A=F·s для B). -->
                 <div class="formula-display" id="formula-display" hidden>
                   <span class="formula-label">Формула:</span>
-                  <span class="formula-expr">
+                  <span class="formula-expr" id="formula-expr">
                     <em>m</em><sub>общ</sub> = <em>m</em><sub>бр</sub> + <em>m</em><sub>гр</sub>,
                     <em>N</em> = <em>m</em><sub>общ</sub> · <em>g</em>,
                     <em>μ</em> = <em>F</em><sub>тр</sub> / <em>N</em>
                   </span>
-                  <span class="formula-units">массу — в кг, <em>g</em> = 9,8 м/с²</span>
+                  <span class="formula-units" id="formula-units">массу — в кг, <em>g</em> = 9,8 м/с²</span>
                 </div>
 
+                <!-- §21 — журнал v2: контейнер для shared `renderJournalTable`
+                     (FRICTION_SPEC для A/C/D, FRICTION_WORK_SPEC для B). -->
+                <div id="journal-host" class="journal-host" hidden></div>
+
+                <!-- §21.10 — pending-плашка для semi-auto (видна когда ready && signature changed). -->
+                <div id="record-pending-slot" class="record-pending-slot" hidden>
+                  <button id="record-pending-btn" class="record-pending-btn" type="button">
+                    Записать в журнал <span id="record-pending-summary"></span>
+                  </button>
+                </div>
+
+                <!-- LEGACY: fallback таблица v1, скрыта если используется journal-host (v2). -->
                 <table class="journal-table" id="journal-table" hidden>
                   <thead>
                     <tr>
