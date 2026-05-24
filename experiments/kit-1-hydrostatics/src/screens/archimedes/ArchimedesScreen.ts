@@ -11,9 +11,12 @@ import { ArchimedesExperiment } from './ArchimedesExperiment';
 import { archimedesMeta } from './meta';
 import templateHtml from './template.html?raw';
 import type { LabJournal } from '../../ui/components/lab-journal';
+import type { LabGraph } from '../../ui/components/lab-graph';
 // Side-effect import — регистрирует <lab-toast> в customElements (для
 // undo-toast уведомлений из оркестратора). 6c.
 import '../../ui/components/lab-toast';
+// Опыт 1.4: регистрируем <lab-graph> (на случай если main.ts не подгружен — тесты).
+import '../../ui/components/lab-graph';
 
 export class ArchimedesScreen implements IScreen {
   readonly meta = archimedesMeta;
@@ -50,6 +53,11 @@ export class ArchimedesScreen implements IScreen {
       journal: host.querySelector<LabJournal>('#ar-journal')!,
       // §21: shared journal-host (рядом с lab-journal data-store).
       journalHost: host.querySelector<HTMLElement>('#ar-journal-host')!,
+      // Опыт 1.4: тумблер жидкости, группа реактивов, график.
+      liquidToggle: host.querySelector<HTMLElement>('#ar-liquid-toggle')!,
+      reagentsGroup: host.querySelector<HTMLElement>('#ar-reagents-group')!,
+      graphWrap: host.querySelector<HTMLElement>('#ar-graph-wrap')!,
+      graph: host.querySelector<LabGraph>('#ar-graph')!,
       liveRegion: host.querySelector<HTMLElement>('#ar-live-region')!,
       equipmentCards: Array.from(
         host.querySelectorAll<HTMLElement>('lab-equipment-card[data-eq]'),

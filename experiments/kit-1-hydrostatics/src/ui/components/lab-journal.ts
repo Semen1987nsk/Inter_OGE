@@ -45,7 +45,17 @@ export interface JournalRow {
   F_A_theor_N: number;
   /** (F_meas − F_theor) / F_theor × 100, %. null если F_meas null. */
   delta_pct: number | null;
-  context: { cylinder_id: string; liquid: 'water'; V_water_ml: number };
+  /**
+   * Контекст строки. `liquid` = вода (1.2) или раствор (1.4). Для раствора
+   * `rho_kg_m3` хранит фактическую плотность на момент записи (из salt-flow) —
+   * по ней строится журнал 1.4 (ARCHIMEDES_LIQUID_SPEC) и график F_арх(ρ).
+   */
+  context: {
+    cylinder_id: string;
+    liquid: 'water' | 'solution';
+    V_water_ml: number;
+    rho_kg_m3?: number;
+  };
   timestamp: number;
 }
 

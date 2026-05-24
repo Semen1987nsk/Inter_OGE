@@ -15,6 +15,14 @@
       <div class="archimedes-hint" id="ar-hint" aria-live="polite">
         Перетащите динамометр на сцену, затем подвесьте цилиндр на его крючок.
       </div>
+      <!-- Опыт 1.4: режим жидкости. «Вода» = опыт 1.2 (без изменений),
+           «Раствор» = опыт 1.4 (доступна соль, журнал ρ/F_теор, график F_арх(ρ)). -->
+      <div class="ar-liquid-toggle" id="ar-liquid-toggle" role="group" aria-label="Жидкость для опыта">
+        <button type="button" class="ar-liquid-btn" data-liquid-mode="water"
+                data-state="active" aria-pressed="true">Вода</button>
+        <button type="button" class="ar-liquid-btn" data-liquid-mode="solution"
+                aria-pressed="false">Раствор</button>
+      </div>
       <button id="ar-reset-btn" class="archimedes-reset-btn" type="button"
               aria-label="Сбросить опыт" title="Сбросить опыт 1.2">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
@@ -103,7 +111,7 @@
       <div class="ar-mount ar-mount--beaker"
            id="ar-beaker-host"
            hidden
-           data-dropzone="dynamometer-1,dynamometer-2,cyl-1,cyl-2,cyl-3,cyl-4"
+           data-dropzone="dynamometer-1,dynamometer-2,cyl-1,cyl-2,cyl-3,cyl-4,salt"
            data-dropzone-id="ar-beaker"
            data-drop-active="false"
            data-drop-hover="false">
@@ -149,6 +157,11 @@
              ARCHIMEDES_SPEC. Ученик в semi-auto вводит F_A_изм и Δ
              в input'ы, ✓ проверяет. -->
         <div id="ar-journal-host" class="ar-journal-host"></div>
+        <!-- Опыт 1.4: график F_арх(ρ). Виден только в режиме «Раствор» при ≥2 точках. -->
+        <div id="ar-graph-wrap" class="ar-graph-wrap" hidden>
+          <h3 class="ar-graph-title">График F<sub>арх</sub>(ρ) — прямая пропорция</h3>
+          <lab-graph id="ar-graph"></lab-graph>
+        </div>
         <!-- lab-journal остаётся скрытым data-store: rows для CSV/PDF
              экспорта и getJournalRows() API. Визуально не показывается
              (CSS `display: none` в archimedes-experiment.css §21). -->
@@ -219,6 +232,20 @@
           data-eq="beaker" data-draggable="beaker"
           data-dropzone="beaker" data-dropzone-id="card-beaker">
           <lab-beaker level="0"></lab-beaker>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <!-- Реактивы — видны только в режиме «Раствор» (опыт 1.4). Оркестратор
+         показывает/скрывает группу через #renderLiquidMode. -->
+    <section class="equipment-group" id="ar-reagents-group" hidden>
+      <h3 class="equipment-group-title">Реактивы</h3>
+      <p class="equipment-group-hint">Бросьте соль в стакан с водой и перемешайте — раствор станет плотнее.</p>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card title="Соль (NaCl)" status="available"
+          data-eq="salt" data-draggable="salt"
+          data-dropzone="salt" data-dropzone-id="card-salt">
+          <lab-salt-set></lab-salt-set>
         </lab-equipment-card>
       </div>
     </section>

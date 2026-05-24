@@ -82,8 +82,8 @@ export const ARCHIMEDES_CYLINDER_BY_ID: ReadonlyMap<
   ArchimedesCylinderSpec
 > = new Map(ARCHIMEDES_CYLINDERS.map((c) => [c.id, c]));
 
-/** Идентификатор жидкости. В 1.2 доступна только вода. */
-export type LiquidId = 'water';
+/** Идентификатор жидкости. 1.2 — вода; 1.4 — соляной раствор. */
+export type LiquidId = 'water' | 'solution';
 
 /** Спецификация жидкости. */
 export interface LiquidSpec {
@@ -92,11 +92,40 @@ export interface LiquidSpec {
   readonly name: string;
 }
 
-/** Жидкости опыта 1.2 — только пресная вода. */
-export const LIQUIDS: { readonly water: LiquidSpec } = {
+/** Плотность пресной воды (кг/м³). */
+export const WATER_RHO_KG_M3 = 1000 as const;
+/** Прирост плотности за одну порцию соли (кг/м³). */
+export const SALT_PORTION_DELTA_RHO = 70 as const;
+/** Плотность насыщенного раствора NaCl ~20°C (кг/м³) — потолок. */
+export const SATURATED_RHO_KG_M3 = 1200 as const;
+
+/** Жидкости: вода (1.2) + соляной раствор (1.4, при насыщении). */
+export const LIQUIDS: { readonly water: LiquidSpec; readonly solution: LiquidSpec } = {
   water: {
     id: 'water',
-    rho_kg_m3: 1000,
+    rho_kg_m3: WATER_RHO_KG_M3,
     name: 'Вода',
   },
+  solution: {
+    id: 'solution',
+    rho_kg_m3: SATURATED_RHO_KG_M3,
+    name: 'Солёный раствор',
+  },
 };
+
+/**
+ * Плотность раствора по числу добавленных порций соли (опыт 1.4).
+ * 0 порций = вода (1000); каждая порция +70 кг/м³; потолок — насыщение 1200.
+ * Симуляционная аппроксимация: ФИПИ точное ρ не задаёт (ученик готовит раствор сам).
+ * Дробные порции округляются вниз (порция дискретна), мусорный ввод → вода.
+ */
+export function liquidRhoFromSaltPortions(portions: number): number {
+  if (!Number.isFinite(portions) || portions <= 0) return WATER_RHO_KG_M3;
+  const rho = WATER_RHO_KG_M3 + Math.floor(portions) * SALT_PORTION_DELTA_RHO;
+  return Math.min(SATURATED_RHO_KG_M3, rho);
+}
+
+/** Раствор насыщен — дальнейшие порции соли не растворяются. */
+export function isSaturated(portions: number): boolean {
+  return liquidRhoFromSaltPortions(portions) >= SATURATED_RHO_KG_M3;
+}
