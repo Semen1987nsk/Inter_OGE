@@ -244,7 +244,6 @@ function buildShadowHTML(
     <div
       part="card"
       class="card ${stateClass}"
-      role="button"
       tabindex="-1"
       style="${photoStyle}"
     >

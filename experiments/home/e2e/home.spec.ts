@@ -43,12 +43,11 @@ test('поиск «пружин» открывает drawer кита 2', async (
 });
 
 test('кнопка запуска ведёт на kit-2 с screen= и role=', async ({ page }) => {
-  // Click first poster (kit-2 «Силы и движение»)
-  await page.locator('kit-poster').first().click();
+  // Click kit-2 poster explicitly («Силы и движение»)
+  await page.locator('kit-poster[num="2"]').click();
   await expect(page.locator('dialog[open]')).toBeVisible();
   // Launch links are <a class="launch-link"> inside drawer's shadow DOM
-  // data-experiment is on the <li>, not the <a>; use class selector instead
-  const href = await page.locator('dialog[open] a.launch-link').first().getAttribute('href');
+  const href = await page.locator('dialog[open] .launch-link').first().getAttribute('href');
   expect(href).toContain('kit-2-forces');
   expect(href).toContain('screen=');
 });
