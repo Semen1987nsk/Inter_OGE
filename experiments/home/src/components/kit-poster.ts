@@ -89,8 +89,7 @@ function buildShadowHTML(
         outline: none;
         /* Spine accent */
         box-shadow: inset 4px 0 0 0 var(--kit-accent, ${BRAND_BLUE});
-        transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1),
-                    box-shadow 250ms cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
         transform-style: preserve-3d;
       }
 
@@ -288,6 +287,8 @@ class KitPoster extends HTMLElement {
   private _handleKeydown: ((e: KeyboardEvent) => void) | null = null;
   private _handleMouseenter: (() => void) | null = null;
   private _handleMouseleave: (() => void) | null = null;
+  private _handleFocusin: (() => void) | null = null;
+  private _handleFocusout: (() => void) | null = null;
 
   constructor() {
     super();
@@ -351,6 +352,8 @@ class KitPoster extends HTMLElement {
     if (this._handleKeydown) this._card.removeEventListener('keydown', this._handleKeydown);
     if (this._handleMouseenter) this._card.removeEventListener('mouseenter', this._handleMouseenter);
     if (this._handleMouseleave) this._card.removeEventListener('mouseleave', this._handleMouseleave);
+    if (this._handleFocusin) this._card.removeEventListener('focusin', this._handleFocusin);
+    if (this._handleFocusout) this._card.removeEventListener('focusout', this._handleFocusout);
   }
 
   private _bindEvents(): void {
@@ -374,11 +377,23 @@ class KitPoster extends HTMLElement {
         this._card.style.willChange = '';
       }
     };
+    this._handleFocusin = () => {
+      if (this._card && !this._isPlanned) {
+        this._card.style.willChange = 'transform';
+      }
+    };
+    this._handleFocusout = () => {
+      if (this._card) {
+        this._card.style.willChange = '';
+      }
+    };
 
     this._card.addEventListener('click', this._handleClick);
     this._card.addEventListener('keydown', this._handleKeydown);
     this._card.addEventListener('mouseenter', this._handleMouseenter);
     this._card.addEventListener('mouseleave', this._handleMouseleave);
+    this._card.addEventListener('focusin', this._handleFocusin);
+    this._card.addEventListener('focusout', this._handleFocusout);
   }
 
   private _activate(): void {
