@@ -38,7 +38,7 @@ describe('GridKeyboardController', () => {
 
   beforeEach(() => {
     container = document.createElement('div');
-    container.setAttribute('role', 'grid');
+    container.setAttribute('role', 'group');
     items = Array.from({ length: 7 }, (_, i) => {
       const el = document.createElement('div');
       el.setAttribute('tabindex', i === 0 ? '0' : '-1');

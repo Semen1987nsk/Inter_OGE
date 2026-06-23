@@ -1,7 +1,7 @@
 /**
  * role-switch.ts — переключатель «Ученик / Учитель».
  *
- * Attrs:  role (student|teacher) — начальная роль, отражается
+ * Attrs:  data-role (student|teacher) — начальная роль, отражается
  * Events: role-change {bubbles, composed, detail:{role}} — при смене роли
  * Side effect: document.body.dataset.role = 'student'|'teacher'
  * A11y: WAI-ARIA tablist, roving tabindex, ArrowLeft/Right

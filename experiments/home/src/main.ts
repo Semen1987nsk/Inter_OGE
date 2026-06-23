@@ -233,6 +233,7 @@ function buildPosterWall(
     poster.setAttribute('done', String(kit.progress.done));
     poster.setAttribute('total', String(kit.progress.total));
     poster.style.setProperty('--kit-glow', kit.accent);
+    poster.style.setProperty('--kit-accent', kit.accent);
 
     poster.addEventListener('poster-activate', (e) => {
       onActivate(kit, poster);
