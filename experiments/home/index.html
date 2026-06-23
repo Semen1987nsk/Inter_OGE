@@ -3,33 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="description" content="ЛАБОСФЕРА — виртуальная лаборатория физики ОГЭ-2026." />
+  <meta name="description" content="ЛАБОСФЕРА — комплект виртуального оборудования для подготовки к ОГЭ по физике: интерактивные опыты по спецификации ФИПИ-2026." />
   <meta name="theme-color" content="#06101e" />
-  <title>ЛАБОСФЕРА — Виртуальная лаборатория</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
-    rel="stylesheet"
-  />
+  <title>ЛАБОСФЕРА — Комплект виртуального оборудования для ОГЭ по физике</title>
 
   <link rel="icon" type="image/png" href="/photos/logo.png" />
 </head>
 <body>
-  <main id="app" class="stub">
-    <div class="stub-card">
-      <span class="stub-eyebrow">ЛАБОСФЕРА · v0.3</span>
-      <h1 class="stub-title">Лаунчер «постер-стена» в&nbsp;разработке</h1>
-      <p class="stub-progress" data-progress-slot>— / — опытов</p>
-      <p class="stub-meta">
-        Эталон концепции —
-        <a href="../../launcher/mockup.html">launcher/mockup.html</a>.<br>
-        Реализация в этой папке: следующий коммит (E1).
-      </p>
-    </div>
-  </main>
-
+  <div class="atmosphere" aria-hidden="true"></div>
+  <header class="topbar" data-shell="topbar"></header>
+  <div class="app">
+    <aside class="sidebar" data-shell="sidebar" aria-label="Фильтры каталога"></aside>
+    <main class="main" data-shell="main"></main>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
