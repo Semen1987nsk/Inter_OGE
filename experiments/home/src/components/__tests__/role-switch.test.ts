@@ -151,4 +151,36 @@ describe('<role-switch>', () => {
     (tabs(el)[1] as HTMLElement).click();
     expect((el as any).role).toBe('teacher');
   });
+
+  // ── Enter/Space активация (keyboard) ────────────────────────────────────────
+
+  it('Enter на кнопке «Учитель» → teacher выбран и role-change fired', () => {
+    const el = make();
+    const teacherBtn = tabs(el)[1] as HTMLElement;
+    let detail: { role: string } | null = null;
+    el.addEventListener('role-change', (e: Event) => {
+      detail = (e as CustomEvent<{ role: string }>).detail;
+    });
+    teacherBtn.focus();
+    teacherBtn.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(tabs(el)[1]!.getAttribute('aria-selected')).toBe('true');
+    expect(tabs(el)[0]!.getAttribute('aria-selected')).toBe('false');
+    expect(detail).not.toBeNull();
+    expect(detail!.role).toBe('teacher');
+  });
+
+  it('Space на кнопке «Учитель» → teacher выбран и role-change fired', () => {
+    const el = make();
+    const teacherBtn = tabs(el)[1] as HTMLElement;
+    let detail: { role: string } | null = null;
+    el.addEventListener('role-change', (e: Event) => {
+      detail = (e as CustomEvent<{ role: string }>).detail;
+    });
+    teacherBtn.focus();
+    teacherBtn.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(tabs(el)[1]!.getAttribute('aria-selected')).toBe('true');
+    expect(tabs(el)[0]!.getAttribute('aria-selected')).toBe('false');
+    expect(detail).not.toBeNull();
+    expect(detail!.role).toBe('teacher');
+  });
 });

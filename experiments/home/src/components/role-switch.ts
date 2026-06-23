@@ -154,6 +154,13 @@ class RoleSwitch extends HTMLElement {
       e.preventDefault();
       const prev = ROLES[(idx - 1 + ROLES.length) % ROLES.length] as Role;
       this._select(prev);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const focused = this._root.activeElement as HTMLElement | null;
+      const role = focused?.dataset['role'] as Role | undefined;
+      if (role && role !== this._current) {
+        e.preventDefault();
+        this._select(role);
+      }
     }
   };
 
