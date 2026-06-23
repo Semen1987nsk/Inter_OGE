@@ -133,8 +133,8 @@ describe('<role-switch>', () => {
 
   // ── Атрибут role (initial) ───────────────────────────────────────────────────
 
-  it('атрибут role=teacher → teacher выбран по умолчанию', () => {
-    const el = make({ role: 'teacher' });
+  it('атрибут data-role=teacher → teacher выбран по умолчанию', () => {
+    const el = make({ 'data-role': 'teacher' });
     expect(tabs(el)[1]!.getAttribute('aria-selected')).toBe('true');
     expect(tabs(el)[0]!.getAttribute('aria-selected')).toBe('false');
   });

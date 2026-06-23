@@ -9,7 +9,7 @@ describe('app-shell', () => {
     renderApp(root);
     expect(root.querySelectorAll('kit-poster').length).toBe(7);
     expect(root.textContent).toContain('ЛАБОСФЕРА');
-    expect(root.querySelector('[role=grid]')).toBeTruthy();
+    expect(root.querySelector('[role=group][aria-label="Комплекты ОГЭ по физике"]')).toBeTruthy();
   });
 
   it('применяет live-фильтр readyOnly (видны 2 постера)', () => {
