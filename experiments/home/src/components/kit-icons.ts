@@ -122,24 +122,6 @@ const ICON_ELECTRIC = `
 </svg>
 `;
 
-/** Kit-6 — Магнетизм: магнит с силовыми линиями. */
-const ICON_MAGNETIC = `
-<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" class="kit-icon-svg" aria-hidden="true">
-  ${COMMON_DEFS}
-  <!-- U-магнит -->
-  <path d="M22 16 L22 56 Q22 64 30 64 L34 64 L34 16 Z"
-        fill="url(#grad-gold)" stroke="#ffbe0b" stroke-width="1.6" stroke-linejoin="round"/>
-  <path d="M46 16 L46 64 L50 64 Q58 64 58 56 L58 16 Z"
-        fill="rgba(20,184,166,0.6)" stroke="#14b8a6" stroke-width="1.6" stroke-linejoin="round"/>
-  <!-- Силовые линии (анимируются flux) -->
-  <g class="kit-icon-flux" fill="none" stroke="currentColor" stroke-width="1" opacity="0.6">
-    <path d="M30 14 Q40 4 50 14"/>
-    <path d="M28 24 Q40 12 52 24"/>
-    <path d="M28 66 Q40 78 52 66"/>
-    <path d="M30 56 Q40 70 50 56"/>
-  </g>
-</svg>
-`;
 
 /** Kit-7 — Колебания: маятник на нити, размах туда-сюда. */
 const ICON_OSCILLATION = `
@@ -169,7 +151,10 @@ const ICONS_BY_KIT: Readonly<Record<number, string>> = {
   3: ICON_ELECTRIC,
   4: ICON_OPTICS,
   5: ICON_OSCILLATION,
-  6: ICON_MAGNETIC,
+  // Kit 6 — «Рычаги и блоки» (mechanics). No lever/pulley icon exists yet;
+  // using ICON_FORCES (spring+weight) as the closest mechanical icon.
+  // TODO: add a dedicated lever/pulley SVG icon for kit-6.
+  6: ICON_FORCES,
   7: ICON_THERMAL,
 };
 

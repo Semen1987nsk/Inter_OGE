@@ -184,7 +184,10 @@ function buildResumeStrip(currentRole: () => Role): HTMLElement {
 
   const target = resumeTarget(KITS, {});
   const kit = KITS.find(k => k.num === target.kitNum);
-  if (!kit) return strip;
+
+  // Do not show "Продолжить" for a fully-completed kit (remaining <= 0).
+  // Fresh users (isFresh=true) always get "Начать с Комплекта №1".
+  if (!kit || (!target.isFresh && target.remaining <= 0)) return strip;
 
   const label = target.isFresh
     ? `Начать с Комплекта №${target.kitNum}`
@@ -319,10 +322,18 @@ export function renderApp(root: HTMLElement): void {
   // Apply initial filter
   applyFilter(visibleKitNums(KITS, filterState));
 
-  // Sidebar
+  // Keyboard grid navigation — declared early so sidebar filter can call setItems.
+  const visiblePosters = (): HTMLElement[] =>
+    posters.filter(p => !p.hasAttribute('data-hidden'));
+
+  // Auto-cols via ResizeObserver (no fixedCols passed); items kept live after filter.
+  const keyboardCtrl = new GridKeyboardController(grid, visiblePosters());
+
+  // Sidebar — filter change re-syncs keyboard nav item set.
   const sidebar = buildSidebar((state) => {
     filterState = state;
     applyFilter(visibleKitNums(KITS, filterState));
+    keyboardCtrl.setItems(visiblePosters());
   });
 
   // Topbar (search wired to highlight/open first hit)
@@ -356,12 +367,6 @@ export function renderApp(root: HTMLElement): void {
   shellInner.append(sidebar, main);
 
   root.append(topbar, shellInner);
-
-  // Keyboard grid navigation
-  const visiblePosters = (): HTMLElement[] =>
-    posters.filter(p => !p.hasAttribute('data-hidden'));
-
-  new GridKeyboardController(grid, visiblePosters(), 3);
 
   // Dynamic tilt
   attachTilt(grid, posters);

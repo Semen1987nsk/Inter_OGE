@@ -78,4 +78,35 @@ describe('GridKeyboardController', () => {
     expect(items[6]!.getAttribute('tabindex')).toBe('0');
     expect(items[0]!.getAttribute('tabindex')).toBe('-1');
   });
+
+  it('setItems updates navigable set; roving tabindex resets to new first item', () => {
+    // Simulate filtering: keep only items 0, 1, 2 (first 3)
+    const subset = items.slice(0, 3);
+    controller.setItems(subset);
+
+    // First item of new set should have tabindex=0
+    expect(subset[0]!.getAttribute('tabindex')).toBe('0');
+    expect(subset[1]!.getAttribute('tabindex')).toBe('-1');
+    expect(subset[2]!.getAttribute('tabindex')).toBe('-1');
+
+    // Items outside new set keep whatever tabindex they had (not managed anymore)
+    // — most important: navigation now wraps within new set only
+    subset[0]!.focus();
+    const rightEvent = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true });
+    container.dispatchEvent(rightEvent);
+    expect(subset[1]!.getAttribute('tabindex')).toBe('0');
+    expect(subset[0]!.getAttribute('tabindex')).toBe('-1');
+
+    // ArrowLeft from first should wrap to last of new set (index 2)
+    subset[0]!.focus();
+    // Reset active to 0 via internal state (focus item[0] and move back via Left)
+    // First move back to item 0 being "active"
+    controller.setItems(subset);
+    subset[0]!.focus();
+    const leftEvent = new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true });
+    container.dispatchEvent(leftEvent);
+    // With 3 items: index 0 ArrowLeft → wraps to index 2
+    expect(subset[2]!.getAttribute('tabindex')).toBe('0');
+    expect(subset[0]!.getAttribute('tabindex')).toBe('-1');
+  });
 });

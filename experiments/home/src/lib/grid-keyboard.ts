@@ -115,6 +115,16 @@ export class GridKeyboardController {
     this._container.removeEventListener('keydown', this._onKeydown);
   }
 
+  /**
+   * Update the navigable item set (e.g. after filtering hides posters).
+   * Resets roving tabindex to the first item so focus never lands on a hidden cell.
+   */
+  setItems(items: HTMLElement[]): void {
+    this._items = items;
+    this._active = 0;
+    this._applyTabindex(0);
+  }
+
   private _computeCols(): number {
     const first = this._items[0];
     if (!first) return 1;

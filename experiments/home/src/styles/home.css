@@ -124,7 +124,7 @@ body {
   font-size: 0.875rem;
   padding: 7px 14px;
   outline: none;
-  transition: border-color var(--dur-snap) ease, box-shadow var(--dur-snap) ease;
+  /* border-color and box-shadow are intentionally not transitioned (animate only transform/opacity) */
 }
 
 .search-input::placeholder {
@@ -289,7 +289,7 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
-  transition: background var(--dur-snap) ease, color var(--dur-snap) ease;
+  /* background/color transitions removed; only transform/opacity should be animated */
 }
 
 .resume-btn:hover {
