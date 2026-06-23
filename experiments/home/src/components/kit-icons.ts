@@ -158,14 +158,19 @@ const ICON_OSCILLATION = `
 </svg>
 `;
 
+// Mapping fixed to match kits.ts categories:
+// Kit 1 = Гидростатика (mechanics), Kit 2 = Силы (mechanics, flagship),
+// Kit 3 = Электрические цепи (electricity), Kit 4 = Оптика (optics),
+// Kit 5 = Колебания и волны (mechanics), Kit 6 = Рычаги и блоки (mechanics),
+// Kit 7 = Тепловые явления (thermal)
 const ICONS_BY_KIT: Readonly<Record<number, string>> = {
   1: ICON_HYDROSTATICS,
   2: ICON_FORCES,
-  3: ICON_OPTICS,
-  4: ICON_THERMAL,
-  5: ICON_ELECTRIC,
+  3: ICON_ELECTRIC,
+  4: ICON_OPTICS,
+  5: ICON_OSCILLATION,
   6: ICON_MAGNETIC,
-  7: ICON_OSCILLATION,
+  7: ICON_THERMAL,
 };
 
 /** Получить inline SVG-строку для иконки конкретного kit'а. */
