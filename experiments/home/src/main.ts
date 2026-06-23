@@ -10,6 +10,7 @@
  * Источник данных: ./data/kits.ts (актуальный на 2026-05-15).
  */
 
+import './styles/fonts.css';
 import './styles/tokens.css';
 import './styles/reset.css';
 import './styles/home.css';
