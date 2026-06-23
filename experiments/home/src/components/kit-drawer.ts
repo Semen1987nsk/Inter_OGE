@@ -73,18 +73,22 @@ function buildHTML(kit: Kit, role: Role): string {
       :host { display: contents; }
 
       dialog {
+        /* Right-docked full-height panel */
         position: fixed;
-        inset: 0;
-        margin: auto;
-        width: min(560px, 96vw);
-        max-height: 90dvh;
+        inset: 0 0 0 auto;
+        margin: 0 0 0 auto;
+        width: min(460px, 100vw);
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
         border: none;
-        border-radius: 16px;
+        border-radius: 16px 0 0 16px;
         padding: 0;
         background: #0d1b2a;
         color: #e8eaf0;
         overflow: hidden;
-        box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+        box-shadow: -8px 0 40px rgba(0,0,0,0.55), -1px 0 0 rgba(255,255,255,0.06);
       }
 
       dialog::backdrop {
@@ -92,10 +96,28 @@ function buildHTML(kit: Kit, role: Role): string {
         backdrop-filter: blur(4px);
       }
 
+      /* Slide-in from right */
+      @media (prefers-reduced-motion: no-preference) {
+        dialog {
+          animation: drawer-slide-in 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        @keyframes drawer-slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0.6;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      }
+
       .drawer-inner {
         display: flex;
         flex-direction: column;
-        max-height: 90dvh;
+        height: 100%;
         overflow: hidden;
       }
 
@@ -110,7 +132,7 @@ function buildHTML(kit: Kit, role: Role): string {
         font-family: 'JetBrains Mono', monospace;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        color: rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.55);
         margin: 0 0 6px;
       }
 

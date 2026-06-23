@@ -85,6 +85,8 @@ function buildShadowHTML(
         background: ${GRAPHITE} ${photoStyle};
         background-size: cover;
         background-position: center;
+        /* Subtle photo treatment: desaturate slightly, dim, boost contrast so white bg → graphite */
+        filter: saturate(0.88) brightness(0.82) contrast(1.06);
         text-align: left;
         outline: none;
         /* Spine accent */
@@ -108,20 +110,30 @@ function buildShadowHTML(
         z-index: 5;
       }
 
-      /* Scrim gradient (bottom ~55%) */
+      /* Full-photo graphite wash — tones white/light backgrounds to dark graphite */
+      .photo-wash {
+        position: absolute;
+        inset: 0;
+        border-radius: var(--_radius);
+        background: rgba(6, 16, 30, 0.52);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      /* Stronger bottom scrim for number/title legibility */
       .scrim {
         position: absolute;
         inset: 0;
         border-radius: var(--_radius);
         background: linear-gradient(
           to top,
-          rgba(6, 16, 30, 0.95) 0%,
-          rgba(6, 16, 30, 0.7) 30%,
-          rgba(6, 16, 30, 0.1) 55%,
+          rgba(6, 16, 30, 0.97) 0%,
+          rgba(6, 16, 30, 0.82) 35%,
+          rgba(6, 16, 30, 0.3) 60%,
           transparent 100%
         );
         pointer-events: none;
-        z-index: 1;
+        z-index: 2;
       }
 
       /* Progress ring centered absolutely */
@@ -130,7 +142,7 @@ function buildShadowHTML(
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 2;
+        z-index: 3;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -141,7 +153,7 @@ function buildShadowHTML(
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        z-index: 3;
+        z-index: 4;
         font-family: 'JetBrains Mono', monospace;
         font-size: 2rem;
         font-weight: 700;
@@ -153,7 +165,7 @@ function buildShadowHTML(
 
       .content {
         position: relative;
-        z-index: 4;
+        z-index: 5;
         width: 100%;
         padding: 12px 14px 16px;
         display: flex;
@@ -181,7 +193,7 @@ function buildShadowHTML(
         position: absolute;
         top: 12px;
         right: 12px;
-        z-index: 3;
+        z-index: 4;
         width: 48px;
         height: 48px;
         pointer-events: none;
@@ -247,6 +259,7 @@ function buildShadowHTML(
       tabindex="-1"
       style="${photoStyle}"
     >
+      <div class="photo-wash" aria-hidden="true"></div>
       <div class="scrim"></div>
 
       <div class="ring-wrap">
