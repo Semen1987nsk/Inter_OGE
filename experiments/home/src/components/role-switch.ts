@@ -86,7 +86,7 @@ function buildShadow(selected: Role): string {
 
 class RoleSwitch extends HTMLElement {
   static get observedAttributes(): string[] {
-    return ['role'];
+    return ['data-role'];
   }
 
   private _root: ShadowRoot;
@@ -98,7 +98,7 @@ class RoleSwitch extends HTMLElement {
   }
 
   connectedCallback(): void {
-    const attr = this.getAttribute('role');
+    const attr = this.getAttribute('data-role');
     if (attr === 'teacher') {
       this._current = 'teacher';
     } else {

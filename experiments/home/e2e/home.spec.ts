@@ -10,7 +10,7 @@ test('заголовок ребрендирован', async ({ page }) => {
 
 test('клавиатура: Tab в сетку, стрелка двигает фокус, Enter открывает drawer', async ({ page }) => {
   // Click into the page first to establish focus context, then focus the first poster host.
-  const grid = page.locator('[role=grid]');
+  const grid = page.locator('[role=group][aria-label]');
   const firstPoster = grid.locator('kit-poster').first();
   await firstPoster.focus();
 

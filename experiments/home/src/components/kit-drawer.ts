@@ -181,7 +181,9 @@ function buildHTML(kit: Kit, role: Role): string {
       }
 
       .exp-item--planned {
-        opacity: 0.45;
+        /* Mute background only — keep text color at full contrast */
+        background: rgba(255,255,255,0.01);
+        border-color: rgba(255,255,255,0.04);
       }
 
       .dot {
@@ -219,7 +221,8 @@ function buildHTML(kit: Kit, role: Role): string {
         border-radius: 8px;
         background: rgba(58, 134, 255, 0.15);
         border: 1px solid rgba(58, 134, 255, 0.35);
-        color: #7eb3ff;
+        /* #a0c4ff: contrast ≥4.5:1 on rgba(58,134,255,0.15) over drawer bg */
+        color: #a0c4ff;
         text-decoration: none;
         font-size: 0.8rem;
         font-weight: 600;
@@ -264,7 +267,7 @@ function buildHTML(kit: Kit, role: Role): string {
 
         @keyframes fade-in {
           from { opacity: 0; }
-          to   { opacity: 0.45; }
+          to   { opacity: 1; }
         }
       }
     </style>

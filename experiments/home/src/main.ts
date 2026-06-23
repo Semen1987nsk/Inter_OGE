@@ -67,7 +67,6 @@ function buildTopbar(
   const searchWrap = el('div', { class: 'search-wrap' });
   const searchInput = el('input', {
     type: 'search',
-    role: 'searchbox',
     'aria-label': 'Поиск опытов',
     placeholder: 'Поиск опытов…',
     class: 'search-input',
@@ -80,7 +79,7 @@ function buildTopbar(
 
   // Role switch
   const roleSwitch = document.createElement('role-switch');
-  roleSwitch.setAttribute('role', 'student');
+  roleSwitch.setAttribute('data-role', 'student');
 
   // Action buttons (stubs)
   const btnJournal = el(
@@ -214,7 +213,7 @@ function buildPosterWall(
 ): { grid: HTMLElement; posters: HTMLElement[]; applyFilter: (nums: number[]) => void } {
   const grid = el('div', {
     class: 'poster-grid',
-    role: 'grid',
+    role: 'group',
     'aria-label': 'Комплекты ОГЭ по физике',
   });
 
