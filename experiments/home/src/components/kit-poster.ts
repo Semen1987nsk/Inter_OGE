@@ -222,11 +222,11 @@ function buildShadowHTML(
       /* Hover / focus / active — motion-safe only */
       @media (prefers-reduced-motion: no-preference) {
         .card:hover,
-        .card:focus-visible {
+        :host(:focus-visible) .card {
           transform: scale(1.04);
         }
         .card:hover::after,
-        .card:focus-visible::after {
+        :host(:focus-visible) .card::after {
           opacity: 1;
         }
         .card:active {
@@ -234,8 +234,8 @@ function buildShadowHTML(
         }
       }
 
-      /* Focus-visible ring */
-      .card:focus-visible {
+      /* Focus-visible ring on host, applied to card */
+      :host(:focus-visible) .card {
         outline: 2px solid ${AMBER};
         outline-offset: 3px;
       }
@@ -245,7 +245,7 @@ function buildShadowHTML(
       part="card"
       class="card ${stateClass}"
       role="button"
-      tabindex="0"
+      tabindex="-1"
       style="${photoStyle}"
     >
       <div class="scrim"></div>
@@ -283,8 +283,8 @@ class KitPoster extends HTMLElement {
 
   private _root: ShadowRoot;
   private _card: HTMLElement | null = null;
-  private _handleClick: (() => void) | null = null;
-  private _handleKeydown: ((e: KeyboardEvent) => void) | null = null;
+  private _handleHostClick: (() => void) | null = null;
+  private _handleHostKeydown: ((e: KeyboardEvent) => void) | null = null;
   private _handleMouseenter: (() => void) | null = null;
   private _handleMouseleave: (() => void) | null = null;
   private _handleFocusin: (() => void) | null = null;
@@ -300,6 +300,7 @@ class KitPoster extends HTMLElement {
     this._bindEvents();
     this._syncHostClass();
     this._syncAriaLabel();
+    this._syncHostRole();
   }
 
   disconnectedCallback(): void {
@@ -312,6 +313,7 @@ class KitPoster extends HTMLElement {
       this._bindEvents();
       this._syncHostClass();
       this._syncAriaLabel();
+      this._syncHostRole();
     }
   }
 
@@ -347,26 +349,29 @@ class KitPoster extends HTMLElement {
   // ── Events ─────────────────────────────────────────────────────────────────
 
   private _unbindEvents(): void {
-    if (!this._card) return;
-    if (this._handleClick) this._card.removeEventListener('click', this._handleClick);
-    if (this._handleKeydown) this._card.removeEventListener('keydown', this._handleKeydown);
-    if (this._handleMouseenter) this._card.removeEventListener('mouseenter', this._handleMouseenter);
-    if (this._handleMouseleave) this._card.removeEventListener('mouseleave', this._handleMouseleave);
-    if (this._handleFocusin) this._card.removeEventListener('focusin', this._handleFocusin);
-    if (this._handleFocusout) this._card.removeEventListener('focusout', this._handleFocusout);
+    if (this._handleHostClick) this.removeEventListener('click', this._handleHostClick);
+    if (this._handleHostKeydown) this.removeEventListener('keydown', this._handleHostKeydown);
+    if (this._card) {
+      if (this._handleMouseenter) this._card.removeEventListener('mouseenter', this._handleMouseenter);
+      if (this._handleMouseleave) this._card.removeEventListener('mouseleave', this._handleMouseleave);
+    }
+    if (this._handleFocusin) this.removeEventListener('focusin', this._handleFocusin);
+    if (this._handleFocusout) this.removeEventListener('focusout', this._handleFocusout);
   }
 
   private _bindEvents(): void {
     this._unbindEvents();
-    if (!this._card) return;
 
-    this._handleClick = () => this._activate();
-    this._handleKeydown = (e: KeyboardEvent) => {
+    // Activation on HOST (click bubbles from inner card; keydown fires on host when grid focuses it)
+    this._handleHostClick = () => this._activate();
+    this._handleHostKeydown = (e: KeyboardEvent) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         this._activate();
       }
     };
+
+    // Visual will-change hints — card handles mouse, host handles focus
     this._handleMouseenter = () => {
       if (this._card && !this._isPlanned) {
         this._card.style.willChange = 'transform';
@@ -388,12 +393,14 @@ class KitPoster extends HTMLElement {
       }
     };
 
-    this._card.addEventListener('click', this._handleClick);
-    this._card.addEventListener('keydown', this._handleKeydown);
-    this._card.addEventListener('mouseenter', this._handleMouseenter);
-    this._card.addEventListener('mouseleave', this._handleMouseleave);
-    this._card.addEventListener('focusin', this._handleFocusin);
-    this._card.addEventListener('focusout', this._handleFocusout);
+    this.addEventListener('click', this._handleHostClick);
+    this.addEventListener('keydown', this._handleHostKeydown);
+    if (this._card) {
+      this._card.addEventListener('mouseenter', this._handleMouseenter);
+      this._card.addEventListener('mouseleave', this._handleMouseleave);
+    }
+    this.addEventListener('focusin', this._handleFocusin);
+    this.addEventListener('focusout', this._handleFocusout);
   }
 
   private _activate(): void {
@@ -419,6 +426,11 @@ class KitPoster extends HTMLElement {
   private _syncHostClass(): void {
     this.classList.toggle('planned', this._isPlanned);
     this.classList.toggle('loading', this._status === 'loading');
+  }
+
+  private _syncHostRole(): void {
+    // Host is the single focusable/interactive target (grid controller manages tabindex on host)
+    this.setAttribute('role', 'button');
   }
 }
 

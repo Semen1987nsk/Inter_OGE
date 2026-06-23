@@ -9,25 +9,17 @@ test('заголовок ребрендирован', async ({ page }) => {
 });
 
 test('клавиатура: Tab в сетку, стрелка двигает фокус, Enter открывает drawer', async ({ page }) => {
-  // Focus the first poster's shadow card button via accessibility tree (pierces shadow DOM).
+  // Click into the page first to establish focus context, then focus the first poster host.
   const grid = page.locator('[role=grid]');
-  const firstPosterBtn = grid.getByRole('button').first();
-  await firstPosterBtn.focus();
+  const firstPoster = grid.locator('kit-poster').first();
+  await firstPoster.focus();
 
-  // ArrowRight: keydown fires on the shadow card, bubbles to the grid container (composed:true).
-  // The grid controller sees document.activeElement === kit-poster host, moves focus to next host.
+  // ArrowRight moves roving tabindex to the second poster host.
   await page.keyboard.press('ArrowRight');
 
-  // After ArrowRight the grid controller focuses the second kit-poster HOST (not its shadow card).
-  // Enter on the host doesn't propagate into the shadow card's keydown listener.
-  // Workaround: dispatch Enter directly to the shadow card of the currently active poster.
-  await page.evaluate(() => {
-    const active = document.querySelector('[role=grid] kit-poster[tabindex="0"]') as HTMLElement | null;
-    if (!active) throw new Error('no active poster');
-    const shadowCard = active.shadowRoot?.querySelector('[part=card]') as HTMLElement | null;
-    if (!shadowCard) throw new Error('no shadow card');
-    shadowCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true }));
-  });
+  // Enter on the focused kit-poster HOST — activation handlers are now on the host,
+  // so a real keypress opens the drawer without any page.evaluate workaround.
+  await page.keyboard.press('Enter');
 
   // Dialog is in kit-drawer shadow DOM — Playwright CSS selectors pierce shadow roots.
   await expect(page.locator('dialog[open]')).toBeVisible();

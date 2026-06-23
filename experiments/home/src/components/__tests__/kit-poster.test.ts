@@ -94,21 +94,59 @@ describe('<kit-poster>', () => {
     expect(caught).toBe(true);
   });
 
-  it('Enter на карточке эмитит poster-activate', () => {
+  it('Enter на HOST эмитит poster-activate (legacy: ранее тест был на карточке)', () => {
     const el = make({ num: '2', status: 'ready', title: 'Силы', done: '4', total: '4', photo: 'x.png' });
     let got = -1;
     el.addEventListener('poster-activate', (e: any) => { got = e.detail.num; });
-    const card = el.shadowRoot!.querySelector('[part=card],button') as HTMLElement;
-    card.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(got).toBe(2);
   });
 
-  it('Space на карточке эмитит poster-activate', () => {
+  it('Space на HOST эмитит poster-activate (legacy: ранее тест был на карточке)', () => {
     const el = make({ num: '2', status: 'ready', title: 'Силы', done: '4', total: '4', photo: 'x.png' });
     let got = -1;
     el.addEventListener('poster-activate', (e: any) => { got = e.detail.num; });
-    const card = el.shadowRoot!.querySelector('[part=card],button') as HTMLElement;
-    card.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
     expect(got).toBe(2);
+  });
+
+  // ── HOST-level keyboard tests (keyboard a11y: grid focuses HOST) ─────────────
+
+  it('Enter на HOST эмитит poster-activate с правильным num', () => {
+    const el = make({ num: '7', status: 'ready', title: 'Термодинамика', done: '1', total: '5', photo: 'x.png' });
+    let got = -1;
+    el.addEventListener('poster-activate', (e: any) => { got = e.detail.num; });
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(got).toBe(7);
+  });
+
+  it('Space на HOST эмитит poster-activate с правильным num', () => {
+    const el = make({ num: '7', status: 'ready', title: 'Термодинамика', done: '1', total: '5', photo: 'x.png' });
+    let got = -1;
+    el.addEventListener('poster-activate', (e: any) => { got = e.detail.num; });
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+    expect(got).toBe(7);
+  });
+
+  it('Enter на HOST planned-постере эмитит poster-info, не poster-activate', () => {
+    const el = make({ num: '8', status: 'planned', title: 'Оптика', done: '0', total: '6', photo: 'x.png' });
+    let activateFired = false;
+    let infoFired = false;
+    el.addEventListener('poster-activate', () => { activateFired = true; });
+    el.addEventListener('poster-info', () => { infoFired = true; });
+    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(activateFired).toBe(false);
+    expect(infoFired).toBe(true);
+  });
+
+  it('HOST имеет role=button', () => {
+    const el = make({ num: '1', status: 'ready', title: 'Гидростатика', done: '4', total: '5', photo: 'x.png' });
+    expect(el.getAttribute('role')).toBe('button');
+  });
+
+  it('внутренняя карточка имеет tabindex=-1 (не самостоятельный tab-stop)', () => {
+    const el = make({ num: '1', status: 'ready', title: 'Гидростатика', done: '4', total: '5', photo: 'x.png' });
+    const card = el.shadowRoot!.querySelector('[part=card]') as HTMLElement;
+    expect(card.getAttribute('tabindex')).toBe('-1');
   });
 });
