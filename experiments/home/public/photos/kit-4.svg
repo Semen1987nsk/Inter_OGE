@@ -1,0 +1,32 @@
+<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1b2d"/><stop offset="1" stop-color="#060f1d"/>
+    </linearGradient>
+    <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M22 0H0V22" fill="none" stroke="#16273e" stroke-width="1"/>
+    </pattern>
+    <pattern id="grid5" width="110" height="110" patternUnits="userSpaceOnUse">
+      <path d="M110 0H0V110" fill="none" stroke="#1d3149" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+  <rect width="300" height="400" fill="url(#bg)"/>
+  <rect width="300" height="330" fill="url(#grid)" opacity="0.6"/>
+  <rect width="300" height="330" fill="url(#grid5)" opacity="0.7"/>
+<line x1="30" y1="180" x2="285" y2="180" stroke="#7588a0" stroke-width="1.6" stroke-dasharray="5 5"/>
+<path d="M150 112 Q176 180 150 248 Q124 180 150 112 Z" fill="rgba(255,255,255,0.05)" stroke="#d6e1f0" stroke-width="2.6"/>
+<line x1="150" y1="104" x2="150" y2="112" stroke="#d6e1f0" stroke-width="2"/>
+<line x1="150" y1="248" x2="150" y2="256" stroke="#d6e1f0" stroke-width="2"/>
+<g stroke="#a855f7" stroke-width="2.4" stroke-linecap="round">
+  <line x1="44" y1="140" x2="150" y2="140"/><line x1="44" y1="220" x2="150" y2="220"/><line x1="44" y1="180" x2="150" y2="180"/>
+</g>
+<g fill="#a855f7"><path d="M104 136 l8 4 -8 4 z"/><path d="M104 216 l8 4 -8 4 z"/></g>
+<g stroke="#a855f7" stroke-width="2.4" stroke-linecap="round">
+  <line x1="150" y1="140" x2="226" y2="180"/><line x1="150" y1="220" x2="226" y2="180"/><line x1="150" y1="180" x2="258" y2="180"/>
+</g>
+<circle cx="226" cy="180" r="4.5" fill="#ffbe0b"/>
+<text x="222" y="201" fill="#ffbe0b" font-family="'JetBrains Mono',monospace" font-size="13" font-weight="700">F</text>
+<line x1="74" y1="174" x2="74" y2="186" stroke="#7588a0" stroke-width="2"/>
+<text x="63" y="170" fill="#7588a0" font-family="'JetBrains Mono',monospace" font-size="11">2F</text>
+</svg>
