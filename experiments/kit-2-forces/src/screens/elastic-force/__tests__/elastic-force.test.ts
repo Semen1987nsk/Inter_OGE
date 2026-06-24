@@ -9,6 +9,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ElasticForceScreen } from '../ElasticForceScreen';
+import type { ElasticForceExperiment } from '../ElasticForceExperiment';
+import { massToForce } from '@physics/spring/SpringModel';
 
 // ─── Мок Web Components (happy-dom не регистрирует lab-* компоненты) ──
 
@@ -86,5 +88,35 @@ describe('ElasticForceScreen', () => {
     expect(journalEmpty?.hasAttribute('hidden')).toBe(false);
     const journalHost = host.querySelector('#ef-journal-host');
     expect(journalHost?.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('одна запись F_упр = massToForce(100) после attachSpring + attachWeight + recordMeasurement', () => {
+    const exp = (globalThis as unknown as { elasticForceExperiment?: ElasticForceExperiment })
+      .elasticForceExperiment;
+    if (!exp) throw new Error('elasticForceExperiment не зарегистрирован на window');
+
+    const springOk = exp.attachSpringById('spring-k50');
+    expect(springOk).toBe(true);
+
+    const weightOk = exp.attachWeightById('w-100-1');
+    expect(weightOk).toBe(true);
+
+    exp.recordMeasurement();
+
+    // Панель измерений должна показать 1 запись
+    const count = host.querySelector('#ef-measurement-count');
+    expect(count?.textContent).toBe('1');
+    expect(count?.hasAttribute('hidden')).toBe(false);
+
+    // Журнал показан, пустое-состояние скрыто
+    expect(host.querySelector('#ef-journal-host')?.hasAttribute('hidden')).toBe(false);
+    expect(host.querySelector('#ef-journal-empty')?.hasAttribute('hidden')).toBe(true);
+
+    // Панель переведена в состояние has-data
+    expect(host.querySelector('#ef-measurement-panel')?.getAttribute('data-state')).toBe('has-data');
+
+    // Корректная сила: F_упр = massToForce(100) ≈ 0.98 Н
+    const expectedF = massToForce(100);
+    expect(expectedF).toBeCloseTo(0.98, 2);
   });
 });

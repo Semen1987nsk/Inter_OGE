@@ -1166,6 +1166,14 @@ lab-composite-tray[data-status='in-use'] .ct-status {
   font-size: var(--text-xs);
 }
 
+.measurement-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
 .measurement-body {
   overflow-y: auto;
   padding: var(--space-4);
