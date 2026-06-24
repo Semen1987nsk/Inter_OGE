@@ -1,0 +1,233 @@
+<!--
+  Опыт 1.5 «Независимость F_A от массы тела».
+  ФИПИ-2026, Приложение 2, стр. 16, Комплект №1. См. REFERENCE §30.
+
+  Layout по канону §31:
+   - 2-колоночный grid (workbench | equipment-panel)
+   - Степпер 1→2→3→4 (dyno → beaker → погружение цилиндров → запись)
+   - Floating measurement-panel с журналом + record-mode
+   - data-eq / data-draggable / data-dropzone — каноничные имена (§31.4)
+-->
+<main class="im-stage">
+  <section class="im-workbench" aria-label="Рабочая зона опыта 1.5">
+    <header class="im-header">
+      <ol class="im-steps" id="im-steps" aria-label="Этапы опыта 1.5">
+        <li class="step" data-step="1"><span class="step-num">1</span><span class="step-label">Подвесьте динамометр</span><span class="step-label--short">Динамометр</span></li>
+        <li class="step" data-step="2"><span class="step-num">2</span><span class="step-label">Поставьте стакан с водой</span><span class="step-label--short">Стакан</span></li>
+        <li class="step" data-step="3"><span class="step-num">3</span><span class="step-label">Погрузите цилиндры №1 и №2</span><span class="step-label--short">Измерение</span></li>
+        <li class="step" data-step="4"><span class="step-num">4</span><span class="step-label">Сравните F_A обоих цилиндров</span><span class="step-label--short">Вывод</span></li>
+      </ol>
+      <div class="im-hint" id="im-hint" aria-live="polite">
+        Перетащите динамометр на штатив, затем поставьте стакан с водой.
+      </div>
+      <button id="im-reset-btn" class="reset-btn" type="button"
+              aria-label="Сбросить опыт" title="Сбросить опыт 1.5">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="im-stage-area" id="im-stage-area">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <!-- Рамка штатива -->
+      <div class="im-rig" id="im-rig">
+        <div class="im-stand-bar" aria-hidden="true"></div>
+
+        <!-- Drop-zone и mount для динамометра -->
+        <div class="im-dropzone im-dropzone--dyno"
+             id="im-dropzone-dyno"
+             data-dropzone="dyno-5"
+             data-dropzone-id="im-dyno-zone"
+             data-drop-active="false"
+             data-drop-hover="false">
+          <span class="im-dropzone-hint">↓ Подвесьте динамометр №2 (5Н)</span>
+        </div>
+
+        <div class="im-dyno-mount" id="im-dyno-mount" hidden>
+          <button id="im-detach-dyno"
+                  class="lab-detach-btn im-detach-btn"
+                  type="button"
+                  aria-label="Снять динамометр со штатива"
+                  title="Снять динамометр со штатива"
+                  hidden>×</button>
+        </div>
+
+        <!-- Drop-zone и mount для стакана -->
+        <div class="im-dropzone im-dropzone--beaker"
+             id="im-dropzone-beaker"
+             data-dropzone="beaker"
+             data-dropzone-id="im-beaker-zone"
+             data-drop-active="false"
+             data-drop-hover="false">
+          <span class="im-dropzone-hint">↓ Поставьте стакан с водой</span>
+        </div>
+
+        <div class="im-beaker-mount" id="im-beaker-mount" hidden>
+          <button id="im-detach-beaker"
+                  class="lab-detach-btn im-detach-btn im-detach-btn--beaker-floating"
+                  type="button"
+                  aria-label="Убрать стакан со стола"
+                  title="Убрать стакан со стола"
+                  hidden>×</button>
+        </div>
+      </div>
+
+      <!-- Панель измерений для каждого цилиндра -->
+      <div class="im-measure-panel" id="im-measure-panel" hidden>
+        <!-- Цилиндр №1 — сталь, m=195 г, V=25 см³ -->
+        <div class="im-cyl-panel" id="im-cyl1-panel" data-cyl="1">
+          <div class="im-cyl-header">
+            <span class="im-cyl-label">Цилиндр №1 — сталь</span>
+            <span class="im-cyl-meta">m = 195 г, V = 25 см³</span>
+          </div>
+          <div class="im-cyl-controls">
+            <button id="im-btn-dip1" type="button" class="im-inline-btn im-inline-btn--primary">
+              Погрузить №1 в воду
+            </button>
+            <button id="im-btn-lift1" type="button" class="im-inline-btn" disabled>
+              Поднять №1
+            </button>
+            <button id="im-btn-record1" type="button" class="im-record-btn" disabled>
+              Записать F_A
+            </button>
+          </div>
+          <div class="im-cyl-status" id="im-cyl1-status" aria-live="polite"></div>
+        </div>
+
+        <div class="im-separator" aria-hidden="true"></div>
+
+        <!-- Цилиндр №2 — алюминий, m=70 г, V=25 см³ -->
+        <div class="im-cyl-panel" id="im-cyl2-panel" data-cyl="2">
+          <div class="im-cyl-header">
+            <span class="im-cyl-label">Цилиндр №2 — алюминий</span>
+            <span class="im-cyl-meta">m = 70 г, V = 25 см³</span>
+          </div>
+          <div class="im-cyl-controls">
+            <button id="im-btn-dip2" type="button" class="im-inline-btn im-inline-btn--primary" disabled>
+              Погрузить №2 в воду
+            </button>
+            <button id="im-btn-lift2" type="button" class="im-inline-btn" disabled>
+              Поднять №2
+            </button>
+            <button id="im-btn-record2" type="button" class="im-record-btn" disabled>
+              Записать F_A
+            </button>
+          </div>
+          <div class="im-cyl-status" id="im-cyl2-status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Вердикт об независимости -->
+      <div class="im-verdict" id="im-verdict" hidden aria-live="polite">
+        <span class="im-verdict-icon" aria-hidden="true">✓</span>
+        <span id="im-verdict-text"></span>
+      </div>
+
+      <!-- Floating journal-panel -->
+      <aside id="im-journal-panel"
+             class="measurement-panel"
+             aria-label="Журнал измерений опыта 1.5">
+        <header class="measurement-panel-header">
+          <button id="im-measurement-toggle" class="measurement-toggle" type="button"
+                  aria-expanded="true" aria-controls="im-measurement-body">
+            <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            <span class="measurement-title">Журнал измерений</span>
+            <span id="im-measurement-count" class="measurement-count" hidden>0</span>
+          </button>
+          <div id="im-record-mode-slot" class="record-mode-slot"></div>
+        </header>
+        <div id="im-measurement-body" class="measurement-body">
+          <div class="journal-empty" id="im-journal-empty">
+            Соберите установку, затем погрузите каждый цилиндр в воду и запишите F_A = P возд − P жид.
+          </div>
+          <div id="im-record-pending-slot" class="record-pending-slot" hidden>
+            <button id="im-record-pending-btn" type="button" class="record-pending-btn"
+                    aria-label="Записать текущее измерение в журнал">
+              <span class="record-icon" aria-hidden="true">✏</span>
+              <span class="record-text">Записать в журнал</span>
+              <span id="im-record-pending-summary" class="record-summary"></span>
+            </button>
+          </div>
+          <div class="formula-display" id="im-formula-display" hidden>
+            <span class="formula-label">Формула:</span>
+            <span class="formula-expr">
+              <em>F</em><sub>A</sub> = <em>P</em><sub>возд</sub> − <em>P</em><sub>жид</sub>
+            </span>
+            <span class="formula-units">F — в Н, оба цилиндра V = 25 см³</span>
+          </div>
+          <div id="im-journal-host" class="journal-host" hidden></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <aside class="equipment-panel" aria-label="Оборудование комплекта №1 для опыта 1.5">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Измерительный прибор</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Динамометр 5 Н"
+          status="available"
+          id="im-card-dyno"
+          data-eq="dyno-5"
+          data-draggable="dyno-5"
+          data-dropzone="dyno-5"
+          data-dropzone-id="im-card-dyno-zone"
+        >
+          <lab-dynamometer id="im-dyno" range="5" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Цилиндры</h3>
+      <p class="equipment-group-hint">
+        Цилиндры №1 (сталь, 195 г) и №2 (алюминий, 70 г) — оба V=25 см³. Разная масса, одинаковый объём.
+      </p>
+      <div class="equipment-grid equipment-grid-1">
+        <div class="im-cyl-card im-cyl-card--1" id="im-cyl1-card"
+             role="img" aria-label="Цилиндр №1 — сталь, m=195 г, V=25 см³">
+          <lab-metal-weight id="im-cyl1" material="steel" id-num="1" no-legend></lab-metal-weight>
+          <div class="im-cyl-card-label">
+            <span>Цилиндр №1 — сталь</span>
+            <span class="im-cyl-card-meta">m=195 г, V=25 см³</span>
+          </div>
+        </div>
+        <div class="im-cyl-card im-cyl-card--2" id="im-cyl2-card"
+             role="img" aria-label="Цилиндр №2 — алюминий, m=70 г, V=25 см³">
+          <lab-metal-weight id="im-cyl2" material="aluminum" id-num="2" no-legend></lab-metal-weight>
+          <div class="im-cyl-card-label">
+            <span>Цилиндр №2 — алюминий</span>
+            <span class="im-cyl-card-meta">m=70 г, V=25 см³</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Расходные</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Стакан с водой"
+          status="available"
+          id="im-card-beaker"
+          data-eq="beaker"
+          data-draggable="beaker"
+          data-dropzone="beaker"
+          data-dropzone-id="im-card-beaker-zone"
+        >
+          <lab-beaker id="im-beaker" level="200" liquid="water"></lab-beaker>
+        </lab-equipment-card>
+      </div>
+    </section>
+  </aside>
+</main>
+<div id="im-live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -52,6 +52,7 @@ import type { LabKitHeader } from './ui/components/lab-kit-header';
 import { DensitySolidScreen } from '@screens/density-solid/DensitySolidScreen';
 import { ArchimedesScreen } from '@screens/archimedes/ArchimedesScreen';
 import { ArchimedesVolumeScreen } from '@screens/archimedes-volume/ArchimedesVolumeScreen';
+import { IndependenceMassScreen } from '@screens/independence-mass/IndependenceMassScreen';
 import { homeUrl, readRoleFromUrl, persistRole, readPersistedRole, type Role } from './lib/urls';
 
 // ─── Role: ?role=teacher|student → body[data-role] + role-badge ───
@@ -82,6 +83,7 @@ const screens: IScreen[] = [
   new DensitySolidScreen(),
   new ArchimedesScreen(),
   new ArchimedesVolumeScreen(),
+  new IndependenceMassScreen(),
 ];
 
 navBar.setScreens(screens.map((s) => s.meta));

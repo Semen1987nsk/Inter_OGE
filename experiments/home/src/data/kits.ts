@@ -96,7 +96,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: 'archimedes',        title: 'Архимедова сила (цилиндры №2–4)',    resultVerb: 'Измерь архимедову силу',                 fipiTask: '1.2', isFipi: true, done: true },
       { id: 'archimedes-volume', title: 'F_A от объёма погружения',           resultVerb: 'Исследуй F_арх от объёма',               fipiTask: '1.3', isFipi: true, done: true },
       { id: 'archimedes',        title: 'F_A от плотности жидкости',          resultVerb: 'Исследуй F_арх от плотности жидкости',   fipiTask: '1.4', isFipi: true, done: true },
-      { id: 'independence-mass', title: 'Независимость F_A от массы тела',    resultVerb: 'Проверь независимость F_арх от массы',   fipiTask: '1.5', isFipi: true, done: false },
+      { id: 'independence-mass', title: 'Независимость F_A от массы тела',    resultVerb: 'Проверь независимость F_арх от массы',   fipiTask: '1.5', isFipi: true, done: true },
     ],
     photo: 'kit-1.svg',
     category: 'mechanics',

@@ -331,11 +331,41 @@ export const FRICTION_WORK_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 1.5 «Независимость выталкивающей силы от массы тела».
+ *
+ * ФИПИ-2026, Прил. 2, компл. №1: «исследование … независимости выталкивающей
+ * силы от массы тела (цилиндры №1 и 2)».
+ *
+ * Физика: при равном объёме V=25 см³ F_арх = ρ_воды·g·V одинакова для
+ * стального (m=195 г) и алюминиевого (m=70 г) цилиндров. Ученик измеряет
+ * P_возд и P_жид для каждого цилиндра, считает F_A = P_возд − P_жид и
+ * убеждается, что F_A_1 ≈ F_A_2 несмотря на разную массу.
+ */
+export const INDEPENDENCE_MASS_SPEC: JournalSpec = {
+  experimentId: '1.5',
+  kitId: 'kit-1',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'cylinder', label: 'Цилиндр', source: 'meta' },
+    { key: 'm_g', label: 'm, г', source: 'meta', unit: 'г', format: 'int' },
+    { key: 'V_cm3', label: 'V, см³', source: 'meta', unit: 'см³', format: 'int' },
+    { key: 'P_air_N', label: 'P возд, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    { key: 'P_liq_N', label: 'P жид, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    {
+      key: 'F_A_N', label: 'F_A, Н', source: 'derived', unit: 'Н', format: 'fixed2',
+      tolerance: 0.05,
+      expectedFromRow: (row) => (row.P_air_N ?? 0) - (row.P_liq_N ?? 0),
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
   ARCHIMEDES_LIQUID_SPEC,
   ARCHIMEDES_VOLUME_SPEC,
+  INDEPENDENCE_MASS_SPEC,
   SPRING_SPEC,
   FRICTION_SPEC,
   FRICTION_WORK_SPEC,

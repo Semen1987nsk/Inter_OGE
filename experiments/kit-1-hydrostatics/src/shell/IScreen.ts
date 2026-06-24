@@ -26,7 +26,8 @@ export type ScreenId =
   | 'archimedes'         // 1.2 ✓
   | 'archimedes-volume'  // 1.3 ← новый
   | 'archimedes-density' // 1.4 TBD
-  | 'archimedes-mass'    // 1.5 TBD
+  | 'archimedes-mass'    // 1.5 TBD (legacy alias)
+  | 'independence-mass'  // 1.5 ✓ — независимость F_А от массы
   // Legacy/черновое (НЕ по ФИПИ-2026 для Комплекта №1):
   | 'density-liquid'
   | 'floating'
