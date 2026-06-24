@@ -28,6 +28,7 @@ import './styles/screen-stub.css';
 import './styles/density-experiment.css';
 import './styles/archimedes-experiment.css';
 import './styles/archimedes-volume-experiment.css';
+import './styles/independence-mass-experiment.css';
 import '@shared/lib/journal/journal.css';
 
 // Web Components — приборы и шелл

@@ -107,11 +107,8 @@ test.describe('Серия 1.2 — опыт «Архимедова сила» с 
     const cylinders = [2, 3, 4] as const;
     for (const id of cylinders) {
       await measureOneCylinder(page, id);
-      // Между измерениями сбрасываем цилиндр (готовим к следующему)
-      await page.evaluate(() => {
-        // state после recordCurrentReading должен вернуться в 'water-poured'
-        // Если есть detach-api — используем; иначе attachCylinderById(0) пропускает
-      });
+      // После recordCurrentReading state возвращается в 'water-poured';
+      // следующий attachCylinderById заменяет цилиндр без явного detach.
     }
 
     // Проверяем журнал

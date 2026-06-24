@@ -1,0 +1,614 @@
+/*
+ * Стили опыта 1.5 «Независимость F_A от массы тела».
+ * ФИПИ-2026, Приложение 2, Комплект №1. REFERENCE §30.
+ *
+ * Layout по канону §31:
+ *   - 2 колонки: workbench (1fr) + equipment-panel (280–360px)
+ *   - Степпер этапов 1→2→3→4 в header
+ *   - Floating measurement-panel / journal в правом нижнем углу stage
+ *   - Reset-кнопка ↻ в правом углу header
+ *
+ * Разделение ответственности:
+ *   - Shared layout (.equipment-panel, .equipment-group, .equipment-grid-*,
+ *     .measurement-panel, .measurement-toggle, .measurement-body, .record-pending-*,
+ *     .formula-display, .stage-corner, .reset-btn, .step, .sr-only, .journal-empty)
+ *     — объявлены в density-experiment.css, импортируется до этого файла.
+ *   - .equipment-grid-1 — объявлен в archimedes-experiment.css.
+ *   - .lab-detach-btn — инжектируется JS (detach-button.ts), здесь НЕ дублируем.
+ *   - Здесь: специфика сцены 1.5 (`.im-*`) + re-scope floating measurement-panel
+ *     под #im-journal-panel + sizing приборов.
+ */
+
+/* ─── Главный grid (2-колоночный, канон §31) ──────────────────── */
+.im-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--layout-padding);
+  min-height: 0;
+  overflow: hidden;
+  height: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.im-stage input,
+.im-stage textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+@media (min-width: 1600px) {
+  .im-stage {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  }
+}
+
+/* ─── Workbench (левая колонка) ───────────────────────────────── */
+.im-workbench {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ─── Header со степпером ─────────────────────────────────────── */
+.im-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.im-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+/* im-steps переиспользует глобальный .step/.step-num/.step-label из density-experiment.css.
+   Здесь — только adaptive truncation при нехватке ширины. */
+@media (max-width: 1450px) {
+  .im-steps .step-label { display: none; }
+  .im-steps .step .step-label--short { display: inline; }
+}
+.im-steps .step-label--short { display: none; }
+
+.im-hint {
+  flex: 1;
+  min-width: 180px;
+  text-align: right;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* ─── Stage-area (сцена) ─────────────────────────────────────── */
+.im-stage-area {
+  position: relative;
+  background: linear-gradient(180deg, #1a2334 0%, #0f1623 100%);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-4);
+  border: 1px solid rgba(120, 140, 180, 0.08);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Штатив (rig) ────────────────────────────────────────────── */
+.im-rig {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 320px;
+  margin-bottom: var(--space-3);
+}
+
+.im-rig lab-dynamometer {
+  flex-shrink: 0;
+}
+.im-rig lab-beaker {
+  flex-shrink: 0;
+}
+
+.im-stand-bar {
+  width: 240px;
+  height: 6px;
+  background: linear-gradient(180deg, #353d4f 0%, #1e2330 100%);
+  border-radius: 3px;
+  margin-bottom: -6px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.im-dyno-mount {
+  position: relative;
+  display: inline-block;
+}
+
+.im-beaker-mount {
+  position: relative;
+  margin-top: -8px;
+  z-index: 1;
+}
+
+/* ─── Detach-кнопки ──────────────────────────────────────────────
+   Базовый стиль (.lab-detach-btn) инжектируется JS-ом (detach-button.ts).
+   Здесь — только позиционирование специфичное для im-сцены. */
+.im-detach-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 50;
+}
+
+/* Detach-кнопка стакана — абсолютно позиционируется внутри im-beaker-mount
+   чтобы не «уплывать» при scroll/resize. */
+.im-detach-btn--beaker-floating {
+  position: absolute;
+  top: 6px;
+  right: -14px;
+  z-index: 60;
+}
+
+/* ─── Drop-zones ─────────────────────────────────────────────────
+   Видны только когда data-drop-active="true" (управляется DragController). */
+
+@keyframes im-slot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 175, 0.0); }
+  50%       { box-shadow: 0 0 0 10px rgba(56, 189, 175, 0.18); }
+}
+@keyframes im-drop-zone-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 175, 0.55), 0 0 14px rgba(56, 189, 175, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(56, 189, 175, 0), 0 0 22px rgba(56, 189, 175, 0.5);
+    transform: scale(1.03);
+  }
+}
+
+.im-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed transparent;
+  border-radius: 12px;
+  transition: all 200ms ease-out;
+  pointer-events: none;
+}
+
+body:not(.has-drag-active) .im-dropzone:not([hidden]) {
+  animation: im-slot-pulse 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body:not(.has-drag-active) .im-dropzone {
+    animation: none;
+  }
+}
+
+.im-dropzone--dyno {
+  min-width: 160px;
+  min-height: 80px;
+  margin-bottom: 4px;
+}
+.im-dropzone--beaker {
+  min-width: 140px;
+  min-height: 60px;
+  margin-top: 4px;
+}
+
+.im-dropzone-hint {
+  font-size: var(--text-xs);
+  color: transparent;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: color 180ms ease-out;
+}
+
+body.has-drag-active .im-dropzone[data-drop-active="true"] {
+  border-color: rgba(74, 159, 199, 0.55);
+  background: rgba(74, 159, 199, 0.06);
+  pointer-events: auto;
+}
+body.has-drag-active .im-dropzone[data-drop-active="true"] .im-dropzone-hint {
+  color: rgba(174, 209, 230, 0.7);
+}
+body.has-drag-active .im-dropzone[data-drop-hover="true"] {
+  border-color: var(--color-brand-orange, #ffbe0b);
+  background: rgba(255, 190, 11, 0.1);
+  border-style: solid;
+  animation: im-drop-zone-pulse 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-drag-active .im-dropzone[data-drop-hover="true"] {
+    animation: none;
+  }
+}
+body.has-drag-active .im-dropzone[data-drop-hover="true"] .im-dropzone-hint {
+  color: var(--color-brand-orange, #ffbe0b);
+}
+
+/* ─── Панель измерений двух цилиндров (measure-panel) ───────────
+   Показывается после «плавающей» сборки (dynamo + beaker на стенде).
+   Позиционируется абсолютно в left-top stage-area, чтобы не перекрывать
+   journal-panel в правом нижнем углу. */
+.im-measure-panel {
+  position: absolute;
+  top: var(--space-3, 12px);
+  left: var(--space-3, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: 10px 14px;
+  background: rgba(20, 28, 42, 0.88);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(120, 140, 180, 0.2);
+  border-radius: var(--radius-md, 8px);
+  z-index: 8;
+  max-width: min(380px, calc(100% - 24px));
+}
+.im-measure-panel[hidden] {
+  display: none;
+}
+
+/* ─── Одна карточка цилиндра внутри measure-panel ────────────── */
+.im-cyl-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.im-cyl-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.im-cyl-label {
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 700;
+  color: var(--color-text-primary, #f3f6fb);
+}
+
+.im-cyl-meta {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 11px;
+  color: var(--color-text-muted, #93a0b8);
+}
+
+.im-cyl-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.im-cyl-status {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #c4cde0);
+  min-height: 16px;
+  font-style: italic;
+}
+
+/* Разделитель между цилиндрами */
+.im-separator {
+  height: 1px;
+  background: rgba(120, 140, 180, 0.18);
+  margin: 2px 0;
+}
+
+/* ─── Inline-кнопки (Погрузить / Поднять / Записать) ──────────── */
+.im-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  background: linear-gradient(180deg, #2d3a52 0%, #1d2638 100%);
+  color: var(--color-text-primary, #f3f6fb);
+  border: 1px solid rgba(120, 140, 180, 0.25);
+  border-radius: 5px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease-out;
+  white-space: nowrap;
+}
+.im-inline-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #3a4863 0%, #28324a 100%);
+  border-color: rgba(120, 140, 180, 0.5);
+}
+.im-inline-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.im-inline-btn--primary {
+  background: linear-gradient(180deg, #4a9fc7 0%, #357ba0 100%);
+  border-color: rgba(74, 159, 199, 0.6);
+  color: white;
+}
+.im-inline-btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5cb0d6 0%, #4188af 100%);
+}
+
+/* Кнопка «Записать F_A» — pulse когда активна */
+.im-record-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  background: linear-gradient(180deg, #2a3f2a 0%, #1a2a1a 100%);
+  color: var(--color-success, #10b981);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 5px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 160ms ease-out;
+  white-space: nowrap;
+}
+.im-record-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #36533a 0%, #243524 100%);
+  border-color: rgba(16, 185, 129, 0.65);
+}
+.im-record-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Блок вердикта ──────────────────────────────────────────────
+   Появляется после записи обоих цилиндров; position: absolute снизу stage. */
+.im-verdict {
+  position: absolute;
+  bottom: calc(var(--space-4) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 600;
+  color: var(--color-success, #10b981);
+  z-index: 10;
+  white-space: nowrap;
+  animation: im-verdict-appear 300ms var(--ease-decelerate, ease-out) both;
+}
+.im-verdict[hidden] {
+  display: none;
+}
+
+.im-verdict-icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+@keyframes im-verdict-appear {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .im-verdict { animation: none; }
+}
+
+/* ─── Floating measurement-panel / journal ────────────────────────
+   Позиционируется в правом нижнем углу stage — аналогично av-journal-panel
+   из archimedes-volume-experiment.css (REFERENCE §31). */
+#im-journal-panel.measurement-panel {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  width: min(440px, calc(100% - var(--space-4) * 2));
+  max-height: calc(100% - var(--space-4) * 2);
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  background: rgb(6 13 20 / 0.78);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+#im-journal-panel .measurement-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(120, 140, 180, 0.12);
+  gap: 8px;
+}
+
+#im-journal-panel .measurement-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-primary, #f3f6fb);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.85rem);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+#im-journal-panel .measurement-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-brand-orange, #ffbe0b);
+  color: #0a1530;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#im-journal-panel .measurement-body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+/* journal-empty — re-scope (глобальный .journal-empty из density-experiment.css
+   уже задаёт base-стиль, здесь лишь pointer-events блокируем как в av-опыте). */
+#im-journal-empty {
+  font-size: var(--text-sm, 0.85rem);
+  color: var(--color-text-muted, #93a0b8);
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+/* formula-display — re-scope */
+#im-formula-display {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--color-brand-orange, #ffbe0b);
+  border-radius: 4px;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--color-text-secondary, #c4cde0);
+  pointer-events: none;
+}
+
+#im-formula-display .formula-label {
+  font-weight: 600;
+  color: var(--color-text-primary, #f3f6fb);
+  margin-right: 6px;
+}
+
+#im-formula-display .formula-expr em {
+  font-style: italic;
+  color: var(--color-brand-orange, #ffbe0b);
+}
+
+#im-formula-display .formula-units {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted, #93a0b8);
+}
+
+#im-record-pending-slot {
+  margin-top: 10px;
+}
+
+/* record-pending-btn — base из density-experiment.css; scoped в im только для summary */
+#im-record-pending-summary {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.journal-host {
+  margin-top: 10px;
+}
+
+/* ─── Карточки цилиндров в equipment-panel ────────────────────── */
+.im-cyl-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(120, 140, 180, 0.14);
+  transition: border-color 160ms ease-out;
+}
+.im-cyl-card:hover {
+  border-color: rgba(120, 140, 180, 0.3);
+}
+
+.im-cyl-card-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-secondary, #c4cde0);
+  text-align: center;
+}
+
+.im-cyl-card-meta {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-muted, #93a0b8);
+}
+
+/* Цилиндр №1 (сталь) — лёгкий голубой акцент */
+.im-cyl-card--1 {
+  border-color: rgba(74, 159, 199, 0.18);
+}
+/* Цилиндр №2 (алюминий) — лёгкий фиолетовый акцент */
+.im-cyl-card--2 {
+  border-color: rgba(140, 110, 199, 0.18);
+}
+
+/* Размер цилиндров в карточках equipment-panel — крупнее для читаемости */
+#im-cyl1-card lab-metal-weight,
+#im-cyl2-card lab-metal-weight {
+  --w-size: 80px;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1300px) {
+  .im-stand-bar {
+    width: 200px;
+  }
+  .im-rig lab-dynamometer {
+    --dyno-w: 65px;
+    --dyno-h: 188px;
+  }
+  .im-stage-area {
+    padding: 8px;
+  }
+  .im-rig {
+    margin-bottom: 4px;
+  }
+  #im-journal-panel.measurement-panel {
+    width: min(360px, calc(100% - var(--space-4) * 2));
+  }
+  .im-measure-panel {
+    max-width: min(300px, calc(100% - 24px));
+  }
+}
+
+@media (max-width: 900px) {
+  .im-stage {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
+  .equipment-panel {
+    grid-column: 1 / -1;
+  }
+}
