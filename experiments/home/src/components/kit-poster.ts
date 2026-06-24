@@ -43,8 +43,9 @@ function buildShadowHTML(
   const isPlanned = status === 'planned';
   const isLoading = status === 'loading';
 
-  // photo используется только в CSS background-image; одинарные кавычки экранируем
-  const safePhoto = photo.replace(/'/g, '%27').replace(/[<>"]/g, '');
+  // photo идёт в CSS url() — whitelisting безопасных символов пути (буквы/цифры / _ - .),
+  // всё прочее (кавычки, скобки, \, переводы строк) отбрасывается → CSS-инъекция невозможна
+  const safePhoto = photo.replace(/[^a-zA-Z0-9/_.-]/g, '');
   const photoStyle = safePhoto ? `background-image: url('${safePhoto}');` : '';
   const stateClass = isPlanned ? 'planned' : isLoading ? 'loading' : 'ready';
 
@@ -55,9 +56,6 @@ function buildShadowHTML(
   const safeTitle = esc(title);
   const safeMeta = esc(meta);
   const metaHTML = safeMeta ? `<span class="meta">${safeMeta}</span>` : '';
-
-  // progress-ring нейтральный (data-neutral) для planned
-  const ringAttrs = isPlanned ? 'data-neutral' : '';
 
   return `
     <style>
@@ -73,7 +71,7 @@ function buildShadowHTML(
         position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
         justify-content: flex-end;
         width: 100%;
         aspect-ratio: var(--_aspect);
@@ -82,17 +80,23 @@ function buildShadowHTML(
         cursor: pointer;
         border: none;
         padding: 0;
-        background: ${GRAPHITE} ${photoStyle};
-        background-size: cover;
-        background-position: center;
-        /* Subtle photo treatment: desaturate slightly, dim, boost contrast so white bg → graphite */
-        filter: saturate(0.88) brightness(0.82) contrast(1.06);
+        background: ${GRAPHITE};
         text-align: left;
         outline: none;
         /* Spine accent */
         box-shadow: inset 4px 0 0 0 var(--kit-accent, ${BRAND_BLUE});
         transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
         transform-style: preserve-3d;
+      }
+
+      /* Приборная SVG-иллюстрация как фон-слой (фильтр применяется только сюда) */
+      .photo {
+        position: absolute;
+        inset: 0;
+        background-size: cover;
+        background-position: center;
+        z-index: 0;
+        pointer-events: none;
       }
 
       /* Lift shadow as ::after for opacity-only animation */
@@ -110,52 +114,57 @@ function buildShadowHTML(
         z-index: 5;
       }
 
-      /* Full-photo graphite wash — tones white/light backgrounds to dark graphite */
-      .photo-wash {
-        position: absolute;
-        inset: 0;
-        border-radius: var(--_radius);
-        background: rgba(6, 16, 30, 0.52);
-        pointer-events: none;
-        z-index: 1;
-      }
-
-      /* Stronger bottom scrim for number/title legibility */
+      /* Bottom scrim for title legibility (легче — иллюстрация уже на графите) */
       .scrim {
         position: absolute;
         inset: 0;
         border-radius: var(--_radius);
         background: linear-gradient(
           to top,
-          rgba(6, 16, 30, 0.97) 0%,
-          rgba(6, 16, 30, 0.82) 35%,
-          rgba(6, 16, 30, 0.3) 60%,
-          transparent 100%
+          rgba(6, 16, 30, 0.96) 0%,
+          rgba(6, 16, 30, 0.74) 20%,
+          rgba(6, 16, 30, 0.12) 44%,
+          transparent 62%
         );
         pointer-events: none;
         z-index: 2;
       }
 
-      /* Progress ring centered absolutely */
-      .ring-wrap {
+      /* Прогресс-кольцо + номер — компактный угловой бейдж */
+      .badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        width: 46px;
+        height: 46px;
+        z-index: 4;
+        pointer-events: none;
+      }
+      .badge::before {
+        content: '';
+        position: absolute;
+        inset: 2px;
+        border-radius: 50%;
+        background: rgba(6, 16, 30, 0.62);
+        z-index: 0;
+      }
+      .badge progress-ring {
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 3;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        transform: translate(-50%, -50%) scale(0.45);
+        --ring-track: rgba(255, 255, 255, 0.18);
       }
 
       .num-label {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 4;
+        inset: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         font-family: 'JetBrains Mono', monospace;
-        font-size: 2rem;
+        font-size: 1.05rem;
         font-weight: 700;
         color: #fff;
         letter-spacing: -0.02em;
@@ -165,7 +174,7 @@ function buildShadowHTML(
 
       .content {
         position: relative;
-        z-index: 5;
+        z-index: 6;
         width: 100%;
         padding: 12px 14px 16px;
         display: flex;
@@ -216,9 +225,11 @@ function buildShadowHTML(
         margin-bottom: 2px;
       }
 
-      /* planned state */
+      /* planned state — graphite-grayscale только на иллюстрацию */
+      :host(.planned) .photo {
+        filter: grayscale(1) brightness(0.72);
+      }
       :host(.planned) .card {
-        filter: grayscale(1) brightness(0.6);
         cursor: default;
       }
       :host(.planned) .card::after {
@@ -257,21 +268,18 @@ function buildShadowHTML(
       part="card"
       class="card ${stateClass}"
       tabindex="-1"
-      style="${photoStyle}"
     >
-      <div class="photo-wash" aria-hidden="true"></div>
+      <div class="photo" aria-hidden="true" style="${photoStyle}"></div>
       <div class="scrim"></div>
 
-      <div class="ring-wrap">
+      <div class="badge">
         <progress-ring
           value="${done}"
           max="${total}"
-          ${ringAttrs}
-          style="--ring-color: ${isPlanned ? 'rgba(255,255,255,0.3)' : 'var(--kit-glow, ' + AMBER + ')'}"
+          style="--ring-color: ${isPlanned ? 'rgba(255,255,255,0.32)' : 'var(--kit-glow, ' + AMBER + ')'}"
         ></progress-ring>
+        <span class="num-label" aria-hidden="true">${num}</span>
       </div>
-
-      <div class="num-label" aria-hidden="true">${num}</div>
 
       <div class="preview-wrap">
         <slot name="preview"></slot>

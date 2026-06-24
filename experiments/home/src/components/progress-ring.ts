@@ -150,7 +150,7 @@ class ProgressRing extends HTMLElement {
     track.setAttribute('cy', String(cy));
     track.setAttribute('r', String(radius));
     track.setAttribute('fill', 'none');
-    track.setAttribute('stroke', TRACK);
+    track.setAttribute('stroke', `var(--ring-track, ${TRACK})`);
     track.setAttribute('stroke-width', String(sw));
 
     // Progress circle.

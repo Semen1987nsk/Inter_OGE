@@ -4,7 +4,7 @@
  * Источник истины — соответствие ФИПИ ОГЭ-2026 (раздел «Лабораторные работы»).
  * Каждому комплекту соответствует:
  *   - папка с опытами в experiments/<kit-folder>/
- *   - продакт-фото в /public/photos/kit-N.png
+ *   - приборная SVG-иллюстрация в /public/photos/kit-N.svg (свой вектор, графит+акцент, без лицензий)
  *   - набор опытов с указанием задачи ОГЭ
  */
 
@@ -34,7 +34,7 @@ export interface Kit {
   readonly title: string;
   readonly summary: string;
   readonly experiments: ReadonlyArray<KitExperiment>;
-  /** Фото — public/photos/<photo>.png */
+  /** Приборная SVG-иллюстрация — public/photos/<photo>.svg */
   readonly photo: string;
   /** Только для planned — приблизительный квартал релиза. */
   readonly eta?: string;
@@ -64,7 +64,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '2.4', title: 'Работа силы упругости', resultVerb: 'Найди работу силы упругости' },
       { id: '2.2', title: 'Трение скольжения', resultVerb: 'Определи коэффициент трения' },
     ],
-    photo: 'kit-2.png',
+    photo: 'kit-2.svg',
     progress: { done: 4, total: 4 },
     category: 'mechanics',
     accent: '#3a86ff',
@@ -92,7 +92,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '1.4', title: 'F_A от плотности жидкости', resultVerb: 'Исследуй F_арх от плотности жидкости' },
       { id: '1.5', title: 'Независимость F_A от массы тела', resultVerb: 'Проверь независимость F_арх от массы' },
     ],
-    photo: 'kit-1.png',
+    photo: 'kit-1.svg',
     progress: { done: 4, total: 5 },
     category: 'mechanics',
     accent: '#14b8a6',
@@ -118,7 +118,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '3.8', title: 'Зависимость R от длины', resultVerb: 'Измерь зависимость сопротивления от длины проводника' },
       { id: '3.9', title: 'Зависимость R от сечения', resultVerb: 'Измерь зависимость сопротивления от сечения проводника' },
     ],
-    photo: 'kit-3.png',
+    photo: 'kit-3.svg',
     eta: '2026 Q4',
     progress: { done: 0, total: 9 },
     category: 'electricity',
@@ -142,7 +142,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '4.5', title: 'Полное внутреннее отражение', resultVerb: 'Найди угол полного внутреннего отражения' },
       { id: '4.6', title: 'Угол отражения', resultVerb: 'Проверь закон отражения света' },
     ],
-    photo: 'kit-4.png',
+    photo: 'kit-4.svg',
     eta: '2027 Q1',
     progress: { done: 0, total: 6 },
     category: 'optics',
@@ -164,7 +164,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '5.3', title: 'Зависимость T от длины', resultVerb: 'Исследуй зависимость периода от длины нити' },
       { id: '5.4', title: 'Резонанс', resultVerb: 'Наблюдай резонанс механических колебаний' },
     ],
-    photo: 'kit-5.png',
+    photo: 'kit-5.svg',
     eta: '2027 Q2',
     progress: { done: 0, total: 4 },
     category: 'mechanics',
@@ -186,7 +186,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '6.3', title: 'Неподвижный блок', resultVerb: 'Исследуй неподвижный блок' },
       { id: '6.4', title: 'Подвижный блок (выигрыш в силе)', resultVerb: 'Измерь выигрыш в силе подвижного блока' },
     ],
-    photo: 'kit-6.png',
+    photo: 'kit-6.svg',
     eta: '2027 Q2',
     progress: { done: 0, total: 4 },
     category: 'mechanics',
@@ -207,7 +207,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: '7.2', title: 'Теплота плавления льда', resultVerb: 'Измерь удельную теплоту плавления льда' },
       { id: '7.3', title: 'Тепловой баланс смешивания', resultVerb: 'Проверь уравнение теплового баланса' },
     ],
-    photo: 'kit-7.png',
+    photo: 'kit-7.svg',
     eta: '2027 Q3',
     progress: { done: 0, total: 3 },
     category: 'thermal',

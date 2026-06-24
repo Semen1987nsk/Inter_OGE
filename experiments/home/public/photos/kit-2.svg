@@ -1,0 +1,35 @@
+<svg viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1b2d"/><stop offset="1" stop-color="#060f1d"/>
+    </linearGradient>
+    <pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse">
+      <path d="M22 0H0V22" fill="none" stroke="#16273e" stroke-width="1"/>
+    </pattern>
+    <pattern id="grid5" width="110" height="110" patternUnits="userSpaceOnUse">
+      <path d="M110 0H0V110" fill="none" stroke="#1d3149" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+  <rect width="300" height="400" fill="url(#bg)"/>
+  <rect width="300" height="330" fill="url(#grid)" opacity="0.6"/>
+  <rect width="300" height="330" fill="url(#grid5)" opacity="0.7"/>
+<g stroke="#7588a0" stroke-width="2.4" stroke-linecap="round">
+  <line x1="104" y1="34" x2="196" y2="34"/>
+  <line x1="110" y1="34" x2="102" y2="44"/><line x1="123" y1="34" x2="115" y2="44"/><line x1="136" y1="34" x2="128" y2="44"/><line x1="149" y1="34" x2="141" y2="44"/><line x1="162" y1="34" x2="154" y2="44"/><line x1="175" y1="34" x2="167" y2="44"/><line x1="188" y1="34" x2="180" y2="44"/>
+</g>
+<circle cx="150" cy="52" r="8" fill="none" stroke="#d6e1f0" stroke-width="2.4"/>
+<line x1="150" y1="42" x2="150" y2="34" stroke="#d6e1f0" stroke-width="2.4"/>
+<line x1="150" y1="60" x2="150" y2="70" stroke="#d6e1f0" stroke-width="2.4"/>
+<rect x="128" y="70" width="44" height="182" rx="11" fill="rgba(255,255,255,0.05)" stroke="#d6e1f0" stroke-width="2.6"/>
+<path d="M150 74 L137 80 L163 88 L137 96 L163 104 L137 112 L163 120 L150 126" fill="none" stroke="#3a86ff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<g stroke="#7588a0" stroke-width="1.8" stroke-linecap="round">
+  <line x1="160" y1="132" x2="150" y2="132"/><line x1="160" y1="152" x2="156" y2="152"/><line x1="160" y1="172" x2="156" y2="172"/><line x1="160" y1="192" x2="156" y2="192"/><line x1="160" y1="212" x2="156" y2="212"/><line x1="160" y1="232" x2="150" y2="232"/>
+</g>
+<line x1="137" y1="152" x2="166" y2="152" stroke="#ffbe0b" stroke-width="2.6"/>
+<path d="M166 148 l8 4 -8 4 z" fill="#ffbe0b"/>
+<line x1="150" y1="252" x2="150" y2="266" stroke="#d6e1f0" stroke-width="2.6"/>
+<path d="M150 266 q12 6 0 16 q-10 -4 -2 -10" fill="none" stroke="#d6e1f0" stroke-width="2.6" stroke-linecap="round"/>
+<path d="M150 282 q20 0 18 14" fill="none" stroke="#d6e1f0" stroke-width="2.2"/>
+<path d="M134 300 h32 l5 44 h-42 z" fill="#3a86ff" fill-opacity="0.20" stroke="#3a86ff" stroke-width="2.4" stroke-linejoin="round"/>
+</svg>
