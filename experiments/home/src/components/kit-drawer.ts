@@ -27,7 +27,8 @@ function esc(s: string): string {
 
 // ── Шаблон ───────────────────────────────────────────────────────────────────
 
-function buildHTML(kit: Kit, role: Role): string {
+/** Чистая функция рендера HTML-содержимого drawer (пригодна для тестирования). */
+export function renderKitDrawerHTML(kit: Kit, role: Role): string {
   const isPlanned = kit.status === 'planned';
   const labelId = 'kd-title';
   const descId = 'kd-desc';
@@ -37,6 +38,9 @@ function buildHTML(kit: Kit, role: Role): string {
       const fipiHTML = exp.fipiTask
         ? `<span class="fipi-badge" aria-label="Задача ФИПИ ${esc(exp.fipiTask)}">${esc(exp.fipiTask)}</span>`
         : '';
+      const bonusHTML = exp.isFipi
+        ? ''
+        : `<span class="bonus-badge" title="${esc(exp.bonusReason ?? '')}" aria-label="Бонус ЛАБОСФЕРЫ (не входит в ФИПИ)">бонус</span>`;
       const statusDotClass = isPlanned ? 'dot dot--planned' : 'dot dot--ready';
       const statusDotLabel = isPlanned ? 'Не готов' : 'Готов';
       const launchControl = isPlanned
@@ -58,6 +62,7 @@ function buildHTML(kit: Kit, role: Role): string {
           <span class="${statusDotClass}" aria-label="${statusDotLabel}" role="img"></span>
           <span class="exp-verb">${esc(exp.resultVerb)}</span>
           ${fipiHTML}
+          ${bonusHTML}
           ${launchControl}
         </li>`;
     })
@@ -233,6 +238,16 @@ function buildHTML(kit: Kit, role: Role): string {
         flex-shrink: 0;
       }
 
+      .bonus-badge {
+        font-size: 0.7rem;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        color: #f4b54a;
+        flex-shrink: 0;
+      }
+
       .launch-link {
         display: inline-flex;
         align-items: center;
@@ -335,7 +350,7 @@ class KitDrawer extends HTMLElement {
     this._trigger = triggerEl ?? document.activeElement;
 
     // Render
-    this._root.innerHTML = buildHTML(kit, role);
+    this._root.innerHTML = renderKitDrawerHTML(kit, role);
 
     const dialog = this._root.querySelector('dialog')!;
     const closeBtn = this._root.querySelector('.close-btn') as HTMLButtonElement;

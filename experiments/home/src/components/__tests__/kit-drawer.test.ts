@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
-import { KITS } from '../../data/kits';
+import { KITS, kitFipiProgress } from '../../data/kits';
+import { renderKitDrawerHTML } from '../kit-drawer';
 
 describe('<kit-drawer>', () => {
   beforeAll(async () => { await import('../kit-drawer'); });
@@ -75,5 +76,19 @@ describe('<kit-drawer>', () => {
     const spy = vi.spyOn(dialog, 'close').mockImplementation(() => {});
     el.close();
     expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe('kit-drawer бонус-бейдж', () => {
+  it('опыт isFipi:false получает класс bonus-badge', () => {
+    const kit2 = KITS.find(k => k.num === 2)!;
+    const html = renderKitDrawerHTML(kit2, 'student');
+    expect(html).toContain('bonus-badge');           // бейдж присутствует
+    // ровно 1 элемент <span class="bonus-badge"> — только для spring-work
+    expect((html.match(/class="bonus-badge"/g) ?? []).length).toBe(1);
+  });
+  it('kit-2 прогресс ФИПИ = 6/7 на старте Волны 0', () => {
+    const kit2 = KITS.find(k => k.num === 2)!;
+    expect(kitFipiProgress(kit2)).toEqual({ done: 6, total: 7 });
   });
 });
