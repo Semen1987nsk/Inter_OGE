@@ -37,7 +37,8 @@ import {
 import { injectDetachButtonStyles } from '@shared/ui/detach-button';
 // §21 — единый журнал измерений.
 import { renderJournalTable } from '@shared/lib/journal/render';
-import { ARCHIMEDES_SPEC } from '@shared/lib/journal/specs';
+import { ARCHIMEDES_SPEC, ARCHIMEDES_LIQUID_SPEC } from '@shared/lib/journal/specs';
+import type { JournalSpec } from '@shared/lib/journal/types';
 import { verifyRow } from '@shared/lib/journal/verify';
 import { parseRu } from '@shared/lib/journal/format';
 import type { JournalVerdict } from '@shared/lib/journal/types';
@@ -56,8 +57,12 @@ import {
   ARCHIMEDES_CYLINDER_BY_ID,
   type ArchimedesCylinderId,
   type ArchimedesCylinderSpec,
+  WATER_RHO_KG_M3,
+  liquidRhoFromSaltPortions,
+  isSaturated,
 } from '../../physics/archimedes/tables';
 import type { LabJournal, JournalRow, CylinderId as JournalCylinderId } from '../../ui/components/lab-journal';
+import type { LabGraph, GraphPoint } from '../../ui/components/lab-graph';
 import { UndoStack } from '../../lib/undo';
 import { HintEngine, type HintPayload } from './controller/HintEngine';
 import { StateStore } from './controller/StateStore';
@@ -132,8 +137,27 @@ export type ScenarioPhase =
 
 export type DynamometerRange = 1 | 5;
 
+/**
+ * Режим жидкости (опыт 1.4). `'water'` — текущее поведение 1.2 БЕЗ изменений
+ * (вода, ARCHIMEDES_SPEC). `'solution'` — режим 1.4: доступна соль, ρ растёт
+ * ступенями, журнал ARCHIMEDES_LIQUID_SPEC, виден график F_арх(ρ).
+ */
+export type LiquidMode = 'water' | 'solution';
+
 interface State {
   phase: ScenarioPhase;
+  /** Режим жидкости (опыт 1.4). 'water' = 1.2 без изменений. */
+  liquidMode: LiquidMode;
+  /**
+   * Число добавленных порций соли (только в режиме 'solution'). 0 = чистая вода.
+   * ρ раствора вычисляется через liquidRhoFromSaltPortions(saltPortions).
+   */
+  saltPortions: number;
+  /**
+   * Текущая плотность жидкости (кг/м³). В режиме 'water' всегда WATER_RHO_KG_M3.
+   * В 'solution' — liquidRhoFromSaltPortions(saltPortions).
+   */
+  liquidRhoKgM3: number;
   /** Какой динамометр на сцене (range, 1 или 5). null если нет. */
   dynoRange: DynamometerRange | null;
   /** Какой цилиндр привязан к крюку. null если нет. */
@@ -187,6 +211,9 @@ interface State {
 
 const INITIAL_STATE: State = {
   phase: 'idle',
+  liquidMode: 'water',
+  saltPortions: 0,
+  liquidRhoKgM3: WATER_RHO_KG_M3,
   dynoRange: null,
   cylinderId: null,
   beakerOnScene: false,
@@ -231,6 +258,14 @@ interface Refs {
   journal: LabJournal;
   /** §21: контейнер для shared `renderJournalTable` (с ARCHIMEDES_SPEC). */
   journalHost: HTMLElement;
+  /** Опыт 1.4: тумблер жидкости «Вода» / «Раствор». */
+  liquidToggle: HTMLElement;
+  /** Опыт 1.4: группа реактивов (соль) в панели оборудования. */
+  reagentsGroup: HTMLElement;
+  /** Опыт 1.4: обёртка графика F_арх(ρ). */
+  graphWrap: HTMLElement;
+  /** Опыт 1.4: компонент графика. */
+  graph: LabGraph;
   liveRegion: HTMLElement;
   equipmentCards: HTMLElement[];
   /** X-кнопки detach (REFERENCE §15.4) — discoverable, видны всегда. */
@@ -297,6 +332,9 @@ const RECORD_LABELS: Partial<Record<ScenarioPhase, string>> = {
  */
 interface PersistedPayload {
   phase: ScenarioPhase;
+  liquidMode: LiquidMode;
+  saltPortions: number;
+  liquidRhoKgM3: number;
   dynoRange: DynamometerRange | null;
   cylinderId: ArchimedesCylinderId | null;
   beakerOnScene: boolean;
@@ -423,6 +461,8 @@ export class ArchimedesExperiment {
     for (const btn of Array.from(refs.dosePicker.querySelectorAll<HTMLButtonElement>('.dose-btn'))) {
       btn.addEventListener('click', this.#handleDoseClick);
     }
+    // Опыт 1.4: тумблер жидкости «Вода» / «Раствор».
+    refs.liquidToggle.addEventListener('click', this.#handleLiquidToggleClick);
 
     this.#dragDrop = new DragDropController(refs.rootHost, this.#handleDrop);
 
@@ -551,6 +591,7 @@ export class ArchimedesExperiment {
     for (const btn of Array.from(this.#refs.dosePicker.querySelectorAll<HTMLButtonElement>('.dose-btn'))) {
       btn.removeEventListener('click', this.#handleDoseClick);
     }
+    this.#refs.liquidToggle.removeEventListener('click', this.#handleLiquidToggleClick);
     this.#refs.rootHost.removeEventListener('beaker-tap', this.#handleBeakerTap);
     this.#refs.cylinderHost.removeEventListener('pointerdown', this.#handleCylinderPointerDown);
     this.#refs.cylinderHost.removeEventListener('click', this.#handleCylinderClick);
@@ -708,6 +749,122 @@ export class ArchimedesExperiment {
     });
     this.#announce(`Налито ${actual} мл воды${actual !== volumeMl ? ' (часть пролилась)' : ''}.`);
     // Если цилиндр уже в воде — пересчитать F_A (изменился V_погружения).
+    if (s.inWater && s.cylinderId !== null) {
+      this.#recomputeForceForState(this.#store.get());
+    }
+  }
+
+  // ─── Опыт 1.4: режим жидкости + солевой flow ─────────────────────────
+
+  /**
+   * Текущая плотность жидкости (кг/м³) для расчётов Архимеда. В режиме
+   * 'water' — всегда вода; в 'solution' — ρ из числа порций соли.
+   * Источник истины — state.liquidRhoKgM3 (синхронизирован в setLiquidMode /
+   * addSaltPortion). Параметр позволяет звать на любом snapshot.
+   */
+  #liquidRho(s: Readonly<State>): number {
+    return s.liquidMode === 'solution' ? s.liquidRhoKgM3 : WATER_RHO_KG_M3;
+  }
+
+  /** §21 — SPEC журнала по режиму: 'solution' → ARCHIMEDES_LIQUID_SPEC, иначе → 1.2. */
+  #currentSpec(): JournalSpec {
+    return this.#store.get().liquidMode === 'solution'
+      ? ARCHIMEDES_LIQUID_SPEC
+      : ARCHIMEDES_SPEC;
+  }
+
+  /**
+   * Переключить режим жидкости. Смена режима очищает журнал/drafts/verdicts и
+   * сбрасывает соль — журнал 1.2 и 1.4 имеют разные колонки, смешивать нельзя.
+   * Сцена (динамометр/цилиндр/стакан/вода) сохраняется. В 'water' соль
+   * недоступна и ρ = вода (регресс 1.2 недопустим).
+   */
+  setLiquidMode(mode: LiquidMode): void {
+    const s = this.#store.get();
+    if (s.liquidMode === mode) return;
+    this.#cancelAnim();
+    this.#cancelStableTimer();
+    // Журнал разных опытов несовместим по колонкам — чистим при смене режима.
+    this.#refs.journal.clear();
+    this.#journalDrafts.clear();
+    this.#journalVerdicts.clear();
+    this.#autoRecordedPhases.clear();
+    // Если цилиндр был в воде — поднимаем (пересчёт силы пойдёт по новой ρ при
+    // следующем погружении). currentRowTs обнуляем (строка журнала ушла).
+    const rho = mode === 'solution' ? liquidRhoFromSaltPortions(0) : WATER_RHO_KG_M3;
+    const newPhase: ScenarioPhase = s.inWater
+      ? s.waterMl >= 100
+        ? 'water-poured'
+        : s.beakerOnScene
+          ? 'beaker-on-scene'
+          : 'cyl-attached'
+      : s.phase;
+    this.#store.set({
+      liquidMode: mode,
+      saltPortions: 0,
+      liquidRhoKgM3: rho,
+      inWater: false,
+      submersionFraction: 0,
+      dipOffsetPx: 0,
+      forceTargetN: s.cylinderId !== null ? weightInAirN(gToKg(ARCHIMEDES_CYLINDER_BY_ID.get(s.cylinderId)?.m_g ?? 0)) : 0,
+      forceN: s.cylinderId !== null ? weightInAirN(gToKg(ARCHIMEDES_CYLINDER_BY_ID.get(s.cylinderId)?.m_g ?? 0)) : 0,
+      overloaded: false,
+      partialDip: false,
+      bottomTouch: false,
+      currentRowTs: null,
+      completedCylinders: [],
+      bannerText: null,
+      stable: true,
+      phase: newPhase,
+    });
+    this.#announce(
+      mode === 'solution'
+        ? 'Режим раствора. Добавляйте соль в воду — плотность будет расти.'
+        : 'Режим воды (опыт 1.2).',
+    );
+  }
+
+  /**
+   * Добавить порцию соли в стакан и перемешать (опыт 1.4). Доступно только в
+   * режиме 'solution' и когда в стакане есть вода. ρ растёт ступенью
+   * (liquidRhoFromSaltPortions); при насыщении соль больше не растворяется.
+   * Если цилиндр в воде — пересчитываем F_A под новую ρ (Архимед ∝ ρ).
+   */
+  addSaltPortion(): void {
+    const s = this.#store.get();
+    if (s.liquidMode !== 'solution') {
+      this.#announce('Соль доступна только в режиме раствора.');
+      return;
+    }
+    if (!s.beakerOnScene || s.waterMl <= 0) {
+      this.#announce('Сначала налейте воду в стакан — соль нужно в чём-то растворять.');
+      this.#store.set({
+        bannerText: 'Налейте воду в стакан, прежде чем добавлять соль.',
+      });
+      return;
+    }
+    if (isSaturated(s.saltPortions)) {
+      this.#announce('Раствор насыщен, соль больше не растворяется.');
+      this.#store.set({
+        bannerText: 'Раствор насыщен — соль больше не растворяется.',
+      });
+      return;
+    }
+    const portions = s.saltPortions + 1;
+    const rho = liquidRhoFromSaltPortions(portions);
+    this.#store.set({
+      saltPortions: portions,
+      liquidRhoKgM3: rho,
+      bannerText: isSaturated(portions)
+        ? 'Раствор насыщен — соль больше не растворяется.'
+        : null,
+    });
+    this.#announce(
+      isSaturated(portions)
+        ? `Соль добавлена и перемешана. ρ = ${rho} кг/м³. Раствор насыщен, соль больше не растворяется.`
+        : `Соль добавлена и перемешана. ρ = ${rho} кг/м³.`,
+    );
+    // Если цилиндр сейчас под водой — F_A зависит от ρ, пересчитываем сразу.
     if (s.inWater && s.cylinderId !== null) {
       this.#recomputeForceForState(this.#store.get());
     }
@@ -965,11 +1122,7 @@ export class ArchimedesExperiment {
         F_A_meas_N: null,
         F_A_theor_N: 0, // recompute внутри журнала
         delta_pct: null,
-        context: {
-          cylinder_id: String(cyl.id),
-          liquid: 'water',
-          V_water_ml: s.waterMl,
-        },
+        context: this.#rowContext(cyl.id, s),
       });
       // Phase двигаем только если он был cyl-attached (точка перед записью);
       // если ученик уже в water-poured/beaker-on-scene — оставляем,
@@ -1029,11 +1182,7 @@ export class ArchimedesExperiment {
           F_A_meas_N: null,
           F_A_theor_N: 0,
           delta_pct: null,
-          context: {
-            cylinder_id: String(cyl.id),
-            liquid: 'water',
-            V_water_ml: s.waterMl,
-          },
+          context: this.#rowContext(cyl.id, s),
         });
         this.#store.set({ currentRowTs: ts, phase: 'liquid-recorded' });
         undoTsForRow = ts;
@@ -1057,11 +1206,7 @@ export class ArchimedesExperiment {
         prevP_liquid = prevRow?.P_liquid_N ?? null;
         this.#refs.journal.updateRow(tsToUpdate, {
           P_liquid_N: P_liquid_rounded,
-          context: {
-            cylinder_id: String(cyl.id),
-            liquid: 'water',
-            V_water_ml: s.waterMl,
-          },
+          context: this.#rowContext(cyl.id, s),
         });
         this.#store.set({ phase: 'liquid-recorded' });
         undoTsForRow = tsToUpdate;
@@ -1184,14 +1329,17 @@ export class ArchimedesExperiment {
 
     this.#cancelAnim();
     this.#cancelStableTimer();
-    this.#store.set({ ...INITIAL_STATE });
+    // Режим жидкости — это UI-выбор опыта (1.2 / 1.4), а не «измерение»:
+    // reset чистит установку и журнал, но оставляет ученика в выбранном опыте.
+    const keepMode = this.#store.get().liquidMode;
+    this.#store.set({ ...INITIAL_STATE, liquidMode: keepMode });
     this.#refs.journal.clear();
     // §20.4 — позволить auto-режиму снова фиксировать измерения после reset.
     this.#autoRecordedPhases.clear();
     // §21: drafts/verdicts journal'а — сбрасываем вместе со state.
     this.#journalDrafts.clear();
     this.#journalVerdicts.clear();
-    this.#announce('Опыт 1.2 сброшен.');
+    this.#announce(keepMode === 'solution' ? 'Опыт 1.4 сброшен.' : 'Опыт 1.2 сброшен.');
 
     // UI-undo: если был не-пустой state и UI-сценарий — даём 5с откатить.
     if (showUndoToast && hadAnything) {
@@ -1312,6 +1460,17 @@ export class ArchimedesExperiment {
       }
     }
 
+    // ── Опыт 1.4: соль в стакан → +порция, ρ растёт ──────────────────
+    if (eqId === 'salt') {
+      if (dropzoneId === 'ar-beaker') {
+        this.addSaltPortion();
+        return;
+      }
+      // Соль обратно в карточку — no-op (соль расходуемая, не «возвращается»).
+      if (dropzoneId === 'card-salt') return;
+      return;
+    }
+
     // ── Стакан на сцену ─────────────────────────────────────────────
     if (eqId === 'beaker' && dropzoneId === 'ar-stage-beaker') {
       this.placeBeaker();
@@ -1358,6 +1517,19 @@ export class ArchimedesExperiment {
       this.placeBeaker();
       return;
     }
+    // Опыт 1.4: click по соли = добавить порцию (click-to-add, как у приборов).
+    if (eqId === 'salt') {
+      this.addSaltPortion();
+      return;
+    }
+  };
+
+  /** Опыт 1.4: click по тумблеру жидкости «Вода» / «Раствор». */
+  #handleLiquidToggleClick = (ev: Event): void => {
+    const btn = (ev.target as HTMLElement).closest<HTMLElement>('[data-liquid-mode]');
+    if (!btn) return;
+    const mode = btn.getAttribute('data-liquid-mode');
+    if (mode === 'water' || mode === 'solution') this.setLiquidMode(mode);
   };
 
   #handleResetClick = (): void => {
@@ -1863,7 +2035,11 @@ export class ArchimedesExperiment {
     // V_water. Это отдельно от частичного погружения по геометрии (drag).
     const partial = V_water > 0 && V_water < V_cyl;
     const V_displaced_cm3 = Math.min(V_water, V_cyl);
-    const F_A_full = archimedesForceN(RHO_WATER, cm3ToM3(V_displaced_cm3));
+    // Опыт 1.4: F_A зависит от ТЕКУЩЕЙ плотности жидкости (вода/раствор), а не
+    // только воды. В режиме 'water' #liquidRho возвращает WATER_RHO_KG_M3 —
+    // поведение 1.2 идентично. См. §31 REFERENCE / спека 1.4.
+    const rho = this.#liquidRho(this.#store.get());
+    const F_A_full = archimedesForceN(rho, cm3ToM3(V_displaced_cm3));
     return { F_A_full, partial, bottom, low };
   }
 
@@ -2215,6 +2391,9 @@ export class ArchimedesExperiment {
     });
     return {
       phase: s.phase,
+      liquidMode: s.liquidMode,
+      saltPortions: s.saltPortions,
+      liquidRhoKgM3: s.liquidRhoKgM3,
       dynoRange: s.dynoRange,
       cylinderId: s.cylinderId,
       beakerOnScene: s.beakerOnScene,
@@ -2250,8 +2429,20 @@ export class ArchimedesExperiment {
           : p.inWater
             ? 1
             : 0;
+      // Совместимость со старыми snapshot'ами без режима жидкости (опыт 1.4).
+      const liquidMode: LiquidMode = p.liquidMode === 'solution' ? 'solution' : 'water';
+      const saltPortions = typeof p.saltPortions === 'number' ? p.saltPortions : 0;
+      const liquidRhoKgM3 =
+        typeof p.liquidRhoKgM3 === 'number'
+          ? p.liquidRhoKgM3
+          : liquidMode === 'solution'
+            ? liquidRhoFromSaltPortions(saltPortions)
+            : WATER_RHO_KG_M3;
       this.#store.set({
         phase: p.phase,
+        liquidMode,
+        saltPortions,
+        liquidRhoKgM3,
         dynoRange: p.dynoRange,
         cylinderId: p.cylinderId,
         beakerOnScene: p.beakerOnScene,
@@ -2395,6 +2586,7 @@ export class ArchimedesExperiment {
   // ─── Render ───────────────────────────────────────────────────────────
 
   #render(state: State): void {
+    this.#renderLiquidMode(state);
     this.#renderDynamometer(state);
     this.#renderCylinder(state);
     this.#renderBeaker(state);
@@ -2407,6 +2599,75 @@ export class ArchimedesExperiment {
     this.#renderBanner(state);
     this.#renderSceneOverlay(state);
     this.#renderSharedJournal();
+    this.#renderGraph(state);
+  }
+
+  /**
+   * Опыт 1.4: тумблер жидкости + видимость группы реактивов (соль).
+   * В режиме 'solution' показываем соль; в 'water' — скрываем (регресс 1.2 = 0).
+   */
+  #renderLiquidMode(state: State): void {
+    const btns = this.#refs.liquidToggle.querySelectorAll<HTMLElement>('[data-liquid-mode]');
+    btns.forEach((b) => {
+      const active = b.getAttribute('data-liquid-mode') === state.liquidMode;
+      if (active) b.dataset['state'] = 'active';
+      else delete b.dataset['state'];
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    this.#refs.reagentsGroup.hidden = state.liquidMode !== 'solution';
+  }
+
+  /**
+   * Опыт 1.4: график F_арх(ρ). Точки — из журнальных строк раствора с полной
+   * парой (P_возд + P_жид → F_A_изм). Показываем при ≥2 точках в режиме
+   * 'solution'. Линия тренда — прямая через 0 с наклоном g·V (F_арх = ρ·g·V).
+   */
+  #renderGraph(state: State): void {
+    if (!this.#refs.graph) return;
+    if (state.liquidMode !== 'solution') {
+      this.#refs.graphWrap.hidden = true;
+      this.#refs.graph.data = {
+        points: [], fitSlope: null, xLabel: 'ρ, кг/м³', yLabel: 'F_арх, Н', xMax: 1300, yMax: 1, xMin: 900,
+      };
+      return;
+    }
+    const points: GraphPoint[] = [];
+    const volumesCm3 = new Set<number>();
+    for (const r of this.#refs.journal.getRows()) {
+      if (r.context.liquid !== 'solution') continue;
+      const rho = r.context.rho_kg_m3;
+      if (rho == null || r.P_air_N == null || r.P_liquid_N == null) continue;
+      // Всплывший цилиндр: P_жид клампится в 0, и F_изм=вес, а не ρ·g·V — точка
+      // ложится вне прямой и ломает «прямую пропорцию». Исключаем из графика.
+      if (r.P_liquid_N <= 0) continue;
+      const fMeas = r.P_air_N - r.P_liquid_N;
+      if (!Number.isFinite(fMeas)) continue;
+      volumesCm3.add(r.V_cm3);
+      points.push({
+        id: String(r.timestamp),
+        x: rho,
+        y: fMeas,
+        label: `ρ ${rho} кг/м³, F_арх ${fMeas.toFixed(2)} Н`,
+      });
+    }
+    const visible = points.length >= 2;
+    this.#refs.graphWrap.hidden = !visible;
+    // Линия тренда F_арх=ρ·g·V (slope=g·V через физику, без хардкода 9.8) корректна
+    // ТОЛЬКО при едином объёме цилиндра — разные V дают разный наклон.
+    const singleV = volumesCm3.size === 1 ? [...volumesCm3][0]! : null;
+    const fitSlope = visible && singleV !== null ? archimedesForceN(1, singleV * 1e-6) : null;
+    // NaN-guard: Math.max молча пропускает NaN → защищаем масштаб оси Y.
+    const finiteYs = points.map((p) => p.y).filter(Number.isFinite);
+    const yMax = (finiteYs.length ? Math.max(0.5, ...finiteYs) : 0.5) * 1.25;
+    this.#refs.graph.data = {
+      points,
+      fitSlope,
+      xLabel: 'ρ, кг/м³',
+      yLabel: 'F_арх, Н',
+      xMin: 900,
+      xMax: 1300,
+      yMax,
+    };
   }
 
   /**
@@ -2416,35 +2677,58 @@ export class ArchimedesExperiment {
    * вводит F_A_изм и Δ% в input'ы и проверяет ✓.
    */
   #renderSharedJournal(): void {
-    const labRows = this.#refs.journal.getRows();
+    const spec = this.#currentSpec();
+    const isSolution = spec === ARCHIMEDES_LIQUID_SPEC;
+    // §21 UX-v2: показываем только строки текущего режима. lab-journal — общий
+    // data-store; при смене режима он очищается, но для безопасности фильтруем.
+    const labRows = this.#refs.journal
+      .getRows()
+      .filter((r) =>
+        isSolution ? r.context.liquid === 'solution' : r.context.liquid !== 'solution',
+      );
     const mode = this.#recordMode();
+    // F_теор по SPEC: ρ·g·V (для раствора ρ из строки), 1.2 — вода. Считаем из
+    // эталонной формулы spec.column.expectedFromRow, чтобы видимое значение
+    // совпадало с тем, что проверит ✓ (без рассинхрона).
+    const theorCol = spec.columns.find((c) => c.key === 'F_A_theor_N');
     const rows: import('@shared/lib/journal/types').JournalRow[] = labRows.map((r, i) => {
       const draft = this.#journalDrafts.get(r.timestamp) ?? {};
       const cylLabel = r.cylinder.replace('No', 'Цилиндр № ');
+      const rho = r.context.rho_kg_m3 ?? null;
+      const baseValues: Record<string, number | string | null> = {
+        idx: i + 1,
+        V_cm3: r.V_cm3 ?? null,
+        P_air_N: r.P_air_N ?? null,
+        P_liq_N: r.P_liquid_N ?? null,
+        F_A_meas_N: mode === 'fully-auto'
+          ? (r.F_A_meas_N ?? null)
+          : (draft.F_A_meas_N ?? null),
+        delta_pct: mode === 'fully-auto'
+          ? (r.delta_pct ?? null)
+          : (draft.delta_pct ?? null),
+      };
+      // meta-колонка: цилиндр (1.2) либо ρ раствора (1.4).
+      if (isSolution) baseValues['rho_kg_m3'] = rho;
+      else baseValues['cylinder'] = cylLabel;
+      // F_теор — таблично-эталонная величина, пишется всегда (не вводится учеником).
+      // expectedFromRow читает только числовые ключи (rho/V) → подаём numeric-view.
+      const numericView: Record<string, number> = {
+        rho_kg_m3: rho ?? 0,
+        V_cm3: r.V_cm3 ?? 0,
+        P_air_N: r.P_air_N ?? 0,
+        P_liq_N: r.P_liquid_N ?? 0,
+      };
+      baseValues['F_A_theor_N'] = theorCol?.expectedFromRow
+        ? theorCol.expectedFromRow(numericView)
+        : (r.F_A_theor_N ?? null);
       return {
         idx: i + 1,
         timestamp: r.timestamp,
-        values: {
-          idx: i + 1,
-          cylinder: cylLabel,
-          V_cm3: r.V_cm3 ?? null,
-          P_air_N: r.P_air_N ?? null,
-          P_liq_N: r.P_liquid_N ?? null,
-          // §21: в semi-auto/fully-manual ученик вводит сам, поэтому
-          // подставляем только в fully-auto. F_A_theor пишется всегда
-          // (это таблично-эталонная величина, не рассчитываемая учеником).
-          F_A_meas_N: mode === 'fully-auto'
-            ? (r.F_A_meas_N ?? null)
-            : (draft.F_A_meas_N ?? null),
-          F_A_theor_N: r.F_A_theor_N ?? null,
-          delta_pct: mode === 'fully-auto'
-            ? (r.delta_pct ?? null)
-            : (draft.delta_pct ?? null),
-        },
+        values: baseValues,
         verdicts: this.#journalVerdicts.get(r.timestamp) ?? {},
       };
     });
-    renderJournalTable(this.#refs.journalHost, ARCHIMEDES_SPEC, rows, {
+    renderJournalTable(this.#refs.journalHost, spec, rows, {
       mode,
       onCellInput: (rowIdx, key, value) => {
         const ts = labRows[rowIdx - 1]?.timestamp;
@@ -2476,6 +2760,7 @@ export class ArchimedesExperiment {
           idx: rowIdx,
           timestamp: labRow.timestamp,
           values: {
+            rho_kg_m3: labRow.context.rho_kg_m3 ?? null,
             V_cm3: labRow.V_cm3,
             P_air_N: labRow.P_air_N ?? 0,
             P_liq_N: labRow.P_liquid_N ?? 0,
@@ -2484,7 +2769,7 @@ export class ArchimedesExperiment {
             delta_pct: draft.delta_pct ?? null,
           },
         };
-        const verdicts = verifyRow(ARCHIMEDES_SPEC.columns, tempRow);
+        const verdicts = verifyRow(spec.columns, tempRow);
         this.#journalVerdicts.set(labRow.timestamp, verdicts);
         // Inplace обновление verdict-классов (без full re-render).
         if (tr) {
@@ -2756,12 +3041,32 @@ export class ArchimedesExperiment {
       F_A_meas_N: null,
       F_A_theor_N: 0,
       delta_pct: null,
-      context: {
-        cylinder_id: String(cyl.id),
-        liquid: 'water',
-        V_water_ml: state.waterMl,
-      },
+      context: this.#rowContext(cyl.id, state),
     });
+  }
+
+  /**
+   * Контекст журнальной строки. В режиме 'solution' пишем фактическую ρ
+   * раствора на момент записи (из salt-flow) — по ней строится журнал 1.4 и
+   * график. В 'water' — поведение 1.2 без изменений.
+   */
+  #rowContext(
+    cylId: ArchimedesCylinderId,
+    s: Readonly<State>,
+  ): JournalRow['context'] {
+    if (s.liquidMode === 'solution') {
+      return {
+        cylinder_id: String(cylId),
+        liquid: 'solution',
+        V_water_ml: s.waterMl,
+        rho_kg_m3: this.#liquidRho(s),
+      };
+    }
+    return {
+      cylinder_id: String(cylId),
+      liquid: 'water',
+      V_water_ml: s.waterMl,
+    };
   }
 
   #renderRecordBtn(state: State): void {
@@ -2843,6 +3148,18 @@ export class ArchimedesExperiment {
   #renderHint(state: State): void {
     const mode = getRecordMode(RECORD_MODE_KIT);
     const map = mode === 'fully-manual' ? HINTS_MANUAL : HINTS;
+    // Опыт 1.4: после записи первой точки в растворе подсказываем «добавьте соль».
+    if (state.liquidMode === 'solution') {
+      const hasFullSolutionRow = this.#refs.journal
+        .getRows()
+        .some((r) => r.context.liquid === 'solution' && r.P_air_N !== null && r.P_liquid_N !== null);
+      if (hasFullSolutionRow && !isSaturated(state.saltPortions)) {
+        this.#refs.hint.textContent =
+          'Добавьте соль в стакан и перемешайте — плотность вырастет, повторите измерение для новой точки графика.';
+        return;
+      }
+      // До первой точки в растворе ведём по обычному сценарию (налить → погрузить → записать).
+    }
     this.#refs.hint.textContent = map[state.phase];
   }
 

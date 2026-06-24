@@ -687,7 +687,9 @@ lab-dynamometer[data-overload='true'] {
   position: absolute;
   right: var(--space-4);
   bottom: var(--space-4);
-  width: min(440px, calc(100% - var(--space-4) * 2));
+  /* 500px вмещает 7-колоночный журнал 1.4 без горизонтального скролла;
+     8-колоночный 1.2 (541px) и узкие vp скроллятся внутри .ar-journal-host. */
+  width: min(500px, calc(100% - var(--space-4) * 2));
   max-height: calc(100% - var(--space-4) * 2);
   display: flex;
   flex-direction: column;
@@ -702,6 +704,22 @@ lab-dynamometer[data-overload='true'] {
   z-index: 12;
   overflow: hidden;
   pointer-events: auto;
+}
+
+/* Журнал шире панели (8-колоночный 1.2 / узкие vp) → горизонтальный скролл
+   внутри host, чтобы НИ одна колонка (в т.ч. F_A теор) не пряталась.
+   В режиме 1.4 ниже встаёт график — журнал растягивается и скроллит по вертикали
+   (flex:1 + overflow-y), чтобы график не «съедал» строки измерений. */
+.ar-journal-host {
+  flex: 1 1 auto;
+  min-height: 96px;
+  overflow: auto;
+  max-width: 100%;
+}
+
+/* График — фикс-высота снизу панели, не сжимается журналом. */
+.ar-graph-wrap {
+  flex: 0 0 auto;
 }
 
 /* ─── Equipment-panel ────────────────────────────────────────────── */
@@ -894,4 +912,63 @@ lab-dynamometer[data-overload='true'] {
     /* Скрываем подписи, оставляем только номера. ARIA-label остаётся. */
     display: none;
   }
+}
+
+/* ─── Опыт 1.4: тумблер жидкости «Вода» / «Раствор» ───────────────────── */
+.ar-liquid-toggle {
+  display: inline-flex;
+  background: rgb(6 13 20 / 0.7);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-pill, 999px);
+  padding: 4px;
+  gap: 4px;
+  align-self: center;
+}
+
+.ar-liquid-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill, 999px);
+  color: var(--color-text-secondary, #9ca3af);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.ar-liquid-btn:hover {
+  background: rgb(255 255 255 / 0.05);
+  color: var(--color-text-primary, #e0e1dd);
+}
+
+.ar-liquid-btn[data-state='active'] {
+  background: #38bdaf;
+  color: #06151c;
+}
+
+.ar-liquid-btn:focus-visible {
+  outline: 2px solid var(--color-brand-orange, #ffbe0b);
+  outline-offset: 2px;
+}
+
+/* ─── Опыт 1.4: график F_арх(ρ) ───────────────────────────────────────── */
+.ar-graph-wrap {
+  margin-top: var(--space-3, 12px);
+}
+
+.ar-graph-title {
+  margin: 0 0 var(--space-2, 8px);
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--color-text-primary, #e0e1dd);
+}
+
+.ar-graph-wrap lab-graph {
+  display: block;
+  max-width: 420px;
 }

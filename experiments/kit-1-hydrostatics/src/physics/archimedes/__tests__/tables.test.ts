@@ -114,14 +114,20 @@ describe('ARCHIMEDES_CYLINDER_BY_ID — карта быстрого доступ
   });
 });
 
-describe('LIQUIDS — жидкости опыта 1.2', () => {
-  it('содержит только воду', () => {
-    expect(Object.keys(LIQUIDS)).toEqual(['water']);
+describe('LIQUIDS — жидкости опытов 1.2 (вода) и 1.4 (раствор)', () => {
+  it('содержит воду и соляной раствор', () => {
+    expect(Object.keys(LIQUIDS)).toEqual(['water', 'solution']);
   });
 
   it('вода: id=water, ρ=1000 кг/м³', () => {
     expect(LIQUIDS.water.id).toBe('water');
     expect(LIQUIDS.water.rho_kg_m3).toBe(1000);
     expect(LIQUIDS.water.name).toBe('Вода');
+  });
+
+  it('раствор: id=solution, ρ=1200 кг/м³ (насыщение)', () => {
+    expect(LIQUIDS.solution.id).toBe('solution');
+    expect(LIQUIDS.solution.rho_kg_m3).toBe(1200);
+    expect(LIQUIDS.solution.name).toBe('Солёный раствор');
   });
 });

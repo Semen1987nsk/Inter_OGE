@@ -103,6 +103,46 @@ export const ARCHIMEDES_SPEC: JournalSpec = {
 };
 
 /**
+ * Опыт 1.4 «Исследование зависимости F_A от плотности жидкости».
+ *
+ * ФИПИ-2026, Прил. 2, стр. 16: «исследование зависимости архимедовой силы …
+ * от плотности жидкости» (вода ↔ соляной раствор). Ученик готовит раствор солью.
+ *
+ * Отличие от ARCHIMEDES_SPEC (1.2): F_теор = ρ_ЖИДКОСТИ·g·V (НЕ хардкод воды) —
+ * ρ берётся из строки (meta, из salt-flow). Цель — показать F_арх ∝ ρ.
+ */
+export const ARCHIMEDES_LIQUID_SPEC: JournalSpec = {
+  experimentId: '1.4',
+  kitId: 'kit-1',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'rho_kg_m3', label: 'ρ, кг/м³', source: 'meta', unit: 'кг/м³', format: 'int' },
+    { key: 'V_cm3', label: 'V, см³', source: 'meta', unit: 'см³', format: 'int' },
+    { key: 'P_air_N', label: 'P возд, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    { key: 'P_liq_N', label: 'P жид, Н', source: 'direct', unit: 'Н', format: 'fixed2' },
+    {
+      key: 'F_A_meas_N',
+      label: 'F_A изм, Н',
+      source: 'derived',
+      unit: 'Н',
+      format: 'fixed2',
+      tolerance: 0.05,
+      expectedFromRow: (row) => (row.P_air_N ?? 0) - (row.P_liq_N ?? 0),
+    },
+    {
+      key: 'F_A_theor_N',
+      label: 'F_A теор, Н',
+      source: 'derived',
+      unit: 'Н',
+      format: 'fixed2',
+      tolerance: 0.05,
+      // F_теор = ρ_жидкости · g · V; ρ из строки (meta), не хардкод воды.
+      expectedFromRow: (row) => (row.rho_kg_m3 ?? 0) * G * (row.V_cm3 ?? 0) * 1e-6,
+    },
+  ],
+};
+
+/**
  * Опыт 1.3 «Исследование зависимости F_A от объёма погружённой части тела».
  *
  * ФИПИ-2026, Спецификация КИМ, Приложение 2, стр. 16, Комплект №1:
@@ -294,6 +334,7 @@ export const FRICTION_WORK_SPEC: JournalSpec = {
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
+  ARCHIMEDES_LIQUID_SPEC,
   ARCHIMEDES_VOLUME_SPEC,
   SPRING_SPEC,
   FRICTION_SPEC,

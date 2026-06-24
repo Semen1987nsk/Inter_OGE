@@ -39,6 +39,7 @@ import './ui/components/lab-dynamometer';
 import './ui/components/lab-beaker';
 import './ui/components/lab-thread';
 import './ui/components/lab-salt-set';
+import './ui/components/lab-graph';
 import './ui/components/lab-journal';
 import './ui/components/lab-toast';
 import './ui/components/lab-kit-nav';
