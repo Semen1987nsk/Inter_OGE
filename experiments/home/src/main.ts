@@ -230,8 +230,9 @@ function buildPosterWall(
     poster.setAttribute('title', kit.title);
     poster.setAttribute('meta', meta);
     poster.setAttribute('photo', `/photos/${kit.photo}`);
-    poster.setAttribute('done', String(kitFipiProgress(kit).done));
-    poster.setAttribute('total', String(kitFipiProgress(kit).total));
+    const { done, total } = kitFipiProgress(kit);
+    poster.setAttribute('done', String(done));
+    poster.setAttribute('total', String(total));
     poster.style.setProperty('--kit-glow', kit.accent);
     poster.style.setProperty('--kit-accent', kit.accent);
 

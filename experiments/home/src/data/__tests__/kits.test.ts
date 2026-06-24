@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KITS, totalExperiments, kitsByCategory, kitFipiProgress } from '../kits';
+import { KITS, totalExperiments, kitsByCategory, kitFipiProgress, kitBonusCount } from '../kits';
 
 describe('KITS data integrity', () => {
   it('у всех китов уникальные num и slug', () => {
@@ -51,5 +51,15 @@ describe('KITS data integrity', () => {
   });
   it('kitsByCategory(mechanics) включает киты 1,2,5,6', () => {
     expect(kitsByCategory('mechanics').map(k => k.num).sort()).toEqual([1,2,5,6]);
+  });
+  it('внутри кита пара (id, fipiTask) уникальна', () => {
+    for (const k of KITS) {
+      const keys = k.experiments.map(e => `${e.id}|${e.fipiTask ?? ''}`);
+      expect(new Set(keys).size).toBe(k.experiments.length);
+    }
+  });
+  it('kitBonusCount(kit-2) === 1 (бонус spring-work)', () => {
+    const byNum = (n: number) => KITS.find(k => k.num === n)!;
+    expect(kitBonusCount(byNum(2))).toBe(1);
   });
 });
