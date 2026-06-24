@@ -64,7 +64,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: 'spring-stiffness', title: 'Жёсткость пружины',                resultVerb: 'Измерь жёсткость пружины',             fipiTask: '2.1', isFipi: true, done: true },
       { id: 'friction',         title: 'Коэффициент трения скольжения',    resultVerb: 'Определи коэффициент трения',           fipiTask: '2.2', isFipi: true, done: true },
       { id: 'friction',         title: 'Работа силы трения',               resultVerb: 'Найди работу силы трения',             fipiTask: '2.3', isFipi: true, done: true },
-      { id: 'elastic-force',    title: 'Измерение силы упругости',         resultVerb: 'Измерь силу упругости',                fipiTask: '2.4', isFipi: true, done: false },
+      { id: 'elastic-force',    title: 'Измерение силы упругости',         resultVerb: 'Измерь силу упругости',                fipiTask: '2.4', isFipi: true, done: true },
       { id: 'friction',         title: 'F_тр от силы нормального давления', resultVerb: 'Исследуй F_тр от нормального давления', fipiTask: '2.5', isFipi: true, done: true },
       { id: 'friction',         title: 'F_тр от рода поверхности',         resultVerb: 'Исследуй F_тр от рода поверхности',     fipiTask: '2.6', isFipi: true, done: true },
       { id: 'spring-elastic',   title: 'Сила упругости от деформации (Гука)', resultVerb: 'Построй график силы упругости',     fipiTask: '2.7', isFipi: true, done: true },

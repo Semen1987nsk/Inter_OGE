@@ -1,0 +1,158 @@
+<main class="ef-app-main">
+  <section class="workbench" aria-label="Рабочая зона">
+    <header class="workbench-header">
+      <ol class="steps" id="ef-steps" aria-label="Этапы измерения">
+        <li class="step" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">Закрепите пружину</span>
+        </li>
+        <li class="step" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-label">Подвесьте динамометр</span>
+        </li>
+        <li class="step" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-label">Подвесьте груз</span>
+        </li>
+        <li class="step" data-step="4">
+          <span class="step-num">4</span>
+          <span class="step-label">Запишите F_упр</span>
+        </li>
+      </ol>
+      <div class="workbench-hint" id="ef-hint-bar">
+        Возьмите оборудование из правой панели и перетащите на установку.
+      </div>
+      <button id="ef-reset-btn" class="reset-btn" type="button" aria-label="Сбросить опыт" title="Сбросить опыт">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="workbench-stage" id="ef-stage">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <div class="stand-container" id="ef-stand-container">
+        <lab-stand id="ef-stand"></lab-stand>
+
+        <div class="drop-zone" id="ef-drop-zone-spring" aria-hidden="true" hidden>
+          <span class="drop-zone-label">Закрепите пружину</span>
+        </div>
+        <div class="drop-zone" id="ef-drop-zone-bottom" aria-hidden="true" hidden>
+          <span class="drop-zone-label">Подвесьте сюда</span>
+        </div>
+      </div>
+
+      <!-- Floating measurement panel -->
+      <aside
+        id="ef-measurement-panel"
+        class="measurement-panel"
+        data-state="empty"
+        aria-collapsed="false"
+        aria-label="Панель измерений"
+      >
+        <header class="measurement-panel-header">
+          <button
+            id="ef-measurement-toggle"
+            class="measurement-toggle"
+            type="button"
+            aria-expanded="true"
+            aria-controls="ef-measurement-body"
+          >
+            <svg class="chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+            <span class="measurement-title">Журнал измерений</span>
+            <span id="ef-measurement-count" class="measurement-count" hidden>0</span>
+          </button>
+          <div id="ef-record-mode-slot" class="record-mode-slot"></div>
+          <button
+            id="ef-record-btn"
+            class="record-btn"
+            type="button"
+            disabled
+            hidden
+          >
+            Записать в журнал
+          </button>
+        </header>
+
+        <div id="ef-measurement-body" class="measurement-body">
+          <div class="ef-formula-display" id="ef-formula-display">
+            <span class="formula-label">Формула:</span>
+            <span class="formula-expr">
+              <em>F</em><sub>упр</sub> = <em>m</em> &middot; <em>g</em>
+            </span>
+            <span class="formula-units"><em>m</em> — в кг, <em>g</em> = 9,8 м/с²</span>
+          </div>
+
+          <div class="journal-empty" id="ef-journal-empty">
+            Подвесьте груз — динамометр покажет силу упругости. Нажмите «Записать в журнал».
+          </div>
+
+          <div id="ef-journal-host" class="journal-host" hidden></div>
+
+          <div id="ef-record-pending-slot" class="record-pending-slot" hidden>
+            <button id="ef-record-pending-btn" class="record-pending-btn" type="button">
+              Записать в журнал <span id="ef-record-pending-summary"></span>
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- Overlay для drag&drop (position:fixed) -->
+  <div id="ef-drag-overlay" class="drag-overlay" aria-hidden="true"></div>
+
+  <aside class="equipment-panel" aria-label="Оборудование комплекта">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Оборудование</h3>
+      <div class="equipment-grid">
+        <lab-equipment-card title="Динамометр 1Н" status="available" data-eq="dyno-1">
+          <lab-dynamometer range="1" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+        <lab-equipment-card title="Динамометр 5Н" status="available" data-eq="dyno-5">
+          <lab-dynamometer range="5" force="0"></lab-dynamometer>
+        </lab-equipment-card>
+        <lab-equipment-card title="Пружина №1" status="available" data-eq="spring-k50">
+          <lab-spring-board spring-id="k50" extension="0"></lab-spring-board>
+        </lab-equipment-card>
+        <lab-equipment-card title="Пружина №2" status="available" data-eq="spring-k10">
+          <lab-spring-board spring-id="k10" extension="0"></lab-spring-board>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Готовые грузы</h3>
+      <div class="equipment-grid equipment-grid-3">
+        <lab-equipment-card title="Груз №1" status="available" data-eq="w-100-1">
+          <lab-weight mass="100" number="1"></lab-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Груз №2" status="available" data-eq="w-100-2">
+          <lab-weight mass="100" number="2"></lab-weight>
+        </lab-equipment-card>
+        <lab-equipment-card title="Груз №3" status="available" data-eq="w-100-3">
+          <lab-weight mass="100" number="3"></lab-weight>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Наборный груз</h3>
+      <p class="equipment-group-hint">
+        Штанга 10 г + диски 10/20/50. Перетащите диски на штангу, затем повесьте узел.
+      </p>
+      <lab-composite-tray
+        id="ef-composite-tray"
+        data-eq="composite-load"
+      ></lab-composite-tray>
+    </section>
+  </aside>
+</main>
+<div id="ef-live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

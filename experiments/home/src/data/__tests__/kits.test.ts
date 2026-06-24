@@ -44,10 +44,10 @@ describe('KITS data integrity', () => {
     expect(kitFipiProgress(byNum(7)).total).toBe(4);
     expect(totalExperiments().total).toBe(44);
   });
-  it('kit-1 готов 5/5 (1.5 реализован), kit-2 готов 6/7 (F_упр ещё нет)', () => {
+  it('kit-1 готов 5/5 (1.5 реализован), kit-2 готов 7/7 (F_упр реализован)', () => {
     const byNum = (n: number) => KITS.find(k => k.num === n)!;
     expect(kitFipiProgress(byNum(1)).done).toBe(5);
-    expect(kitFipiProgress(byNum(2)).done).toBe(6);
+    expect(kitFipiProgress(byNum(2)).done).toBe(7);
   });
   it('kitsByCategory(mechanics) включает киты 1,2,5,6', () => {
     expect(kitsByCategory('mechanics').map(k => k.num).sort()).toEqual([1,2,5,6]);

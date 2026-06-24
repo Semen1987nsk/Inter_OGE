@@ -360,6 +360,33 @@ export const INDEPENDENCE_MASS_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 2.4 «Измерение силы упругости пружины одной точкой».
+ *
+ * ФИПИ-2026, КОДИФ §1.29 п.6: «…силы упругости…» (измерение через динамометр).
+ * Прил. 2 компл. №2: «измерение … силы упругости».
+ *
+ * При равновесии пружины под грузом массой m:
+ *   F_упр = m · g  (в Ньютонах; g = 9.8 м/с²; m в кг = m_г / 1000).
+ *
+ * Модель «одной точкой»: один груз → одна строка в журнале {m_г, F_упр}.
+ * Ученик вводит F_упр из показаний динамометра; программа проверяет через expectedFromRow.
+ */
+export const ELASTIC_FORCE_SPEC: JournalSpec = {
+  experimentId: '2.5',
+  kitId: 'kit-2',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'm_g', label: 'm, г', source: 'direct', unit: 'г', format: 'int' },
+    {
+      key: 'F_N', label: 'F_упр, Н', source: 'derived', unit: 'Н', format: 'fixed2',
+      tolerance: 0.05,
+      // При равновесии F_упр = m·g.
+      expectedFromRow: (row) => ((row.m_g ?? 0) / 1000) * G,
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -369,6 +396,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   SPRING_SPEC,
   FRICTION_SPEC,
   FRICTION_WORK_SPEC,
+  ELASTIC_FORCE_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {

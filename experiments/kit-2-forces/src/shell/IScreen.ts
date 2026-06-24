@@ -11,7 +11,7 @@ import type {
   ScreenMeta as SharedScreenMeta,
 } from '@shared/shell/IScreen';
 
-export type ScreenId = 'spring-stiffness' | 'spring-elastic' | 'spring-work' | 'friction';
+export type ScreenId = 'spring-stiffness' | 'spring-elastic' | 'spring-work' | 'friction' | 'elastic-force';
 export type IconId = 'spring' | 'force' | 'work' | 'friction';
 
 export type IScreen = SharedIScreen<ScreenId, IconId>;

@@ -22,6 +22,7 @@ import './styles/reset.css';
 import './styles/components.css';
 import './styles/kit-shell.css';
 import './styles/spring-experiment.css';
+import './styles/elastic-force-experiment.css';
 import './styles/friction-experiment.css';
 // §21 — shared journal v2 styles (.lab-journal-table, .j-verdict--*, .record-pending-btn).
 import '@labosfera/shared-spa/lib/journal/journal.css';
@@ -55,6 +56,7 @@ import { SpringStiffnessScreen } from '@screens/spring-stiffness/SpringStiffness
 import { SpringElasticScreen } from '@screens/spring-elastic/SpringElasticScreen';
 import { SpringWorkScreen } from '@screens/spring-work/SpringWorkScreen';
 import { FrictionScreen } from '@screens/friction/FrictionScreen';
+import { ElasticForceScreen } from '@screens/elastic-force/ElasticForceScreen';
 import { homeUrl, readRoleFromUrl, persistRole, readPersistedRole, type Role } from './lib/urls';
 
 // ─── Role: ?role=teacher|student → body[data-role] + role-badge ───
@@ -83,6 +85,7 @@ const header = document.getElementById('kit-header') as LabKitHeader;
 const screens: IScreen[] = [
   new SpringStiffnessScreen(),
   new SpringElasticScreen(),
+  new ElasticForceScreen(),
   new SpringWorkScreen(),
   new FrictionScreen(),
 ];
