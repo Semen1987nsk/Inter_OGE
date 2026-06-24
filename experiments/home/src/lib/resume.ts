@@ -1,4 +1,5 @@
 import type { Kit } from '../data/kits';
+import { kitFipiProgress } from '../data/kits';
 
 export interface ResumeTarget {
   kitNum: number;
@@ -21,7 +22,7 @@ export function resumeTarget(
     if (!kit1) throw new Error('Kit 1 not found');
     return {
       kitNum: 1,
-      remaining: kit1.progress.total - 0,
+      remaining: kitFipiProgress(kit1).total - 0,
       isFresh: true,
     };
   }
@@ -42,7 +43,7 @@ export function resumeTarget(
   const done = progressByKit[lastStartedNum] ?? 0;
   return {
     kitNum: lastStartedNum,
-    remaining: lastKit.progress.total - done,
+    remaining: kitFipiProgress(lastKit).total - done,
     isFresh: false,
   };
 }

@@ -13,14 +13,18 @@ export type KitPriority = 'flagship' | 'medium' | 'compact';
 export type KitCategory = 'mechanics' | 'electricity' | 'optics' | 'thermal';
 
 export interface KitExperiment {
-  /** Номер задачи в ФИПИ (например, '2.1'). */
+  /** Слаг зарегистрированного экрана (для запуска ?screen=<id>); для planned — будущий слаг. */
   readonly id: string;
-  /** Название опыта. */
   readonly title: string;
-  /** Краткий глагол-результат (императив): что именно измеряет/находит ученик. */
   readonly resultVerb: string;
-  /** Номер задачи по ФИПИ ОГЭ-2026 — только если точно известен из официального документа. */
+  /** Дотированный номер по ФИПИ (например, '2.1') — для бейджа. */
   readonly fipiTask?: string;
+  /** true — опыт входит в перечень ФИПИ; false — бонус ЛАБОСФЕРЫ. */
+  readonly isFipi: boolean;
+  /** true — опыт реализован и DoD-ready. */
+  readonly done: boolean;
+  /** Обязателен, если isFipi===false: причина-обоснование бонуса. */
+  readonly bonusReason?: string;
 }
 
 export interface Kit {
@@ -38,8 +42,6 @@ export interface Kit {
   readonly photo: string;
   /** Только для planned — приблизительный квартал релиза. */
   readonly eta?: string;
-  /** Сколько готовых опытов / всего */
-  readonly progress: { done: number; total: number };
   /** Физическая категория раздела. */
   readonly category: KitCategory;
   /** Доминирующий цвет акцента (hex #rrggbb) — для постер-карточки. */
@@ -59,13 +61,17 @@ export const KITS: ReadonlyArray<Kit> = [
       'Жёсткость пружины, закон Гука как график, работа упругой силы и трение скольжения. ' +
       'Включает четыре подзадачи по трению — измерение μ, работа F_тр, F_тр(N) и F_тр от поверхности.',
     experiments: [
-      { id: '2.1', title: 'Жёсткость пружины', resultVerb: 'Измерь жёсткость пружины' },
-      { id: '2.6', title: 'Сила упругости (закон Гука)', resultVerb: 'Построй график силы упругости' },
-      { id: '2.4', title: 'Работа силы упругости', resultVerb: 'Найди работу силы упругости' },
-      { id: '2.2', title: 'Трение скольжения', resultVerb: 'Определи коэффициент трения' },
+      { id: 'spring-stiffness', title: 'Жёсткость пружины',                resultVerb: 'Измерь жёсткость пружины',             fipiTask: '2.1', isFipi: true, done: true },
+      { id: 'friction',         title: 'Коэффициент трения скольжения',    resultVerb: 'Определи коэффициент трения',           fipiTask: '2.2', isFipi: true, done: true },
+      { id: 'friction',         title: 'Работа силы трения',               resultVerb: 'Найди работу силы трения',             fipiTask: '2.3', isFipi: true, done: true },
+      { id: 'elastic-force',    title: 'Измерение силы упругости',         resultVerb: 'Измерь силу упругости',                fipiTask: '2.4', isFipi: true, done: false },
+      { id: 'friction',         title: 'F_тр от силы нормального давления', resultVerb: 'Исследуй F_тр от нормального давления', fipiTask: '2.5', isFipi: true, done: true },
+      { id: 'friction',         title: 'F_тр от рода поверхности',         resultVerb: 'Исследуй F_тр от рода поверхности',     fipiTask: '2.6', isFipi: true, done: true },
+      { id: 'spring-elastic',   title: 'Сила упругости от деформации (Гука)', resultVerb: 'Построй график силы упругости',     fipiTask: '2.7', isFipi: true, done: true },
+      { id: 'spring-work',      title: 'Работа силы упругости',            resultVerb: 'Найди работу силы упругости',          isFipi: false, done: true,
+        bonusReason: 'Демонстрирует закон сохранения энергии; в ФИПИ работа упругости только для kit-6 (с блоками). КОДИФ §1.29.' },
     ],
     photo: 'kit-2.svg',
-    progress: { done: 4, total: 4 },
     category: 'mechanics',
     accent: '#3a86ff',
   },
@@ -86,19 +92,19 @@ export const KITS: ReadonlyArray<Kit> = [
       'цилиндры №1–4 (сталь, алюминий, пластик), динамометры 1 Н и 5 Н, мензурка 250 мл, ' +
       'стакан, электронные весы, соль для приготовления раствора.',
     experiments: [
-      { id: '1.1', title: 'Плотность вещества', resultVerb: 'Измерь плотность тела' },
-      { id: '1.2', title: 'Архимедова сила в воде', resultVerb: 'Найди архимедову силу' },
-      { id: '1.3', title: 'F_A от объёма погружённой части', resultVerb: 'Исследуй F_арх от объёма' },
-      { id: '1.4', title: 'F_A от плотности жидкости', resultVerb: 'Исследуй F_арх от плотности жидкости' },
-      { id: '1.5', title: 'Независимость F_A от массы тела', resultVerb: 'Проверь независимость F_арх от массы' },
+      { id: 'density-solid',     title: 'Плотность вещества',                 resultVerb: 'Измерь плотность тела',                  fipiTask: '1.1', isFipi: true, done: true },
+      { id: 'archimedes',        title: 'Архимедова сила (цилиндры №2–4)',    resultVerb: 'Измерь архимедову силу',                 fipiTask: '1.2', isFipi: true, done: true },
+      { id: 'archimedes-volume', title: 'F_A от объёма погружения',           resultVerb: 'Исследуй F_арх от объёма',               fipiTask: '1.3', isFipi: true, done: true },
+      { id: 'archimedes',        title: 'F_A от плотности жидкости',          resultVerb: 'Исследуй F_арх от плотности жидкости',   fipiTask: '1.4', isFipi: true, done: true },
+      { id: 'independence-mass', title: 'Независимость F_A от массы тела',    resultVerb: 'Проверь независимость F_арх от массы',   fipiTask: '1.5', isFipi: true, done: false },
     ],
     photo: 'kit-1.svg',
-    progress: { done: 4, total: 5 },
     category: 'mechanics',
     accent: '#14b8a6',
   },
 
   // КИТ-3 — электричество, planned
+  // ФИПИ ОГЭ-2026, Приложение 2, Комплект №3: 9 опытов.
   {
     num: 3,
     status: 'planned',
@@ -106,26 +112,26 @@ export const KITS: ReadonlyArray<Kit> = [
     slug: 'kit-3-circuits',
     path: '../kit-3-circuits/',
     title: 'Электрические цепи',
-    summary: 'Закон Ома, мощность, последовательное и параллельное соединения, реостат.',
+    summary: 'Закон Ома, мощность, сопротивление, последовательное и параллельное соединения.',
     experiments: [
-      { id: '3.1', title: 'Закон Ома для участка', resultVerb: 'Проверь закон Ома для участка цепи' },
-      { id: '3.2', title: 'Сопротивление проводника', resultVerb: 'Определи сопротивление проводника' },
-      { id: '3.3', title: 'Последовательное соединение', resultVerb: 'Исследуй последовательное соединение резисторов' },
-      { id: '3.4', title: 'Параллельное соединение', resultVerb: 'Исследуй параллельное соединение резисторов' },
-      { id: '3.5', title: 'Реостат / делитель напряжения', resultVerb: 'Собери делитель напряжения на реостате' },
-      { id: '3.6', title: 'Работа и мощность тока', resultVerb: 'Вычисли мощность электрического тока' },
-      { id: '3.7', title: 'Закон Джоуля—Ленца', resultVerb: 'Проверь закон Джоуля—Ленца' },
-      { id: '3.8', title: 'Зависимость R от длины', resultVerb: 'Измерь зависимость сопротивления от длины проводника' },
-      { id: '3.9', title: 'Зависимость R от сечения', resultVerb: 'Измерь зависимость сопротивления от сечения проводника' },
+      { id: 'resistance-measure',   title: 'Измерение сопротивления',              resultVerb: 'Измерь электрическое сопротивление резистора',         fipiTask: '3.1', isFipi: true, done: false },
+      { id: 'power-measure',        title: 'Измерение мощности тока',              resultVerb: 'Измерь мощность электрического тока',                  fipiTask: '3.2', isFipi: true, done: false },
+      { id: 'work-measure',         title: 'Измерение работы тока',                resultVerb: 'Измерь работу электрического тока',                    fipiTask: '3.3', isFipi: true, done: false },
+      { id: 'vac-resistor',         title: 'ВАХ резистора и лампочки',             resultVerb: 'Исследуй зависимость тока от напряжения',              fipiTask: '3.4', isFipi: true, done: false },
+      { id: 'resistance-length',    title: 'Зависимость R от длины',               resultVerb: 'Исследуй зависимость R от длины проводника',            fipiTask: '3.5', isFipi: true, done: false },
+      { id: 'resistance-section',   title: 'Зависимость R от сечения',             resultVerb: 'Исследуй зависимость R от площади поперечного сечения', fipiTask: '3.6', isFipi: true, done: false },
+      { id: 'resistance-rho',       title: 'Зависимость R от удельного R',         resultVerb: 'Исследуй зависимость R от удельного сопротивления',     fipiTask: '3.7', isFipi: true, done: false },
+      { id: 'series-voltage',       title: 'Правило напряжений (последоват.)',      resultVerb: 'Проверь правило напряжений при последовательном соединении', fipiTask: '3.8', isFipi: true, done: false },
+      { id: 'parallel-current',     title: 'Правило токов (параллельное)',          resultVerb: 'Проверь правило токов при параллельном соединении',     fipiTask: '3.9', isFipi: true, done: false },
     ],
     photo: 'kit-3.svg',
     eta: '2026 Q4',
-    progress: { done: 0, total: 9 },
     category: 'electricity',
     accent: '#f59e0b',
   },
 
   // КИТ-4 — оптика, planned
+  // ФИПИ ОГЭ-2026, Приложение 2, Комплект №4: 6 опытов.
   {
     num: 4,
     status: 'planned',
@@ -135,21 +141,21 @@ export const KITS: ReadonlyArray<Kit> = [
     title: 'Оптика',
     summary: 'Линзы, фокусное расстояние, преломление света, построение изображений.',
     experiments: [
-      { id: '4.1', title: 'Фокусное расстояние линзы', resultVerb: 'Определи фокусное расстояние линзы' },
-      { id: '4.2', title: 'Изображение в собирающей линзе', resultVerb: 'Получи изображение в собирающей линзе' },
-      { id: '4.3', title: 'Преломление света', resultVerb: 'Измерь угол преломления света' },
-      { id: '4.4', title: 'Дисперсия', resultVerb: 'Наблюдай дисперсию белого света' },
-      { id: '4.5', title: 'Полное внутреннее отражение', resultVerb: 'Найди угол полного внутреннего отражения' },
-      { id: '4.6', title: 'Угол отражения', resultVerb: 'Проверь закон отражения света' },
+      { id: 'lens-power',          title: 'Оптическая сила линзы',               resultVerb: 'Измерь оптическую силу собирающей линзы',                 fipiTask: '4.1', isFipi: true, done: false },
+      { id: 'focal-length',        title: 'Фокусное расстояние линзы',            resultVerb: 'Измерь фокусное расстояние собирающей линзы',             fipiTask: '4.2', isFipi: true, done: false },
+      { id: 'refraction-index',    title: 'Показатель преломления стекла',        resultVerb: 'Измерь показатель преломления стекла',                   fipiTask: '4.3', isFipi: true, done: false },
+      { id: 'lens-image',          title: 'Изображение в собирающей линзе',       resultVerb: 'Исследуй свойства изображения в собирающей линзе',        fipiTask: '4.4', isFipi: true, done: false },
+      { id: 'lens-combo',          title: 'Фокусное расстояние двух линз',        resultVerb: 'Исследуй изменение фокусного расстояния двух сложенных линз', fipiTask: '4.5', isFipi: true, done: false },
+      { id: 'refraction-angle',    title: 'Угол преломления от угла падения',     resultVerb: 'Исследуй зависимость угла преломления от угла падения',   fipiTask: '4.6', isFipi: true, done: false },
     ],
     photo: 'kit-4.svg',
     eta: '2027 Q1',
-    progress: { done: 0, total: 6 },
     category: 'optics',
     accent: '#a855f7',
   },
 
-  // КИТ-5 — колебания, planned
+  // КИТ-5 — кинематика и колебания, planned
+  // ФИПИ ОГЭ-2026, Приложение 2, Комплект №5: 9 опытов (резерв).
   {
     num: 5,
     status: 'planned',
@@ -157,21 +163,26 @@ export const KITS: ReadonlyArray<Kit> = [
     slug: 'kit-5-oscillations',
     path: '../kit-5-oscillations/',
     title: 'Колебания и волны',
-    summary: 'Период математического и пружинного маятников, звук и резонанс.',
+    summary: 'Период математического и пружинного маятников, кинематика наклонной плоскости.',
     experiments: [
-      { id: '5.1', title: 'Период математического маятника', resultVerb: 'Измерь период математического маятника' },
-      { id: '5.2', title: 'Период пружинного маятника', resultVerb: 'Измерь период пружинного маятника' },
-      { id: '5.3', title: 'Зависимость T от длины', resultVerb: 'Исследуй зависимость периода от длины нити' },
-      { id: '5.4', title: 'Резонанс', resultVerb: 'Наблюдай резонанс механических колебаний' },
+      { id: 'incline-speed',       title: 'Средняя скорость на наклонной',        resultVerb: 'Измерь среднюю скорость бруска по наклонной плоскости',  fipiTask: '5.1', isFipi: true, done: false },
+      { id: 'incline-accel',       title: 'Ускорение на наклонной',               resultVerb: 'Измерь ускорение бруска на наклонной плоскости',         fipiTask: '5.2', isFipi: true, done: false },
+      { id: 'pendulum-period',     title: 'Период нитяного маятника',             resultVerb: 'Измерь частоту и период нитяного маятника',              fipiTask: '5.3', isFipi: true, done: false },
+      { id: 'spring-period',       title: 'Период пружинного маятника',           resultVerb: 'Измерь частоту и период пружинного маятника',            fipiTask: '5.4', isFipi: true, done: false },
+      { id: 'incline-accel-angle', title: 'Ускорение от угла наклона',            resultVerb: 'Исследуй зависимость ускорения от угла наклона направляющей', fipiTask: '5.5', isFipi: true, done: false },
+      { id: 'pendulum-length',     title: 'Период от длины нити',                 resultVerb: 'Исследуй зависимость периода нитяного маятника от длины нити', fipiTask: '5.6', isFipi: true, done: false },
+      { id: 'spring-mass',         title: 'Период пружинного от массы',           resultVerb: 'Исследуй зависимость периода пружинного маятника от массы груза', fipiTask: '5.7', isFipi: true, done: false },
+      { id: 'spring-stiffness-osc', title: 'Период пружинного от жёсткости',     resultVerb: 'Исследуй зависимость периода пружинного маятника от жёсткости', fipiTask: '5.8', isFipi: true, done: false },
+      { id: 'pendulum-mass',       title: 'Независимость периода от массы',       resultVerb: 'Исследуй независимость периода нитяного маятника от массы груза', fipiTask: '5.9', isFipi: true, done: false },
     ],
     photo: 'kit-5.svg',
     eta: '2027 Q2',
-    progress: { done: 0, total: 4 },
     category: 'mechanics',
     accent: '#22d3ee',
   },
 
-  // КИТ-6 — рычаги/блоки, planned
+  // КИТ-6 — рычаги и блоки, planned
+  // ФИПИ ОГЭ-2026, Приложение 2, Комплект №6: 4 опыта.
   {
     num: 6,
     status: 'planned',
@@ -179,21 +190,21 @@ export const KITS: ReadonlyArray<Kit> = [
     slug: 'kit-6-lever',
     path: '../kit-6-lever/',
     title: 'Рычаги и блоки',
-    summary: 'Условие равновесия рычага, КПД, неподвижный и подвижный блоки.',
+    summary: 'Момент силы рычага, работа силы упругости при подъёме груза блоками, равновесие.',
     experiments: [
-      { id: '6.1', title: 'Равновесие рычага', resultVerb: 'Проверь условие равновесия рычага' },
-      { id: '6.2', title: 'КПД наклонной плоскости', resultVerb: 'Вычисли КПД наклонной плоскости' },
-      { id: '6.3', title: 'Неподвижный блок', resultVerb: 'Исследуй неподвижный блок' },
-      { id: '6.4', title: 'Подвижный блок (выигрыш в силе)', resultVerb: 'Измерь выигрыш в силе подвижного блока' },
+      { id: 'lever-moment',        title: 'Момент силы рычага',                  resultVerb: 'Измерь момент силы, действующей на рычаг',              fipiTask: '6.1', isFipi: true, done: false },
+      { id: 'fixed-block-work',    title: 'Работа силы (неподвижный блок)',       resultVerb: 'Измерь работу силы упругости при подъёме грузом неподвижным блоком', fipiTask: '6.2', isFipi: true, done: false },
+      { id: 'moving-block-work',   title: 'Работа силы (подвижный блок)',         resultVerb: 'Измерь работу силы упругости при подъёме груза подвижным блоком', fipiTask: '6.3', isFipi: true, done: false },
+      { id: 'lever-balance',       title: 'Равновесие рычага',                   resultVerb: 'Проверь условие равновесия рычага',                     fipiTask: '6.4', isFipi: true, done: false },
     ],
     photo: 'kit-6.svg',
     eta: '2027 Q2',
-    progress: { done: 0, total: 4 },
     category: 'mechanics',
     accent: '#84cc16',
   },
 
-  // КИТ-7 — теплота, planned
+  // КИТ-7 — тепловые явления, planned
+  // ФИПИ ОГЭ-2026, Приложение 2, Комплект №7: 4 опыта (резерв).
   {
     num: 7,
     status: 'planned',
@@ -203,27 +214,35 @@ export const KITS: ReadonlyArray<Kit> = [
     title: 'Тепловые явления',
     summary: 'Удельная теплоёмкость, теплота плавления, измерение температуры калориметром.',
     experiments: [
-      { id: '7.1', title: 'Удельная теплоёмкость', resultVerb: 'Определи удельную теплоёмкость вещества' },
-      { id: '7.2', title: 'Теплота плавления льда', resultVerb: 'Измерь удельную теплоту плавления льда' },
-      { id: '7.3', title: 'Тепловой баланс смешивания', resultVerb: 'Проверь уравнение теплового баланса' },
+      { id: 'heat-capacity',       title: 'Удельная теплоёмкость цилиндра',      resultVerb: 'Измерь удельную теплоёмкость металлического цилиндра',  fipiTask: '7.1', isFipi: true, done: false },
+      { id: 'heat-received',       title: 'Теплота, полученная водой',            resultVerb: 'Измерь количество теплоты, полученного водой',           fipiTask: '7.2', isFipi: true, done: false },
+      { id: 'heat-given',          title: 'Теплота, отданная цилиндром',          resultVerb: 'Измерь количество теплоты, отданного нагретым цилиндром', fipiTask: '7.3', isFipi: true, done: false },
+      { id: 'temp-conditions',     title: 'Температура при разных условиях',      resultVerb: 'Исследуй изменение температуры воды при различных условиях', fipiTask: '7.4', isFipi: true, done: false },
     ],
     photo: 'kit-7.svg',
     eta: '2027 Q3',
-    progress: { done: 0, total: 3 },
     category: 'thermal',
     accent: '#ef4444',
   },
 ];
 
-/** Сколько всего опытов в продакшен и в плане. */
-export function totalExperiments(kits: ReadonlyArray<Kit> = KITS): {
-  done: number;
-  total: number;
-} {
-  return kits.reduce(
-    (acc, k) => ({ done: acc.done + k.progress.done, total: acc.total + k.progress.total }),
-    { done: 0, total: 0 },
-  );
+/** Прогресс кита по опытам ФИПИ (бонусы не считаются). */
+export function kitFipiProgress(kit: Kit): { done: number; total: number } {
+  const fipi = kit.experiments.filter(e => e.isFipi);
+  return { done: fipi.filter(e => e.done).length, total: fipi.length };
+}
+
+/** Сумма ФИПИ-опытов по всем китам. */
+export function totalExperiments(kits: ReadonlyArray<Kit> = KITS): { done: number; total: number } {
+  return kits.reduce((acc, k) => {
+    const p = kitFipiProgress(k);
+    return { done: acc.done + p.done, total: acc.total + p.total };
+  }, { done: 0, total: 0 });
+}
+
+/** Кол-во бонус-опытов кита (isFipi:false). */
+export function kitBonusCount(kit: Kit): number {
+  return kit.experiments.filter(e => !e.isFipi).length;
 }
 
 /** Вернуть все киты указанной физической категории. */

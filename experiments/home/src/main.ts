@@ -15,7 +15,7 @@ import './components/kit-drawer';
 import './components/role-switch';
 
 import { BRAND } from './data/brand';
-import { KITS, totalExperiments } from './data/kits';
+import { KITS, totalExperiments, kitFipiProgress } from './data/kits';
 import type { Kit, KitCategory } from './data/kits';
 import { visibleKitNums, type FilterState } from './lib/filters';
 import { searchExperiments } from './lib/search';
@@ -230,8 +230,8 @@ function buildPosterWall(
     poster.setAttribute('title', kit.title);
     poster.setAttribute('meta', meta);
     poster.setAttribute('photo', `/photos/${kit.photo}`);
-    poster.setAttribute('done', String(kit.progress.done));
-    poster.setAttribute('total', String(kit.progress.total));
+    poster.setAttribute('done', String(kitFipiProgress(kit).done));
+    poster.setAttribute('total', String(kitFipiProgress(kit).total));
     poster.style.setProperty('--kit-glow', kit.accent);
     poster.style.setProperty('--kit-accent', kit.accent);
 
