@@ -32,6 +32,14 @@ import './ui/components/lab-kit-header';
 import './ui/components/lab-equipment-card';
 import './ui/components/lab-graph';
 
+// Circuit instrument components (lab-* custom elements for опыт 3.1)
+import './ui/components/lab-power-source';
+import './ui/components/lab-voltmeter';
+import './ui/components/lab-ammeter';
+import './ui/components/lab-resistor';
+import './ui/components/lab-key';
+import './ui/components/lab-circuit-board';
+
 import { KitShell } from '@shell/KitShell';
 import type { IScreen, ScreenId } from '@shell/IScreen';
 import type { LabKitNav } from './ui/components/lab-kit-nav';

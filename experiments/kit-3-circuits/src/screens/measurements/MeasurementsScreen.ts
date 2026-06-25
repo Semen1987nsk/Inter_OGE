@@ -1,13 +1,18 @@
 /**
- * MeasurementsScreen — заглушка экрана «Измерения» (Опыт 3.1).
+ * MeasurementsScreen — экран «Измерения» (Опыт 3.1 Сопротивление резистора).
  *
- * Task 1 scaffold: рендерит временный «Скоро» стаб.
- * Реальная реализация — в Task 6 (Фаза A).
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (стр.18) + КОДИФ §1.29:
+ * измерение сопротивления резистора методом амперметра-вольтметра. R = U / I.
  *
- * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (стр.18): измерение сопротивления
- * резистора методом амперметра-вольтметра. R = U / I.
+ * Фасад IScreen по образцу FrictionScreen (kit-2):
+ *   mount → inject template.html → создать MeasurementsExperiment
+ *   unmount → destroy + reset + replaceChildren
+ *   reset → experiment.reset()
  */
 
+import templateHtml from './template.html?raw';
+import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
+import { MeasurementsExperiment, type ExperimentRefs } from './MeasurementsExperiment';
 import type { IScreen, ScreenMeta } from '@shell/IScreen';
 
 export class MeasurementsScreen implements IScreen {
@@ -16,58 +21,66 @@ export class MeasurementsScreen implements IScreen {
     label: 'Сопротивление резистора',
     kicker: 'Опыт 3.1',
     icon: 'gauge',
-    tooltip: 'Измерение сопротивления резистора (R = U / I)',
+    tooltip: 'Измерение сопротивления резистора методом амперметра-вольтметра (R = U / I)',
   };
 
-  #root: HTMLElement | null = null;
+  #experiment: MeasurementsExperiment | null = null;
+  #host: HTMLElement | null = null;
 
   mount(host: HTMLElement): void {
-    if (this.#root) return;
-    const root = document.createElement('div');
-    root.className = 'measurements-screen';
-    root.style.cssText = [
-      'display:flex',
-      'align-items:center',
-      'justify-content:center',
-      'height:100%',
-      'flex-direction:column',
-      'gap:16px',
-      'color:var(--color-text-secondary,#a8b3c7)',
-      'font-family:var(--font-display,system-ui,sans-serif)',
-    ].join(';');
+    if (this.#experiment) return;
+    this.#host = host;
+    host.innerHTML = templateHtml;
 
-    const title = document.createElement('div');
-    title.style.cssText = 'font-size:24px;font-weight:700;color:var(--color-text-primary,#e8eef9)';
-    title.textContent = 'Опыт 3.1 — Сопротивление резистора';
+    const refs: ExperimentRefs = {
+      stage: host.querySelector<HTMLElement>('#stage')!,
+      circuitBoard: host.querySelector<HTMLElement & {
+        getSlotRect(id: string): DOMRect;
+        setCurrentAnimating(on: boolean): void;
+      }>('#circuit-board')!,
+      dragOverlay: host.querySelector<HTMLElement>('#drag-overlay')!,
+      hintBar: host.querySelector<HTMLElement>('#hint-bar')!,
+      liveRegion: host.querySelector<HTMLElement>('#live-region')!,
+      resetBtn: host.querySelector('#reset-btn') as HTMLButtonElement,
+      keyControl: host.querySelector<HTMLElement>('#key-control')!,
+      keyBtn: host.querySelector('#key-btn') as HTMLButtonElement,
+      keyBtnLabel: host.querySelector<HTMLElement>('#key-btn-label')!,
+      voltageControl: host.querySelector<HTMLElement>('#voltage-control')!,
+      voltageInput: host.querySelector('#voltage-input') as HTMLInputElement,
+      voltageReadout: host.querySelector<HTMLElement>('#voltage-readout')!,
+      journalEmpty: host.querySelector<HTMLElement>('#journal-empty')!,
+      formulaDisplay: host.querySelector<HTMLElement>('#formula-display')!,
+      measurementPanel: host.querySelector<HTMLElement>('#measurement-panel')!,
+      measurementToggle: host.querySelector('#measurement-toggle') as HTMLButtonElement,
+      measurementCount: host.querySelector<HTMLElement>('#measurement-count')!,
+      steps: host.querySelector<HTMLElement>('#steps')!,
+      resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
+      cards: host.querySelectorAll<LabEquipmentCard>('lab-equipment-card'),
+      // §21 — журнал v2 slots
+      recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
+      journalHost: host.querySelector<HTMLElement>('#journal-host') ?? undefined,
+      recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
+      recordPendingBtn: (host.querySelector('#record-pending-btn') as HTMLButtonElement | null) ?? undefined,
+      recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
+    };
 
-    const sub = document.createElement('div');
-    sub.style.cssText = 'font-size:14px';
-    sub.textContent = 'Скоро — реализация в Task 6 (Фаза A)';
-
-    const formula = document.createElement('div');
-    formula.style.cssText = [
-      'font-size:20px',
-      'font-family:var(--font-mono,monospace)',
-      'color:var(--color-brand-teal,#14b8a6)',
-      'padding:12px 24px',
-      'border:1px solid var(--color-border,rgba(255,255,255,0.1))',
-      'border-radius:8px',
-    ].join(';');
-    formula.textContent = 'R = U / I';
-
-    root.appendChild(title);
-    root.appendChild(formula);
-    root.appendChild(sub);
-    host.appendChild(root);
-    this.#root = root;
+    this.#experiment = new MeasurementsExperiment(refs);
+    // Дебаг-доступ для Playwright selfcheck и инспекции
+    (window as unknown as { measurementsExperiment?: MeasurementsExperiment }).measurementsExperiment =
+      this.#experiment;
   }
 
   unmount(): void {
-    this.#root?.remove();
-    this.#root = null;
+    if (!this.#experiment) return;
+    this.#experiment.destroy();
+    this.#experiment.reset();
+    delete (window as unknown as { measurementsExperiment?: MeasurementsExperiment }).measurementsExperiment;
+    this.#experiment = null;
+    if (this.#host) this.#host.replaceChildren();
+    this.#host = null;
   }
 
   reset(): void {
-    // no state to reset in stub
+    this.#experiment?.reset();
   }
 }
