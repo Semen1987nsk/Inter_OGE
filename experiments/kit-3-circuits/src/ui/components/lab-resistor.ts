@@ -216,8 +216,7 @@ export class LabResistor extends HTMLElement {
     }
 
     this.#variantLabel.textContent = v;
-    const r = this.resistance;
-    this.setAttribute('aria-label', `Резистор ${v}, ${r} Ом`);
+    this.setAttribute('aria-label', `Резистор ${v}`);
   }
 }
 

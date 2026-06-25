@@ -22,6 +22,15 @@ describe('circuit lab-* components register & render', () => {
     expect(el.resistance).toBeCloseTo(4.7, 1);
     el.remove();
   });
+  it('lab-resistor aria-label не палит сопротивление', () => {
+    const el = document.createElement('lab-resistor') as HTMLElement;
+    el.setAttribute('variant', 'R1');
+    document.body.appendChild(el);
+    const aria = el.getAttribute('aria-label') ?? '';
+    expect(aria).not.toContain('4.7');
+    expect(aria).not.toContain('Ом');
+    el.remove();
+  });
   it('lab-key click → toggle event', () => {
     const el = document.createElement('lab-key') as any;
     document.body.appendChild(el);

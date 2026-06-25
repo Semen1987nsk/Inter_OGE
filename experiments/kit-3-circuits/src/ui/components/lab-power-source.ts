@@ -124,10 +124,10 @@ template.innerHTML = `
     <rect x="${BODY_X+10}" y="${BODY_Y+24}" width="${BODY_W-20}" height="18" rx="3"
           fill="#050c18" stroke="#1a2540" stroke-width="0.6"/>
     <text class="lcd-text"
-          x="${BODY_X + BODY_W/2 - 10 + 22}" y="${BODY_Y+36}"
+          x="${BODY_X + 10 + (BODY_W - 20) / 2}" y="${BODY_Y+36}"
           font-family="var(--font-mono,monospace)" font-size="11"
           font-weight="800" fill="var(--color-brand-orange,#ffbe0b)"
-          text-anchor="end">4,5 В</text>
+          text-anchor="middle">4,5 В</text>
   </g>
 
   <!-- РУЧКА РЕГУЛЯТОРА -->
@@ -155,10 +155,10 @@ template.innerHTML = `
 
   <!-- КЛЕММА «−» -->
   <g class="term-minus">
-    <circle cx="${TERM_MINUS_X}" cy="${TERM_Y}" r="${TERM_R}" fill="url(#ps-term-gold)" stroke="#8b6500" stroke-width="0.7"/>
+    <circle cx="${TERM_MINUS_X}" cy="${TERM_Y}" r="${TERM_R}" fill="#555e70" stroke="#333" stroke-width="0.7"/>
     <text x="${TERM_MINUS_X}" y="${TERM_Y + 1.8}"
           font-family="var(--font-display,sans-serif)" font-size="6" font-weight="900"
-          fill="#1a0a00" text-anchor="middle" dominant-baseline="middle">−</text>
+          fill="#fff" text-anchor="middle" dominant-baseline="middle">−</text>
   </g>
 
   <!-- Метки клемм -->

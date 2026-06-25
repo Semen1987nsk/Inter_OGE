@@ -66,7 +66,7 @@ template.innerHTML = `
   .focus-ring { opacity: 0; fill: none; stroke: var(--color-brand-orange,#ffbe0b); stroke-width: 2.5; stroke-dasharray: 4 3; }
 </style>
 <svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg"
-     role="button" tabindex="0" aria-label="Ключ, разомкнут">
+     role="button" tabindex="0" aria-label="Ключ">
   <defs>
     <linearGradient id="key-base" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#2a2a3a"/>

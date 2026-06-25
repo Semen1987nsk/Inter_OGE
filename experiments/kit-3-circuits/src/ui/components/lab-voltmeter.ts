@@ -241,7 +241,7 @@ export class LabVoltmeter extends HTMLElement {
 
     const range = this.range;
     const altRange = range === 3 ? 6 : 3;
-    const majorCount = range === 3 ? 6 : 6;   // 0,1,2,3 или 0,2,4,6
+    const majorCount = 6;
 
     for (let i = 0; i <= majorCount; i++) {
       const ratio = i / majorCount;
@@ -271,7 +271,7 @@ export class LabVoltmeter extends HTMLElement {
       const lbl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       lbl.setAttribute('x', String(lx)); lbl.setAttribute('y', String(ly + 1.5));
       lbl.setAttribute('text-anchor', 'middle'); lbl.setAttribute('dominant-baseline', 'middle');
-      lbl.textContent = labelVal === 0 ? '0' : labelVal.toFixed(range === 3 ? 0 : 0);
+      lbl.textContent = labelVal === 0 ? '0' : labelVal.toFixed(0);
       this.#scaleLabels.appendChild(lbl);
 
       // Вторая шкала (меньше, бирюзовая, ближе к ободу)
