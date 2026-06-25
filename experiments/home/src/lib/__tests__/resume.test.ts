@@ -8,10 +8,10 @@ describe('resumeTarget', () => {
     expect(r.kitNum).toBe(1);
     expect(r.isFresh).toBe(true);
   });
-  it('начат кит 2 (2 из 4) → продолжить кит 2, осталось 2', () => {
+  it('начат кит 2 (2 из 7) → продолжить кит 2, осталось 5', () => {
     const r = resumeTarget(KITS, { 2: 2 });
     expect(r.kitNum).toBe(2);
-    expect(r.remaining).toBe(2);
+    expect(r.remaining).toBe(5);
     expect(r.isFresh).toBe(false);
   });
 });

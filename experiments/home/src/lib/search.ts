@@ -30,7 +30,7 @@ export function searchExperiments(kits: ReadonlyArray<Kit>, query: string): Hit[
       ) {
         hits.push({
           kitNum: kit.num,
-          experimentId: exp.id,
+          experimentId: exp.fipiTask ?? exp.id,
           title: exp.title,
         });
       }

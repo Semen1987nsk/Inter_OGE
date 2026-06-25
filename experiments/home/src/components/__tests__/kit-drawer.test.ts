@@ -87,8 +87,8 @@ describe('kit-drawer бонус-бейдж', () => {
     // ровно 1 элемент <span class="bonus-badge"> — только для spring-work
     expect((html.match(/class="bonus-badge"/g) ?? []).length).toBe(1);
   });
-  it('kit-2 прогресс ФИПИ = 6/7 на старте Волны 0', () => {
+  it('kit-2 прогресс ФИПИ = 7/7 после Волны 0', () => {
     const kit2 = KITS.find(k => k.num === 2)!;
-    expect(kitFipiProgress(kit2)).toEqual({ done: 6, total: 7 });
+    expect(kitFipiProgress(kit2)).toEqual({ done: 7, total: 7 });
   });
 });
