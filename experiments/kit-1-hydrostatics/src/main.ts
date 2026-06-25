@@ -88,8 +88,8 @@ const screens: IScreen[] = [
 ];
 
 navBar.setScreens(screens.map((s) => s.meta));
-// Прогресс по комплекту: 5 опытов всего, в этап 6a добавлен опыт 1.2 (тоже
-// «current»-кандидат). Реальный прогресс = доля done — пока 0.
+// Кит-1 полностью реализован (5/5 опытов). setProgress передаёт 0 как базовую
+// точку отсчёта — live-прогресс пользователя будет добавлен в §6b.
 navBar.setProgress(0);
 
 const shell = new KitShell(host, screens, 'density-solid');

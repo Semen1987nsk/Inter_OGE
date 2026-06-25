@@ -79,8 +79,8 @@ describe('SPRING_WORK_SPEC', () => {
     expect(v['A_grav_J']).toBe('ok');
   });
 
-  it('experimentId = "2.4", kitId = "kit-2"', () => {
-    expect(SPRING_WORK_SPEC.experimentId).toBe('2.4');
+  it('experimentId = "bonus-spring-work" (бонус, не ФИПИ), kitId = "kit-2"', () => {
+    expect(SPRING_WORK_SPEC.experimentId).toBe('bonus-spring-work');
     expect(SPRING_WORK_SPEC.kitId).toBe('kit-2');
   });
 });

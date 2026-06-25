@@ -6,60 +6,81 @@ const kit2 = KITS.find(k => k.num === 2)!;
 const kit1 = KITS.find(k => k.num === 1)!;
 const kit3 = KITS.find(k => k.num === 3)!;
 
-describe('experimentUrl', () => {
-  it('строит относительный URL с screen и role', () => {
-    const url = experimentUrl(kit2, '2.1', 'student');
-    expect(url).toContain(kit2.path);          // ../kit-2-forces/
-    expect(url).toContain('screen=');
-    expect(url).toContain('role=student');
+describe('experimentUrl — catalog-driven regression (FIX 1 guard)', () => {
+  it('every READY kit experiment → URL contains screen=<exp.id>', () => {
+    const readyKits = KITS.filter(k => k.status === 'ready');
+    expect(readyKits.length).toBeGreaterThan(0);
+
+    for (const kit of readyKits) {
+      for (const exp of kit.experiments) {
+        const url = experimentUrl(kit, exp.id, 'student');
+        expect(url, `kit-${kit.num} exp ${exp.id} должен содержать screen=${exp.id}`)
+          .toContain(`screen=${exp.id}`);
+        expect(url).toContain(`role=student`);
+        expect(url).toContain(kit.path);
+      }
+    }
   });
 
+  it('planned kit → URL has no screen= param', () => {
+    const plannedKits = KITS.filter(k => k.status === 'planned');
+    expect(plannedKits.length).toBeGreaterThan(0);
+
+    for (const kit of plannedKits) {
+      for (const exp of kit.experiments) {
+        const url = experimentUrl(kit, exp.id, 'student');
+        expect(url, `planned kit-${kit.num} exp ${exp.id} не должен содержать screen=`)
+          .not.toContain('screen=');
+        expect(url).toContain(kit.path);
+        expect(url).toContain('role=student');
+      }
+    }
+  });
+});
+
+describe('experimentUrl — конкретные экраны', () => {
   it('teacher роль прокидывается', () => {
-    expect(experimentUrl(kit2, '2.1', 'teacher')).toContain('role=teacher');
+    expect(experimentUrl(kit2, 'spring-stiffness', 'teacher')).toContain('role=teacher');
   });
 
-  it('kit-2: 2.1 → spring-stiffness', () => {
-    expect(experimentUrl(kit2, '2.1', 'student')).toContain('screen=spring-stiffness');
+  it('kit-2: spring-stiffness slug → screen=spring-stiffness', () => {
+    expect(experimentUrl(kit2, 'spring-stiffness', 'student')).toContain('screen=spring-stiffness');
   });
 
-  it('kit-2: 2.6 → spring-elastic', () => {
-    expect(experimentUrl(kit2, '2.6', 'student')).toContain('screen=spring-elastic');
+  it('kit-2: friction slug → screen=friction', () => {
+    expect(experimentUrl(kit2, 'friction', 'student')).toContain('screen=friction');
   });
 
-  it('kit-2: 2.4 → spring-work', () => {
-    expect(experimentUrl(kit2, '2.4', 'student')).toContain('screen=spring-work');
+  it('kit-2: elastic-force slug → screen=elastic-force', () => {
+    expect(experimentUrl(kit2, 'elastic-force', 'student')).toContain('screen=elastic-force');
   });
 
-  it('kit-2: 2.2 → friction', () => {
-    expect(experimentUrl(kit2, '2.2', 'student')).toContain('screen=friction');
+  it('kit-2: spring-elastic slug → screen=spring-elastic', () => {
+    expect(experimentUrl(kit2, 'spring-elastic', 'student')).toContain('screen=spring-elastic');
   });
 
-  it('kit-1: 1.1 → density-solid', () => {
-    expect(experimentUrl(kit1, '1.1', 'student')).toContain('screen=density-solid');
+  it('kit-2: spring-work slug → screen=spring-work', () => {
+    expect(experimentUrl(kit2, 'spring-work', 'student')).toContain('screen=spring-work');
   });
 
-  it('kit-1: 1.2 → archimedes', () => {
-    expect(experimentUrl(kit1, '1.2', 'student')).toContain('screen=archimedes');
+  it('kit-1: density-solid slug → screen=density-solid', () => {
+    expect(experimentUrl(kit1, 'density-solid', 'student')).toContain('screen=density-solid');
   });
 
-  it('kit-1: 1.4 → archimedes', () => {
-    expect(experimentUrl(kit1, '1.4', 'student')).toContain('screen=archimedes');
+  it('kit-1: archimedes slug → screen=archimedes', () => {
+    expect(experimentUrl(kit1, 'archimedes', 'student')).toContain('screen=archimedes');
   });
 
-  it('kit-1: 1.3 → archimedes-volume', () => {
-    expect(experimentUrl(kit1, '1.3', 'student')).toContain('screen=archimedes-volume');
+  it('kit-1: archimedes-volume slug → screen=archimedes-volume', () => {
+    expect(experimentUrl(kit1, 'archimedes-volume', 'student')).toContain('screen=archimedes-volume');
   });
 
-  it('kit-1: 1.5 (не реализован) → fallback без screen=', () => {
-    const url = experimentUrl(kit1, '1.5', 'student');
-    // Для неизвестного id возвращается kit.path с role, без screen
-    expect(url).toContain(kit1.path);
-    expect(url).toContain('role=student');
-    expect(url).not.toContain('screen=');
+  it('kit-1: independence-mass slug → screen=independence-mass', () => {
+    expect(experimentUrl(kit1, 'independence-mass', 'student')).toContain('screen=independence-mass');
   });
 
-  it('planned kit (kit-3) → path + role, без screen', () => {
-    const url = experimentUrl(kit3, '3.1', 'student');
+  it('planned kit-3 → path + role, без screen', () => {
+    const url = experimentUrl(kit3, 'resistance-measure', 'student');
     expect(url).toContain(kit3.path);
     expect(url).toContain('role=student');
     expect(url).not.toContain('screen=');

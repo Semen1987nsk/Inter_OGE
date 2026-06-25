@@ -373,7 +373,7 @@ export const INDEPENDENCE_MASS_SPEC: JournalSpec = {
  * Ученик вводит F_упр из показаний динамометра; программа проверяет через expectedFromRow.
  */
 export const ELASTIC_FORCE_SPEC: JournalSpec = {
-  experimentId: '2.5',
+  experimentId: '2.4',
   kitId: 'kit-2',
   columns: [
     { key: 'idx', label: '№', source: 'meta', format: 'int' },
@@ -406,7 +406,7 @@ export const ELASTIC_FORCE_SPEC: JournalSpec = {
  *   A_grav_J — работа силы тяжести [Дж] (derived, A = m·g·Δl ≈ 2·W)
  */
 export const SPRING_WORK_SPEC: JournalSpec = {
-  experimentId: '2.4',
+  experimentId: 'bonus-spring-work',
   kitId: 'kit-2',
   columns: [
     { key: 'idx', label: '№', source: 'meta', format: 'int' },
