@@ -32,4 +32,35 @@ describe('CircuitTopology', () => {
     t.place('resistor', 'resistor'); t.remove('resistor');
     expect(t.slotFilledBy('resistor')).toBeNull();
   });
+
+  // validate() — тест на частичную сборку (FIX 1)
+  it('частично собранная (нет вольтметра) → не ok, есть error с упоминанием voltmeter', () => {
+    const t = new CircuitTopology(SLOTS_3_1);
+    t.place('source', 'power-source'); t.place('key', 'key');
+    t.place('ammeter', 'ammeter'); t.place('resistor', 'resistor');
+    const v = t.validate();
+    expect(v.ok).toBe(false);
+    expect(v.errors.length).toBeGreaterThan(0);
+    expect(v.errors.join(' ')).toContain('voltmeter');
+  });
+
+  it('validate() при пустой схеме содержит error для каждого слота', () => {
+    const t = new CircuitTopology(SLOTS_3_1);
+    const v = t.validate();
+    expect(v.ok).toBe(false);
+    expect(v.errors.length).toBe(5); // все 5 слотов незаполнены
+  });
+
+  // reset() — FIX 2
+  it('reset() очищает все заполненные слоты', () => {
+    const t = new CircuitTopology(SLOTS_3_1);
+    t.place('source', 'power-source'); t.place('key', 'key');
+    t.place('ammeter', 'ammeter'); t.place('resistor', 'resistor'); t.place('voltmeter', 'voltmeter');
+    expect(t.isComplete()).toBe(true);
+    t.reset();
+    expect(t.isComplete()).toBe(false);
+    expect(t.slotFilledBy('source')).toBeNull();
+    expect(t.slotFilledBy('voltmeter')).toBeNull();
+    expect(t.validate().ok).toBe(false);
+  });
 });

@@ -73,41 +73,47 @@ export class CircuitTopology {
   }
 
   /**
-   * Валидация топологии:
-   *   - источник питания обязан быть в слоте с role='source'
-   *   - ключ обязан быть в слоте с role='key'
-   *   - амперметр обязан быть в series-слоте
-   *   - вольтметр обязан быть в parallel-слоте
-   *   - все обязательные слоты (source, key) заняты
+   * Валидация топологии — ПОЛНОТА цепи.
+   *
+   * Разделение ответственности:
+   *   place()    — enforces instrument-kind per slot (accepts); отказывает при несовместимом типе.
+   *   validate() — enforces completeness of required slots; возвращает ok:false
+   *                с human-readable errors[] для каждого незаполненного обязательного слота.
+   *
+   * Все слоты (source, key, series, parallel) обязательны для топологии 3.1.
+   * Возвращает ok:true только когда ВСЕ слоты заполнены.
    */
   validate(): ValidationResult {
     const errors: string[] = [];
 
-    // Проверяем каждый слот по роли
-    for (const [id, slot] of this.#slots) {
-      if (slot.role === 'source' && slot.filledBy === null) {
-        errors.push(`Слот '${id}' (источник питания) пуст`);
-      }
-      if (slot.role === 'key' && slot.filledBy === null) {
-        errors.push(`Слот '${id}' (ключ) пуст`);
-      }
-      if (slot.role === 'series' && slot.filledBy === null) {
-        errors.push(`Слот '${id}' (последовательный) пуст`);
-      }
-      if (slot.role === 'parallel' && slot.filledBy === null) {
-        errors.push(`Слот '${id}' (параллельный) пуст`);
-      }
+    const roleLabel: Record<SlotRole, string> = {
+      source: 'источник питания',
+      key: 'ключ',
+      series: 'последовательный прибор',
+      parallel: 'параллельный прибор (вольтметр)',
+    };
 
-      // Инвариант: ammeter только в series, voltmeter только в parallel
-      if (slot.filledBy === 'ammeter' && slot.role !== 'series') {
-        errors.push(`Амперметр должен быть в последовательной ветви, а не в '${slot.role}'`);
+    for (const [id, slot] of this.#slots) {
+      if (slot.filledBy === null) {
+        errors.push(`Слот '${id}' (${roleLabel[slot.role]}) пуст`);
       }
-      if (slot.filledBy === 'voltmeter' && slot.role !== 'parallel') {
-        errors.push(`Вольтметр должен быть в параллельной ветви, а не в '${slot.role}'`);
+    }
+
+    // defensive: place() уже гарантирует accepts, но если тип всё же несовместим — фиксируем
+    for (const [id, slot] of this.#slots) {
+      if (slot.filledBy !== null && !slot.accepts.includes(slot.filledBy)) {
+        errors.push(`Слот '${id}': прибор '${slot.filledBy}' недопустим (defensive)`); // defensive
       }
     }
 
     return { ok: errors.length === 0, errors };
+  }
+
+  /** Очистить все слоты (сброс цепи на экране). */
+  reset(): void {
+    for (const slot of this.#slots.values()) {
+      slot.filledBy = null;
+    }
   }
 
   /** Все слоты заняты? */
@@ -139,6 +145,17 @@ export class CircuitAssembly {
   #topology: CircuitTopology;
   #board: HTMLElement & { setCurrentAnimating(on: boolean): void; getSlotRect(id: string): DOMRect };
   #keyClosed = false;
+  #registeredZoneIds: string[] = [];
+  #dragController: {
+    addSnapZone(zone: {
+      id: string;
+      accepts: ReadonlyArray<string>;
+      getRect(): DOMRect;
+      onHover?(active: boolean): void;
+      onDrop(payload: { equipmentId: string }): boolean;
+    }): void;
+    removeSnapZone(id: string): void;
+  };
 
   constructor(
     board: HTMLElement & { setCurrentAnimating(on: boolean): void; getSlotRect(id: string): DOMRect },
@@ -151,32 +168,48 @@ export class CircuitAssembly {
         onHover?(active: boolean): void;
         onDrop(payload: { equipmentId: string }): boolean;
       }): void;
+      removeSnapZone(id: string): void;
     },
   ) {
     this.#board = board;
     this.#topology = topology;
+    this.#dragController = dragController;
 
     // Регистрируем snap-зоны для каждого слота топологии
+    // place() enforces instrument-kind per slot (accepts); validate() enforces completeness.
     for (const [slotId, slot] of topology.slots) {
-      const slotIdCopy = slotId;
       const slotEl = board.querySelector<HTMLElement>(`[data-slot="${slotId}"]`);
+      const zoneId = `circuit-slot-${slotId}`;
 
       dragController.addSnapZone({
-        id: `circuit-slot-${slotId}`,
+        id: zoneId,
         accepts: Array.from(slot.accepts),
-        getRect: () => this.#board.getSlotRect(slotIdCopy),
+        getRect: () => this.#board.getSlotRect(slotId),
         onHover: (active) => {
           if (slotEl) {
             slotEl.classList.toggle('drop-zone--active', active);
           }
         },
         onDrop: ({ equipmentId }) => {
-          const accepted = this.#topology.place(slotIdCopy, equipmentId);
+          const accepted = this.#topology.place(slotId, equipmentId);
           if (accepted) this.#refreshAnimation();
           return accepted;
         },
       });
+
+      this.#registeredZoneIds.push(zoneId);
     }
+  }
+
+  /**
+   * Удаляет все snap-зоны, зарегистрированные этим экземпляром.
+   * Вызывать при размонтировании (Task 6 mount/unmount) — иначе зоны накапливаются.
+   */
+  destroy(): void {
+    for (const id of this.#registeredZoneIds) {
+      this.#dragController.removeSnapZone(id);
+    }
+    this.#registeredZoneIds = [];
   }
 
   /** Обновить состояние ключа и анимацию тока. */

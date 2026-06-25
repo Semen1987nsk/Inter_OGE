@@ -189,7 +189,7 @@ template.innerHTML = `
      transform="translate(${SLOT_SOURCE_X - SLOT_W/2}, ${RAIL_TOP_Y - SLOT_H/2})">
     <rect class="slot-rect" x="0" y="0" width="${SLOT_W}" height="${SLOT_H}" rx="6"/>
     <text class="slot-label slot-label-top" x="${SLOT_W/2}" y="10">Источник</text>
-    <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H/2 + 4}" font-size="18" fill="rgb(255 255 255 / 0.15)">⚡</text>
+    <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H/2 + 4}" font-size="11" fill="rgb(255 255 255 / 0.15)">+ −</text>
     <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H - 8}" font-size="7" fill="rgb(255 255 255 / 0.2)">power-source</text>
   </g>
 
@@ -198,7 +198,7 @@ template.innerHTML = `
      transform="translate(${SLOT_KEY_X - SLOT_W/2}, ${RAIL_TOP_Y - SLOT_H/2})">
     <rect class="slot-rect" x="0" y="0" width="${SLOT_W}" height="${SLOT_H}" rx="6"/>
     <text class="slot-label slot-label-top" x="${SLOT_W/2}" y="10">Ключ</text>
-    <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H/2 + 4}" font-size="16" fill="rgb(255 255 255 / 0.15)">🔌</text>
+    <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H/2 + 4}" font-size="11" fill="rgb(255 255 255 / 0.15)">SW</text>
     <text class="slot-label" x="${SLOT_W/2}" y="${SLOT_H - 8}" font-size="7" fill="rgb(255 255 255 / 0.2)">key</text>
   </g>
 
