@@ -57,7 +57,7 @@ import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import { SPRING_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
 import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
 import { parseRu } from '@labosfera/shared-spa/lib/journal/format';
-import type { JournalVerdict, JournalRow } from '@labosfera/shared-spa/lib/journal/types';
+import type { JournalVerdict, JournalRow, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 const RECORD_MODE_KIT = 'kit-2';
 
@@ -113,13 +113,28 @@ export interface ExperimentRefs {
  * (например spring-work) которые переиспользуют физику и UI базового
  * опыта 2.1, но показывают другие колонки в журнале и другую формулу
  * результата. Если рендерер не задан — работает дефолтное поведение 2.1.
+ *
+ * Для миграции v1→v2 (spring-work): использовать `journalSpec`+`buildRows`
+ * вместо `journal` (legacy). Это даёт v2-таблицу с нужным SPEC без ручного innerHTML.
  */
 export interface SpringRenderers {
+  /**
+   * @deprecated v1 legacy — рисует в #journal-table через innerHTML.
+   * Мигрировать на `journalSpec`+`buildRows` (v2).
+   */
   journal?: (state: SpringSetupState, refs: {
     journalEmpty: HTMLElement;
     journalTable: HTMLTableElement;
     journalBody: HTMLElement;
   }) => void;
+  /** v2: другой SPEC журнала (вместо SPRING_SPEC по умолчанию). */
+  journalSpec?: JournalSpec;
+  /** v2: кастомный построитель строк журнала (вместо дефолтного для 2.1). */
+  buildRows?: (
+    state: SpringSetupState,
+    drafts: Map<number, Record<string, number>>,
+    mode: RecordMode,
+  ) => JournalRow[];
   result?: (state: SpringSetupState, refs: { resultPanel: HTMLElement }) => void;
 }
 
@@ -1501,8 +1516,14 @@ export class SpringExperiment {
     if (hasData) this.#refs.journalHost.removeAttribute('hidden');
     else this.#refs.journalHost.setAttribute('hidden', '');
 
+    // Выбираем SPEC (дефолт — SPRING_SPEC; дочерние экраны могут передать свой).
+    const activeSpec = this.#renderers.journalSpec ?? SPRING_SPEC;
+
     const l0 = s.scaleClickL0;
-    const rows: JournalRow[] = s.measurements.map((m, i) => {
+    // Если дочерний экран передал buildRows — используем его, иначе — дефолтный.
+    const rows: JournalRow[] = this.#renderers.buildRows
+      ? this.#renderers.buildRows(s, this.#journalDrafts, mode)
+      : s.measurements.map((m, i) => {
       const dlMm = Math.round(m.extension * 10);
       const lAtLoad = l0 !== null ? l0 + dlMm : 0;
       const draft = this.#journalDrafts.get(m.timestamp) ?? {};
@@ -1522,7 +1543,9 @@ export class SpringExperiment {
       };
     });
 
-    if (showEmptyManual) {
+    // Для дефолтного построителя (2.1): добавить sentinel-строку в fully-manual.
+    // Для кастомного buildRows — пропускаем, т.к. buildRows сам управляет строками.
+    if (showEmptyManual && !this.#renderers.buildRows) {
       const draft = this.#journalDrafts.get(-1) ?? {};
       rows.push({
         idx: 1,
@@ -1540,7 +1563,7 @@ export class SpringExperiment {
       });
     }
 
-    renderJournalTable(this.#refs.journalHost, SPRING_SPEC, rows, {
+    renderJournalTable(this.#refs.journalHost, activeSpec, rows, {
       mode,
       onCellInput: (rowIdx, key, value) => {
         const m = s.measurements[rowIdx - 1];
@@ -1567,21 +1590,25 @@ export class SpringExperiment {
           });
         }
         this.#journalDrafts.set(ts, draft);
+        // Дефолтный verifyRow: строить tempRow под SPRING_SPEC.
+        // Кастомный buildRows должен сам вложить verdicts в строки.
         const dlMm = Math.round(m.extension * 10);
         const lAtLoad = l0 !== null ? l0 + dlMm : 0;
         const tempRow: JournalRow = {
           idx: rowIdx,
           timestamp: ts,
-          values: {
-            m_g: m.totalMass,
-            l0_mm: l0 ?? 0,
-            l1_mm: lAtLoad,
-            dL_mm: draft['dL_mm'] ?? null,
-            F_N: draft['F_N'] ?? null,
-            k_N_m: draft['k_N_m'] ?? null,
-          },
+          values: this.#renderers.buildRows
+            ? { ...(this.#renderers.buildRows(s, this.#journalDrafts, mode).find(r => r.idx === rowIdx)?.values ?? {}) }
+            : {
+                m_g: m.totalMass,
+                l0_mm: l0 ?? 0,
+                l1_mm: lAtLoad,
+                dL_mm: draft['dL_mm'] ?? null,
+                F_N: draft['F_N'] ?? null,
+                k_N_m: draft['k_N_m'] ?? null,
+              },
         };
-        const verdicts = verifyRow(SPRING_SPEC.columns, tempRow);
+        const verdicts = verifyRow(activeSpec.columns, tempRow);
         this.#journalVerdicts.set(ts, verdicts);
         if (tr) {
           for (const [key, verdict] of Object.entries(verdicts)) {

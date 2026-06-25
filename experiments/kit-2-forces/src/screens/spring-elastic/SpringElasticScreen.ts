@@ -27,7 +27,7 @@ import type { IScreen, ScreenMeta } from '@shell/IScreen';
 export class SpringElasticScreen implements IScreen {
   readonly meta: ScreenMeta = {
     id: 'spring-elastic',
-    label: 'Сила упругости',
+    label: 'Закон Гука',
     // По ФИПИ ОГЭ-2026 «исследование F_упр(Δl)» = опыт 2.6 (не 2.2)
     // См. .business/Продукты/Програмное обеспечение/ВЛ ОГЭ/прогресс.md
     kicker: 'Опыт 2.6',

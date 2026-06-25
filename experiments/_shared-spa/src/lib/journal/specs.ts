@@ -387,6 +387,85 @@ export const ELASTIC_FORCE_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт «Работа силы упругости» — БОНУС ЛАБОСФЕРЫ.
+ *
+ * ⚠️ БОНУС ЛАБОСФЕРА — НЕ ВХОДИТ В ФИПИ.
+ * Причина: работа упругости в ФИПИ только для kit-6 (блоки). КОДИФ §1.29.
+ *
+ * Установка: пружина + грузы (как 2.1). Цель — показать квадратичный рост W(Δl)
+ * и проверить баланс энергии A_грав = 2 · W_упр.
+ *
+ * Колонки журнала:
+ *   m_g    — масса груза [г]            (meta, из суммы грузов)
+ *   dl_cm  — удлинение [см]             (direct, ученик читает со шкалы)
+ *   k_N_m  — жёсткость пружины [Н/м]   (meta, из паспорта пружины)
+ *   F_N    — сила упругости [Н]         (derived, F = k·Δl)
+ *   W_k_J  — работа через жёсткость [Дж] (derived, W = k·Δl²/2)
+ *   W_F_J  — работа через силу [Дж]    (derived, W = F·Δl/2; должна ≈ W_k)
+ *   A_grav_J — работа силы тяжести [Дж] (derived, A = m·g·Δl ≈ 2·W)
+ */
+export const SPRING_WORK_SPEC: JournalSpec = {
+  experimentId: '2.4',
+  kitId: 'kit-2',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'm_g', label: 'm, г', source: 'meta', unit: 'г', format: 'int' },
+    { key: 'dl_cm', label: 'Δl, см', source: 'direct', unit: 'см', format: 'fixed2' },
+    { key: 'k_N_m', label: 'k, Н/м', source: 'meta', unit: 'Н/м', format: 'int' },
+    {
+      key: 'F_N',
+      label: 'F, Н',
+      source: 'derived',
+      unit: 'Н',
+      format: 'fixed2',
+      tolerance: 0.05,
+      // F_упр = k · Δl (Δl в метрах).
+      expectedFromRow: (row) => (row.k_N_m ?? 0) * ((row.dl_cm ?? 0) / 100),
+    },
+    {
+      key: 'W_k_J',
+      label: 'W = k·Δl²/2, Дж',
+      source: 'derived',
+      unit: 'Дж',
+      format: 'fixed3',
+      tolerance: 0.05,
+      // W_упр = k · Δl² / 2 (Δl в метрах).
+      expectedFromRow: (row) => {
+        const dl_m = (row.dl_cm ?? 0) / 100;
+        return 0.5 * (row.k_N_m ?? 0) * dl_m * dl_m;
+      },
+    },
+    {
+      key: 'W_F_J',
+      label: 'W = F·Δl/2, Дж',
+      source: 'derived',
+      unit: 'Дж',
+      format: 'fixed3',
+      tolerance: 0.05,
+      // W_упр = F · Δl / 2 (площадь треугольника под F(Δl)).
+      expectedFromRow: (row) => {
+        const dl_m = (row.dl_cm ?? 0) / 100;
+        return ((row.F_N ?? 0) * dl_m) / 2;
+      },
+    },
+    {
+      key: 'A_grav_J',
+      label: 'A_грав, Дж',
+      source: 'derived',
+      unit: 'Дж',
+      format: 'fixed3',
+      tolerance: 0.05,
+      // A_грав = m · g · Δl; при статическом подвесе A_грав = 2 · W_упр.
+      expectedFromRow: (row) => {
+        const m_kg = (row.m_g ?? 0) / 1000;
+        const dl_m = (row.dl_cm ?? 0) / 100;
+        return m_kg * G * dl_m;
+      },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -397,6 +476,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   FRICTION_SPEC,
   FRICTION_WORK_SPEC,
   ELASTIC_FORCE_SPEC,
+  SPRING_WORK_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {

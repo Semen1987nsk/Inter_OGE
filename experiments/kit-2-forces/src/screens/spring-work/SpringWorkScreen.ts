@@ -1,21 +1,18 @@
 /**
- * SpringWorkScreen — экран «Работа силы упругости» (опыт 2.4 ФИПИ ОГЭ-2026).
+ * SpringWorkScreen — экран «Работа силы упругости».
+ *
+ * ⚠️ БОНУС ЛАБОСФЕРА — НЕ ВХОДИТ В ФИПИ.
+ * Причина: работа упругости в ФИПИ только для kit-6 (блоки). КОДИФ §1.29.
  *
  * Установка ИДЕНТИЧНА опыту 2.1 (пружина+штатив+грузы+динамометр).
  * Различие — финальный расчёт и подача:
  *   2.1: ученик считает k = F/Δl (искомая величина — жёсткость).
- *   2.4: ученик строит таблицу W(Δl) и убеждается в **квадратичной**
- *        зависимости работы упругой от удлинения, а также проверяет
- *        баланс энергии: A_грав = 2 · W_упр.
+ *   бонус: ученик строит таблицу W(Δl) и убеждается в **квадратичной**
+ *          зависимости работы упругой от удлинения, а также проверяет
+ *          баланс энергии: A_грав = 2 · W_упр.
  *
- * Реюз ~95% кода: SpringExperiment + template.html опыта 2.1, кастомные
- * рендереры журнала и результата через SpringRenderers (см. SpringExperiment.ts).
- *
- * Колонки журнала:
- *   №   m, г   Δl, см   F, Н   W (k·Δl²/2), Дж   W (F·Δl/2), Дж   A_грав, Дж
- *
- * Результат: серия измерений → демонстрация квадратичного роста W,
- * график F(Δl) с закрашиваемым треугольником (= W).
+ * Журнал v2 — renderJournalTable(SPRING_WORK_SPEC):
+ *   №   m, г   Δl, см   k, Н/м   F, Н   W = k·Δl²/2, Дж   W = F·Δl/2, Дж   A_грав, Дж
  */
 
 import templateHtml from '../spring-stiffness/template.html?raw';
@@ -33,15 +30,20 @@ import {
   workOfGravity,
   formatWork,
 } from '@physics/spring/WorkCalc';
+import { SPRING_WORK_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import type { JournalRow } from '@labosfera/shared-spa/lib/journal/types';
+import type { SpringSetupState } from '@/types/spring/setup';
+import type { RecordMode } from '@labosfera/shared-spa/lib/record-mode';
 import type { IScreen, ScreenMeta } from '@shell/IScreen';
 
 export class SpringWorkScreen implements IScreen {
+  // ⚠️ БОНУС ЛАБОСФЕРА — НЕ ВХОДИТ В ФИПИ. Причина: работа упругости в ФИПИ только для kit-6 (блоки). КОДИФ §1.29.
   readonly meta: ScreenMeta = {
     id: 'spring-work',
     label: 'Работа упругости',
-    kicker: 'Опыт 2.4',
+    kicker: 'Бонус',
     icon: 'work',
-    tooltip: 'Измерение работы силы упругости — закон W = k·Δl²/2 и баланс энергии',
+    tooltip: 'Бонус ЛАБОСФЕРЫ: работа силы упругости — W = k·Δl²/2, баланс энергии A_грав = 2·W',
   };
 
   #experiment: SpringExperiment | null = null;
@@ -55,17 +57,14 @@ export class SpringWorkScreen implements IScreen {
 
     // ─── Тексты под фокус «работа упругой силы» ────────────────
     const eyebrow = host.querySelector('.experiment-eyebrow');
-    if (eyebrow) eyebrow.textContent = 'Опыт 2.4';
+    if (eyebrow) eyebrow.textContent = 'Бонус';
     const title = host.querySelector('.experiment-title');
     if (title) title.textContent = 'Работа силы упругости';
     const initialHint = host.querySelector('#hint-bar');
     if (initialHint) {
       initialHint.textContent =
-        'Подвесьте пружину и динамометр. Затем повесьте груз, запишите Δl и l₀ — система посчитает работу W = k·Δl²/2 и сравнит её с работой силы тяжести.';
+        'Подвесьте пружину и динамометр. Затем повесьте груз и запишите Δl — система посчитает работу W = k·Δl²/2 и проверит баланс энергии.';
     }
-
-    // ─── Заголовки журнала под колонки 2.4 ────────────────────
-    this.#patchJournalHeaders(host);
 
     // ─── Формула в журнале ────────────────────────────────────
     this.#patchFormulaDisplay(host);
@@ -101,38 +100,54 @@ export class SpringWorkScreen implements IScreen {
       rfMass: host.querySelector('#rf-mass') as HTMLOutputElement,
       rfCancel: host.querySelector('#rf-cancel') as HTMLButtonElement,
       rfSubmit: host.querySelector('#rf-submit') as HTMLButtonElement,
-      // §20.4 — toggle режима НЕ передаём: 2.4 пока использует custom-renderer
-      // (legacy v1 table). Будет переход на shared spec в следующей итерации.
-      // journal-host: НЕ передаём — custom renderer рисует в #journal-table.
+      // §21 v2 — передаём journal-host и record-mode-slot
+      recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
+      journalHost: host.querySelector<HTMLElement>('#journal-host') ?? undefined,
+      recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
+      recordPendingBtn: (host.querySelector('#record-pending-btn') as HTMLButtonElement) ?? undefined,
+      recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
     };
 
     const renderers: SpringRenderers = {
-      journal: (state, { journalBody }) => {
-        journalBody.replaceChildren();
-        state.measurements.forEach((m, i) => {
-          const tr = document.createElement('tr');
-          const dlCm = m.extension; // см
-          const F = m.force; // Н
-          const k = m.k; // Н/м
-          const W_k = workFromStiffness(k, dlCm);
-          const W_F = workFromForce(F, dlCm);
-          const A_grav = workOfGravity(m.totalMass, dlCm);
-          tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${m.totalMass}</td>
-            <td>${dlCm.toFixed(2)}</td>
-            <td>${F.toFixed(2)}</td>
-            <td>${formatWork(W_k)}</td>
-            <td>${formatWork(W_F)}</td>
-            <td>${formatWork(A_grav)}</td>
-          `;
-          journalBody.appendChild(tr);
+      // §21 v2 — SPRING_WORK_SPEC вместо SPRING_SPEC; buildRows вместо journal (v1)
+      journalSpec: SPRING_WORK_SPEC,
+      buildRows: (
+        state: SpringSetupState,
+        drafts: Map<number, Record<string, number>>,
+        mode: RecordMode,
+      ): JournalRow[] => {
+        return state.measurements.map((m, i) => {
+          const draft = drafts.get(m.timestamp) ?? {};
+          // dl_cm: в fully-auto берём из физики; иначе из черновика ученика (или null)
+          const dlCm = mode === 'fully-auto' ? m.extension : (draft['dl_cm'] ?? null);
+          // F_N, W_k_J, W_F_J, A_grav_J: в fully-auto программа считает; иначе ученик вводит
+          const F_N = mode === 'fully-auto' ? m.force : (draft['F_N'] ?? null);
+          const W_k_J = mode === 'fully-auto'
+            ? workFromStiffness(m.k, m.extension)
+            : (draft['W_k_J'] ?? null);
+          const W_F_J = mode === 'fully-auto'
+            ? workFromForce(m.force, m.extension)
+            : (draft['W_F_J'] ?? null);
+          const A_grav_J = mode === 'fully-auto'
+            ? workOfGravity(m.totalMass, m.extension)
+            : (draft['A_grav_J'] ?? null);
+          return {
+            idx: i + 1,
+            timestamp: m.timestamp,
+            values: {
+              idx: i + 1,
+              m_g: m.totalMass,
+              dl_cm: dlCm,
+              k_N_m: m.k,
+              F_N,
+              W_k_J,
+              W_F_J,
+              A_grav_J,
+            },
+          };
         });
       },
       result: (state, { resultPanel }) => {
-        // Покажем результат уже после первого же измерения — главное «открытие»
-        // (квадратичный рост) видно даже на 2-3 точках, но и одной достаточно
-        // для проверки баланса энергии A_грав ≈ 2·W_упр.
         if (state.measurements.length === 0 || !state.spring) {
           resultPanel.innerHTML = '';
           resultPanel.setAttribute('hidden', '');
@@ -148,7 +163,6 @@ export class SpringWorkScreen implements IScreen {
         const A = workOfGravity(m, dl);
         const ratio = W_k > 0 ? A / W_k : 0;
 
-        // Если ≥ 3 измерений — добавим демонстрацию квадратичности (W₂/W₁ ≈ (Δl₂/Δl₁)²)
         let quadHtml = '';
         if (state.measurements.length >= 2) {
           const m1 = state.measurements[0]!;
@@ -156,7 +170,7 @@ export class SpringWorkScreen implements IScreen {
           const dlRatio = m2.extension / m1.extension;
           const W1 = workFromStiffness(m1.k, m1.extension);
           const W2 = workFromStiffness(m2.k, m2.extension);
-          const wRatio = W2 / W1;
+          const wRatio = W1 > 0 ? W2 / W1 : 0;
           const expectedRatio = dlRatio * dlRatio;
           quadHtml = `
             <p class="result-success" style="margin-top:8px">
@@ -174,7 +188,7 @@ export class SpringWorkScreen implements IScreen {
             <div class="result-row"><span>Отношение A<sub>грав</sub> / W<sub>упр</sub></span><strong>${ratio.toFixed(2)} ≈ 2</strong></div>
           </div>
           <p class="result-success">
-            ✓ A<sub>грав</sub> ровно в 2 раза больше W<sub>упр</sub>.
+            A<sub>грав</sub> ровно в 2 раза больше W<sub>упр</sub>.
             Половина работы силы тяжести запасается в пружине, половина —
             в кинетической энергии груза при колебаниях (или поглощается
             рукой при медленном опускании). Это закон сохранения энергии.
@@ -202,21 +216,6 @@ export class SpringWorkScreen implements IScreen {
 
   reset(): void {
     this.#experiment?.reset();
-  }
-
-  /** Подменяет thead журнала под колонки 2.4. */
-  #patchJournalHeaders(host: HTMLElement): void {
-    const thead = host.querySelector('#journal-table thead tr');
-    if (!thead) return;
-    thead.innerHTML = `
-      <th>№</th>
-      <th><em>m</em>, г</th>
-      <th>Δ<em>l</em>, см</th>
-      <th><em>F</em>, Н</th>
-      <th><em>W</em> = k·Δl²/2, Дж</th>
-      <th><em>W</em> = F·Δl/2, Дж</th>
-      <th><em>A</em><sub>грав</sub>, Дж</th>
-    `;
   }
 
   /** Подменяет формулу под фокус расчёта работы. */
