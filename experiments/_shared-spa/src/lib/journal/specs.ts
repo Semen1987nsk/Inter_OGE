@@ -466,6 +466,22 @@ export const SPRING_WORK_SPEC: JournalSpec = {
   ],
 };
 
+export const RESISTANCE_SPEC: JournalSpec = {
+  experimentId: '3.1',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'resistor', label: 'Резистор', source: 'meta' },
+    { key: 'U_V', label: 'U, В', source: 'direct', unit: 'В', format: 'fixed2' },
+    { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
+    {
+      key: 'R_Ohm', label: 'R, Ом', source: 'derived', unit: 'Ом', format: 'fixed2',
+      tolerance: 0.10, // ФИПИ-интервал R1=4.2–5.2 ≈ ±10%
+      expectedFromRow: (row) => { const I = row.I_A ?? 0; return I > 0 ? (row.U_V ?? 0) / I : 0; },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -477,6 +493,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   FRICTION_WORK_SPEC,
   ELASTIC_FORCE_SPEC,
   SPRING_WORK_SPEC,
+  RESISTANCE_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
