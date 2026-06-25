@@ -578,6 +578,11 @@ lab-circuit-board {
   font-size: 14px;
 }
 
+/* FIX 2: .record-text was used in template.html but had no CSS rule */
+.record-text {
+  font-weight: 600;
+}
+
 .record-summary {
   font-weight: 400;
   font-size: var(--text-xs);

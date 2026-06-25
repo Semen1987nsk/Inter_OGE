@@ -329,6 +329,32 @@ describe('MeasurementsExperiment — state machine', () => {
     expect(experiment.measurements[0]!.voltageV).toBeCloseTo(6.0, 2);
   });
 
+  // ─── Remount guard (FIX 3: snap-zone cleanup) ────────────────────────────
+
+  it('mount → destroy → remount → placeInSlot succeeds on 2nd mount (exercises rewire cleanup)', () => {
+    // First mount already happened in beforeEach; destroy it
+    experiment.destroy();
+    host.innerHTML = '';
+
+    // Second mount — snap-zones must be properly re-registered
+    const refs2 = buildRefs(host);
+    const experiment2 = new MeasurementsExperiment(refs2);
+
+    expect(experiment2.placeInSlot('source', 'power-source')).toBe(true);
+    expect(experiment2.placeInSlot('key', 'key')).toBe(true);
+    expect(experiment2.placeInSlot('ammeter', 'ammeter')).toBe(true);
+    expect(experiment2.placeInSlot('resistor', 'resistor-r1')).toBe(true);
+    expect(experiment2.placeInSlot('voltmeter', 'voltmeter')).toBe(true);
+
+    experiment2.setKeyClosed(true);
+    experiment2.setVoltage(3.0);
+    experiment2.recordMeasurement();
+    expect(experiment2.measurements.length).toBe(1);
+
+    // Hand off to afterEach for cleanup (reassign so afterEach destroys experiment2)
+    experiment = experiment2;
+  });
+
   // ─── ФИПИ-инвариант R ─────────────────────────────────────────────────────
 
   it('ФИПИ: R1 — R всегда в диапазоне 4.2–5.2 для любого U ∈ [1.5, 7.5]', () => {

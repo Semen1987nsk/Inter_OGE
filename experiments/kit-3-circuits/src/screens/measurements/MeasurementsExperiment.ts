@@ -373,6 +373,8 @@ export class MeasurementsExperiment {
   #journalVerdicts = new Map<number, Record<string, JournalVerdict>>();
   #detachRecordModeToggle: (() => void) | null = null;
   #lastRecordedSignature = '';
+  // FIX 3: track zone IDs rewired in #rewireAssemblySlots() so destroy() can remove them
+  #rewiredSlotIds: string[] = [];
 
   constructor(refs: ExperimentRefs) {
     this.#refs = refs;
@@ -491,10 +493,18 @@ export class MeasurementsExperiment {
   /** Cleanup при unmount. */
   destroy(): void {
     this.#drag.cancel();
+    // FIX 3: explicitly remove the rewired slot zones before CircuitAssembly.destroy()
+    // (assembly.destroy() tries to remove the original IDs it registered at construction,
+    // but #rewireAssemblySlots() already removed and re-registered them under the same IDs —
+    // so assembly's internal list still has those IDs; we remove them first to avoid confusion,
+    // then assembly.destroy() will no-op on already-removed IDs — removeSnapZone is idempotent).
+    for (const id of this.#rewiredSlotIds) {
+      this.#drag.removeSnapZone(id);
+    }
+    this.#rewiredSlotIds = [];
     this.#assembly.destroy();
     this.#detachRecordModeToggle?.();
     this.#detachRecordModeToggle = null;
-    window.removeEventListener('resize', this.#onResize);
   }
 
   // ─── Wiring ──────────────────────────────────────────────────────────────
@@ -583,7 +593,6 @@ export class MeasurementsExperiment {
       });
     }
 
-    window.addEventListener('resize', this.#onResize);
   }
 
   /**
@@ -595,6 +604,8 @@ export class MeasurementsExperiment {
     // CircuitAssembly уже зарегистрировал зоны с id 'circuit-slot-<slotId>'.
     // Добавляем observing через кастомные события на board.
     // Вместо этого добавим свои зоны-обёртки поверх assembly (overwrite).
+    // FIX 3: reset tracked list on each call (handles remount path)
+    this.#rewiredSlotIds = [];
     for (const slotDef of SLOTS_3_1) {
       const slotId = slotDef.id as SlotId;
       const zoneId = `circuit-slot-${slotId}`;
@@ -646,6 +657,8 @@ export class MeasurementsExperiment {
           return true;
         },
       });
+      // FIX 3: track this rewired zone ID so destroy() can clean it up
+      this.#rewiredSlotIds.push(zoneId);
     }
   }
 
@@ -843,20 +856,23 @@ export class MeasurementsExperiment {
     const { ok } = this.#topology.validate();
     const allPlaced = ok;
     const steps = this.#refs.steps.querySelectorAll<HTMLElement>('.step');
+    // FIX 5: exclusive active step — only the furthest-reached step is active
+    let activeIdx: number;
+    if (st.measurements.length > 0) {
+      activeIdx = 3;
+    } else if (allPlaced && st.keyClosed) {
+      activeIdx = 2;
+    } else if (allPlaced) {
+      activeIdx = 1;
+    } else {
+      activeIdx = 0;
+    }
     steps.forEach((s, i) => {
-      let active = false;
-      if (i === 0) active = !allPlaced;
-      if (i === 1) active = allPlaced && !st.keyClosed;
-      if (i === 2) active = allPlaced && st.keyClosed;
-      if (i === 3) active = st.measurements.length > 0;
+      const active = i === activeIdx;
       s.dataset['state'] = active ? 'active' : '';
       s.setAttribute('aria-current', active ? 'step' : 'false');
     });
   }
-
-  #onResize = (): void => {
-    // No-op — board slots adapt via getBoundingClientRect at drop time
-  };
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 

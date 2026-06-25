@@ -72,8 +72,10 @@ export class MeasurementsScreen implements IScreen {
 
   unmount(): void {
     if (!this.#experiment) return;
-    this.#experiment.destroy();
+    // FIX 1: reset() first (state-restoration while DOM/listeners still live),
+    // then destroy() tears down listeners, then replaceChildren() clears DOM.
     this.#experiment.reset();
+    this.#experiment.destroy();
     delete (window as unknown as { measurementsExperiment?: MeasurementsExperiment }).measurementsExperiment;
     this.#experiment = null;
     if (this.#host) this.#host.replaceChildren();
