@@ -4,7 +4,6 @@ import { KITS } from '../../data/kits';
 
 const kit2 = KITS.find(k => k.num === 2)!;
 const kit1 = KITS.find(k => k.num === 1)!;
-const kit3 = KITS.find(k => k.num === 3)!;
 
 describe('experimentUrl — catalog-driven regression (FIX 1 guard)', () => {
   it('every READY kit experiment → URL contains screen=<exp.id>', () => {
@@ -78,11 +77,5 @@ describe('experimentUrl — конкретные экраны', () => {
   it('kit-1: independence-mass slug → screen=independence-mass', () => {
     expect(experimentUrl(kit1, 'independence-mass', 'student')).toContain('screen=independence-mass');
   });
-
-  it('planned kit-3 → path + role, без screen', () => {
-    const url = experimentUrl(kit3, 'resistance-measure', 'student');
-    expect(url).toContain(kit3.path);
-    expect(url).toContain('role=student');
-    expect(url).not.toContain('screen=');
-  });
+  // (planned-kit «без screen=» проверяется обобщённым тестом выше — kit-3 теперь ready)
 });

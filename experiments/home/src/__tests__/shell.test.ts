@@ -12,13 +12,13 @@ describe('app-shell', () => {
     expect(root.querySelector('[role=group][aria-label="Комплекты ОГЭ по физике"]')).toBeTruthy();
   });
 
-  it('применяет live-фильтр readyOnly (видны 2 постера)', () => {
+  it('применяет live-фильтр readyOnly (видны 3 постера)', () => {
     const root = document.createElement('div');
     renderApp(root);
     (root.querySelector('[data-filter=ready-only]') as HTMLInputElement).click();
     const visible = [...root.querySelectorAll('kit-poster')].filter(
       p => !p.hasAttribute('data-hidden'),
     );
-    expect(visible.length).toBe(2);
+    expect(visible.length).toBe(3);
   });
 });
