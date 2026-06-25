@@ -200,15 +200,19 @@ export class SpringWorkScreen implements IScreen {
     };
 
     this.#experiment = new SpringExperiment(refs, renderers);
-    (window as unknown as { springWorkExperiment?: SpringExperiment }).springWorkExperiment =
-      this.#experiment;
+    if (import.meta.env.DEV) {
+      (window as unknown as { springWorkExperiment?: SpringExperiment }).springWorkExperiment =
+        this.#experiment;
+    }
   }
 
   unmount(): void {
     if (!this.#experiment) return;
     this.#experiment.destroy();
     this.#experiment.reset();
-    delete (window as unknown as { springWorkExperiment?: SpringExperiment }).springWorkExperiment;
+    if (import.meta.env.DEV) {
+      delete (window as unknown as { springWorkExperiment?: SpringExperiment }).springWorkExperiment;
+    }
     this.#experiment = null;
     if (this.#host) this.#host.replaceChildren();
     this.#host = null;

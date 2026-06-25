@@ -113,20 +113,8 @@ export interface ExperimentRefs {
  * (например spring-work) которые переиспользуют физику и UI базового
  * опыта 2.1, но показывают другие колонки в журнале и другую формулу
  * результата. Если рендерер не задан — работает дефолтное поведение 2.1.
- *
- * Для миграции v1→v2 (spring-work): использовать `journalSpec`+`buildRows`
- * вместо `journal` (legacy). Это даёт v2-таблицу с нужным SPEC без ручного innerHTML.
  */
 export interface SpringRenderers {
-  /**
-   * @deprecated v1 legacy — рисует в #journal-table через innerHTML.
-   * Мигрировать на `journalSpec`+`buildRows` (v2).
-   */
-  journal?: (state: SpringSetupState, refs: {
-    journalEmpty: HTMLElement;
-    journalTable: HTMLTableElement;
-    journalBody: HTMLElement;
-  }) => void;
   /** v2: другой SPEC журнала (вместо SPRING_SPEC по умолчанию). */
   journalSpec?: JournalSpec;
   /** v2: кастомный построитель строк журнала (вместо дефолтного для 2.1). */
@@ -1492,19 +1480,6 @@ export class SpringExperiment {
     if (hasData) this.#refs.journalEmpty.setAttribute('hidden', '');
     else this.#refs.journalEmpty.removeAttribute('hidden');
 
-    // Custom renderer (для дочерних экранов вроде spring-work, использующих свою схему).
-    // Они пишут в legacy v1 journal-table — показываем её если есть данные.
-    if (this.#renderers.journal) {
-      if (hasData) this.#refs.journalTable.removeAttribute('hidden');
-      else this.#refs.journalTable.setAttribute('hidden', '');
-      this.#renderers.journal(s, {
-        journalEmpty: this.#refs.journalEmpty,
-        journalTable: this.#refs.journalTable,
-        journalBody: this.#refs.journalBody,
-      });
-      return;
-    }
-
     // v1 fallback таблица — всегда скрыта когда есть journal-host (v2).
     this.#refs.journalTable.setAttribute('hidden', '');
     if (!this.#refs.journalHost) {
@@ -1590,8 +1565,7 @@ export class SpringExperiment {
           });
         }
         this.#journalDrafts.set(ts, draft);
-        // Дефолтный verifyRow: строить tempRow под SPRING_SPEC.
-        // Кастомный buildRows должен сам вложить verdicts в строки.
+        // Verdicts computed here via verifyRow(activeSpec); buildRows provides row values only.
         const dlMm = Math.round(m.extension * 10);
         const lAtLoad = l0 !== null ? l0 + dlMm : 0;
         const tempRow: JournalRow = {
