@@ -1,0 +1,4 @@
+dist/
+tsconfig.tsbuildinfo
+selfcheck-*.mjs
+selfcheck-screens/
