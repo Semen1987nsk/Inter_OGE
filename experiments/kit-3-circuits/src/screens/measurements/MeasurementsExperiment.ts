@@ -1,28 +1,28 @@
 /**
- * MeasurementsExperiment — оркестратор опыта 3.1 «Сопротивление резистора».
+ * MeasurementsExperiment — оркестратор опыта 3.1/3.2/3.3 «Электрические цепи».
  *
  * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (стр.18) + КОДИФ §1.29:
- * измерение сопротивления резистора методом амперметра-вольтметра.
- * R = U / I.
+ *   3.1 — измерение сопротивления R = U/I;
+ *   3.2 — измерение мощности P = U·I;
+ *   3.3 — измерение работы тока A = U·I·t (базовые поля; секундомер добавит Task 3).
  *
  * Методичка ЛАБОСФЕРА §2.2.7 (стр.22):
- * «Амперметр включается последовательно, вольтметр — параллельно резистору.
- *  Допустимое сопротивление резистора R1 = 4,2–5,2 Ом (паспорт ФИПИ).»
+ * «Амперметр включается последовательно, вольтметр — параллельно резистору.»
  *
- * Workflow:
- *   1. Drag 5 приборов (источник, ключ, амперметр, резистор, вольтметр)
- *      → гнёзда lab-circuit-board.
- *   2. Замкнуть ключ → CircuitModel.current(U, R) → вольтметр + амперметр оживают.
- *   3. Записать строку журнала (U, I) → ученик считает R = U/I → ✓ проверка.
- *   4. Reset — всё возвращается в комплект.
+ * Workflow (мульти-таск A/B/C):
+ *   1. Выбрать задачу (вкладка A/B/C) → меняется SPEC/формула журнала.
+ *   2. Drag 5 приборов → гнёзда lab-circuit-board.
+ *   3. Замкнуть ключ → CircuitModel.current(U, R) → вольтметр + амперметр оживают.
+ *   4. Записать строку журнала (U, I, [P]) → ученик считает → ✓ проверка.
+ *   5. Reset — сохраняет выбранную задачу, возвращает приборы.
  *
- * §21 — журнал v2 (renderJournalTable + RESISTANCE_SPEC + record-mode ключ 'kit-3').
+ * §21 — журнал v2 (renderJournalTable + RESISTANCE_SPEC/POWER_SPEC/WORK_CURRENT_SPEC + record-mode 'kit-3').
  */
 
 import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { CircuitTopology, CircuitAssembly } from '@controller/CircuitAssembly';
-import { current as circuitCurrent } from '@physics/circuit/CircuitModel';
+import { current as circuitCurrent, power as circuitPower } from '@physics/circuit/CircuitModel';
 
 // §21 — единый журнал v2
 import {
@@ -33,13 +33,21 @@ import {
 } from '@labosfera/shared-spa/lib/record-mode';
 import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
-import { RESISTANCE_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import {
+  RESISTANCE_SPEC, POWER_SPEC, WORK_CURRENT_SPEC,
+} from '@labosfera/shared-spa/lib/journal/specs';
 import type { JournalRow, JournalVerdict } from '@labosfera/shared-spa/lib/journal/types';
+import type { JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
 
+/** Активная задача опыта (A=R, B=P, C=A=U·I·t). */
+export type CircuitTaskId = 'A-resistance' | 'B-power' | 'C-work';
+
 /** ID оборудования в комплекте */
-export type EquipmentId = 'power-source' | 'voltmeter' | 'ammeter' | 'resistor-r1' | 'resistor-r2' | 'key';
+export type EquipmentId =
+  | 'power-source' | 'voltmeter' | 'ammeter'
+  | 'resistor-r1' | 'resistor-r2' | 'resistor-r3' | 'key';
 
 /** ID слотов на монтажной плате */
 export type SlotId = 'source' | 'key' | 'ammeter' | 'resistor' | 'voltmeter';
@@ -59,6 +67,8 @@ interface CircuitState {
   keyClosed: boolean;
   /** Напряжение источника (В) */
   voltage: number;
+  /** Активная задача опыта (A=R, B=P, C=A=U·I·t). */
+  activeTask: CircuitTaskId;
   /** Список записанных измерений */
   measurements: CircuitMeasurement[];
   /** Что сейчас тащат */
@@ -68,21 +78,25 @@ interface CircuitState {
 export interface CircuitMeasurement {
   readonly id: string;
   readonly timestamp: number;
+  readonly task: CircuitTaskId;
   readonly resistorVariant: string;
   readonly resistanceOhm: number;
   readonly voltageV: number;
   readonly currentA: number;
+  readonly powerW: number;
+  // timeS/workJ добавит Task 3 (опыт 3.3)
 }
 
 const INITIAL_STATE: CircuitState = {
   placed: {},
   keyClosed: false,
   voltage: 4.5,
+  activeTask: 'A-resistance',
   measurements: [],
   dragging: null,
 };
 
-/** Топология опыта 3.1 */
+/** Топология опыта 3.1/3.2/3.3 */
 const SLOTS_3_1 = [
   { id: 'source',    role: 'source' as const,   accepts: ['power-source'] },
   { id: 'key',       role: 'key' as const,       accepts: ['key'] },
@@ -300,6 +314,9 @@ export interface ExperimentRefs {
   recordPendingSlot?: HTMLElement | undefined;
   recordPendingBtn?: HTMLButtonElement | undefined;
   recordPendingSummary?: HTMLElement | undefined;
+  // динамическая формула
+  formulaExpr?: HTMLElement | undefined;
+  formulaUnits?: HTMLElement | undefined;
 }
 
 // ─── HintEngine (tiny) ───────────────────────────────────────────────────────
@@ -403,6 +420,18 @@ export class MeasurementsExperiment {
     return this.#store.get().voltage;
   }
 
+  /** Активная задача (для тестов/отладки). */
+  get activeTask(): CircuitTaskId {
+    return this.#store.get().activeTask;
+  }
+
+  /** Переключить задачу опыта (A/B/C). Снимает секундомер (Task 3). */
+  setActiveTask(task: CircuitTaskId): void {
+    this.#store.set({ activeTask: task });
+    this.#refreshUi();
+    this.#hints.update(this.#store.get());
+  }
+
   /** Программно разместить прибор в слот (для тестов). */
   placeInSlot(slotId: SlotId, equipmentId: EquipmentId): boolean {
     const kind = this.#kindForEquipment(equipmentId);
@@ -448,14 +477,17 @@ export class MeasurementsExperiment {
     const R = RESISTANCE_BY_VARIANT[variant] ?? 4.7;
     const U = st.voltage;
     const I = circuitCurrent(U, R);
+    const P = circuitPower(U, I);
 
     const measurement: CircuitMeasurement = {
       id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: Date.now(),
+      task: st.activeTask,
       resistorVariant: variant,
       resistanceOhm: R,
       voltageV: U,
       currentA: I,
+      powerW: P,
     };
 
     this.#store.update((s: Readonly<CircuitState>) => ({
@@ -468,12 +500,13 @@ export class MeasurementsExperiment {
     );
   }
 
-  /** Сброс установки. */
+  /** Сброс установки. Сохраняет выбранную задачу. */
   reset(): void {
     this.#drag.cancel();
     this.#topology.reset();
     this.#assembly.setKeyClosed(false);
-    this.#store.set({ ...INITIAL_STATE });
+    const keepTask = this.#store.get().activeTask;
+    this.#store.set({ ...INITIAL_STATE, activeTask: keepTask });
     // §21 — очистить drafts + verdicts + сигнатуру
     this.#journalDrafts.clear();
     this.#journalVerdicts.clear();
@@ -494,10 +527,6 @@ export class MeasurementsExperiment {
   destroy(): void {
     this.#drag.cancel();
     // FIX 3: explicitly remove the rewired slot zones before CircuitAssembly.destroy()
-    // (assembly.destroy() tries to remove the original IDs it registered at construction,
-    // but #rewireAssemblySlots() already removed and re-registered them under the same IDs —
-    // so assembly's internal list still has those IDs; we remove them first to avoid confusion,
-    // then assembly.destroy() will no-op on already-removed IDs — removeSnapZone is idempotent).
     for (const id of this.#rewiredSlotIds) {
       this.#drag.removeSnapZone(id);
     }
@@ -593,6 +622,21 @@ export class MeasurementsExperiment {
       });
     }
 
+    // Переключатель задач A/B/C
+    this.#refs.steps.addEventListener('click', (ev) => {
+      const target = (ev.target as HTMLElement).closest('[data-task]');
+      if (!target) return;
+      const tid = (target as HTMLElement).dataset['task'] as CircuitTaskId | undefined;
+      if (tid) this.setActiveTask(tid);
+    });
+    this.#refs.steps.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const target = (ev.target as HTMLElement).closest('[data-task]');
+      if (!target) return;
+      ev.preventDefault();
+      const tid = (target as HTMLElement).dataset['task'] as CircuitTaskId | undefined;
+      if (tid) this.setActiveTask(tid);
+    });
   }
 
   /**
@@ -601,18 +645,12 @@ export class MeasurementsExperiment {
    * после успешного drop в CircuitAssembly обновляем state.placed.
    */
   #rewireAssemblySlots(): void {
-    // CircuitAssembly уже зарегистрировал зоны с id 'circuit-slot-<slotId>'.
-    // Добавляем observing через кастомные события на board.
-    // Вместо этого добавим свои зоны-обёртки поверх assembly (overwrite).
     // FIX 3: reset tracked list on each call (handles remount path)
     this.#rewiredSlotIds = [];
     for (const slotDef of SLOTS_3_1) {
       const slotId = slotDef.id as SlotId;
       const zoneId = `circuit-slot-${slotId}`;
 
-      // Re-register to intercept drop (assembly already registered,
-      // we need to also track in our store).
-      // We do this by removing and re-adding with wrapper onDrop.
       this.#drag.removeSnapZone(zoneId);
 
       const slotEl = this.#refs.circuitBoard.querySelector<HTMLElement>(`[data-slot="${slotId}"]`);
@@ -735,14 +773,17 @@ export class MeasurementsExperiment {
     // Voltage control visibility
     this.#refs.voltageControl.hidden = !st.placed['source'];
 
+    // Per-task measurements
+    const taskMeasurements = this.#measurementsForTask();
+    const hasMeasurements = taskMeasurements.length > 0;
+
     // Measurement panel state
-    const hasMeasurements = st.measurements.length > 0;
     this.#refs.measurementPanel.dataset['state'] = isLive ? 'live' : hasMeasurements ? 'recorded' : 'empty';
 
-    // Measurement count badge
+    // Measurement count badge (per-task)
     if (hasMeasurements) {
       this.#refs.measurementCount.hidden = false;
-      this.#refs.measurementCount.textContent = String(st.measurements.length);
+      this.#refs.measurementCount.textContent = String(taskMeasurements.length);
     } else {
       this.#refs.measurementCount.hidden = true;
     }
@@ -771,33 +812,27 @@ export class MeasurementsExperiment {
       }
     }
 
-    // Render journal table (§21)
+    // Render journal table (§21) — per-task spec + rows
     if (hasMeasurements && this.#refs.journalHost) {
       this.#refs.journalHost.hidden = false;
-      const rows = this.#buildJournalRows(st);
-      renderJournalTable(this.#refs.journalHost, RESISTANCE_SPEC, rows, {
+      const spec = this.#currentSpec();
+      const rows = this.#buildJournalRows(taskMeasurements);
+      renderJournalTable(this.#refs.journalHost, spec, rows, {
         mode: mode as 'semi-auto' | 'fully-manual' | 'fully-auto',
         onCellInput: (rowIdx, key, value) => {
-          const row = st.measurements[rowIdx - 1];
+          const row = taskMeasurements[rowIdx - 1];
           if (!row) return;
           const drafts = this.#journalDrafts.get(row.timestamp) ?? {};
-          if (value !== null) {
-            drafts[key] = value;
-          } else {
-            delete drafts[key];
-          }
+          if (value !== null) drafts[key] = value; else delete drafts[key];
           this.#journalDrafts.set(row.timestamp, drafts);
         },
         onVerify: (rowIdx) => {
-          const row = st.measurements[rowIdx - 1];
+          const row = taskMeasurements[rowIdx - 1];
           if (!row) return;
           const drafts = this.#journalDrafts.get(row.timestamp) ?? {};
           const journalRow = this.#buildJournalRow(row, rowIdx);
-          // Merge drafts into values
-          for (const [k, v] of Object.entries(drafts)) {
-            journalRow.values[k] = v;
-          }
-          const verdicts = verifyRow(RESISTANCE_SPEC.columns, journalRow);
+          for (const [k, v] of Object.entries(drafts)) journalRow.values[k] = v;
+          const verdicts = verifyRow(spec.columns, journalRow);
           this.#journalVerdicts.set(row.timestamp, verdicts);
           this.#refreshUi();
         },
@@ -806,19 +841,18 @@ export class MeasurementsExperiment {
       this.#refs.journalHost.hidden = true;
     }
 
-    // Steps highlight
-    this.#updateSteps(st);
+    // Формула по активной задаче
+    this.#refreshFormula();
+
+    // Task-switcher highlight
+    this.#refreshTaskStepper();
   }
 
-  #buildJournalRows(st: CircuitState): JournalRow[] {
-    return st.measurements.map((m, i) => {
+  #buildJournalRows(list: CircuitMeasurement[]): JournalRow[] {
+    return list.map((m, i) => {
       const row = this.#buildJournalRow(m, i + 1);
-      // Apply drafts
       const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
-      for (const [k, v] of Object.entries(drafts)) {
-        row.values[k] = v;
-      }
-      // Apply verdicts
+      for (const [k, v] of Object.entries(drafts)) row.values[k] = v;
       const verdicts = this.#journalVerdicts.get(m.timestamp);
       if (verdicts) row.verdicts = verdicts;
       return row;
@@ -826,18 +860,24 @@ export class MeasurementsExperiment {
   }
 
   #buildJournalRow(m: CircuitMeasurement, idx: number): JournalRow {
-    const mode = this.#recordMode();
-    const isFullyAuto = mode === 'fully-auto';
+    const isFullyAuto = this.#recordMode() === 'fully-auto';
+    const base = { idx, resistor: m.resistorVariant, U_V: m.voltageV, I_A: m.currentA };
+    if (m.task === 'B-power') {
+      return {
+        idx, timestamp: m.timestamp,
+        values: { ...base, P_W: isFullyAuto ? m.powerW : null },
+      };
+    }
+    if (m.task === 'C-work') {
+      // t_s/A_J заполняет Task 3 (поля measurement.timeS/workJ); здесь — заглушка-совместимость
+      return {
+        idx, timestamp: m.timestamp,
+        values: { ...base, t_s: null, A_J: null },
+      };
+    }
     return {
-      idx,
-      timestamp: m.timestamp,
-      values: {
-        idx,
-        resistor: m.resistorVariant,
-        U_V: m.voltageV,
-        I_A: m.currentA,
-        R_Ohm: isFullyAuto ? m.resistanceOhm : null,
-      },
+      idx, timestamp: m.timestamp,
+      values: { ...base, R_Ohm: isFullyAuto ? m.resistanceOhm : null },
     };
   }
 
@@ -845,33 +885,52 @@ export class MeasurementsExperiment {
     const st = this.#store.get();
     const { ok } = this.#topology.validate();
     if (!ok || !st.keyClosed) return '';
-    return `${st.voltage.toFixed(2)}-${st.placed['resistor']?.equipmentId ?? ''}`;
+    return `${st.activeTask}-${st.voltage.toFixed(2)}-${st.placed['resistor']?.equipmentId ?? ''}`;
   }
 
   #recordMode(): RecordMode {
     return getRecordMode(RECORD_MODE_KIT);
   }
 
-  #updateSteps(st: CircuitState): void {
-    const { ok } = this.#topology.validate();
-    const allPlaced = ok;
-    const steps = this.#refs.steps.querySelectorAll<HTMLElement>('.step');
-    // FIX 5: exclusive active step — only the furthest-reached step is active
-    let activeIdx: number;
-    if (st.measurements.length > 0) {
-      activeIdx = 3;
-    } else if (allPlaced && st.keyClosed) {
-      activeIdx = 2;
-    } else if (allPlaced) {
-      activeIdx = 1;
-    } else {
-      activeIdx = 0;
-    }
-    steps.forEach((s, i) => {
-      const active = i === activeIdx;
-      s.dataset['state'] = active ? 'active' : '';
-      s.setAttribute('aria-current', active ? 'step' : 'false');
+  /** SPEC журнала по активной задаче. */
+  #currentSpec(): JournalSpec {
+    const t = this.#store.get().activeTask;
+    if (t === 'B-power') return POWER_SPEC;
+    if (t === 'C-work') return WORK_CURRENT_SPEC;
+    return RESISTANCE_SPEC;
+  }
+
+  /** Записи текущей задачи (журнал/счётчик/результат фильтруются по задаче). */
+  #measurementsForTask(): CircuitMeasurement[] {
+    const t = this.#store.get().activeTask;
+    return this.#store.get().measurements.filter((m) => m.task === t);
+  }
+
+  #refreshTaskStepper(): void {
+    const active = this.#store.get().activeTask;
+    const items = this.#refs.steps.querySelectorAll<HTMLElement>('[data-task]');
+    items.forEach((item) => {
+      const isActive = item.dataset['task'] === active;
+      item.setAttribute('data-state', isActive ? 'active' : '');
+      item.setAttribute('aria-current', isActive ? 'true' : 'false');
     });
+  }
+
+  #refreshFormula(): void {
+    const expr = this.#refs.formulaExpr;
+    const units = this.#refs.formulaUnits;
+    if (!expr || !units) return;
+    const t = this.#store.get().activeTask;
+    if (t === 'B-power') {
+      expr.innerHTML = '<em>P</em> = <em>U</em> · <em>I</em>';
+      units.innerHTML = '<em>U</em> — в В, <em>I</em> — в А, <em>P</em> — в Вт';
+    } else if (t === 'C-work') {
+      expr.innerHTML = '<em>A</em> = <em>U</em> · <em>I</em> · <em>t</em>';
+      units.innerHTML = '<em>U</em> — в В, <em>I</em> — в А, <em>t</em> — в с, <em>A</em> — в Дж';
+    } else {
+      expr.innerHTML = '<em>R</em> = <em>U</em> / <em>I</em>';
+      units.innerHTML = '<em>U</em> — в В, <em>I</em> — в А, <em>R</em> — в Ом';
+    }
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -883,14 +942,15 @@ export class MeasurementsExperiment {
       'ammeter':       'ammeter',
       'resistor-r1':   'resistor',
       'resistor-r2':   'resistor',
+      'resistor-r3':   'resistor',
       'key':           'key',
     };
     return map[id] ?? null;
   }
 
   #variantForEquipment(id: EquipmentId): string {
-    if (id === 'resistor-r1') return 'R1';
     if (id === 'resistor-r2') return 'R2';
+    if (id === 'resistor-r3') return 'R3';
     return 'R1';
   }
 }

@@ -62,6 +62,9 @@ export class MeasurementsScreen implements IScreen {
       recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
       recordPendingBtn: (host.querySelector('#record-pending-btn') as HTMLButtonElement | null) ?? undefined,
       recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
+      // динамическая формула
+      formulaExpr: host.querySelector<HTMLElement>('#formula-expr') ?? undefined,
+      formulaUnits: host.querySelector<HTMLElement>('#formula-units') ?? undefined,
     };
 
     this.#experiment = new MeasurementsExperiment(refs);

@@ -20,6 +20,7 @@ import '../../../ui/components/lab-circuit-board';
 import '../../../ui/components/lab-equipment-card';
 
 import { MeasurementsExperiment, type ExperimentRefs } from '../MeasurementsExperiment';
+import { MeasurementsScreen } from '../MeasurementsScreen';
 import { current as circuitCurrent } from '../../../physics/circuit/CircuitModel';
 
 // ─── Вспомогательные функции ──────────────────────────────────────────────────
@@ -365,5 +366,66 @@ describe('MeasurementsExperiment — state machine', () => {
       expect(R).toBeGreaterThanOrEqual(4.2);
       expect(R).toBeLessThanOrEqual(5.2);
     }
+  });
+});
+
+describe('measurements — мульти-таск (Фаза B)', () => {
+  function mountScreen() {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const screen = new MeasurementsScreen();
+    screen.mount(host);
+    const exp = (window as unknown as { measurementsExperiment: any }).measurementsExperiment;
+    return { host, screen, exp };
+  }
+
+  it('по умолчанию активна задача A-resistance', () => {
+    const { exp, screen } = mountScreen();
+    expect(exp.activeTask).toBe('A-resistance');
+    screen.unmount();
+  });
+
+  it('setActiveTask переключает вкладку + aria-current', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('B-power');
+    expect(exp.activeTask).toBe('B-power');
+    const activeTab = host.querySelector('[data-task="B-power"]')!;
+    expect(activeTab.getAttribute('data-state')).toBe('active');
+    expect(activeTab.getAttribute('aria-current')).toBe('true');
+    screen.unmount();
+  });
+
+  it('опыт 3.2: сборка R3 → замыкание → запись → P=U·I в журнале', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('B-power');
+    exp.placeInSlot('source', 'power-source');
+    exp.placeInSlot('key', 'key');
+    exp.placeInSlot('ammeter', 'ammeter');
+    exp.placeInSlot('resistor', 'resistor-r3');
+    exp.placeInSlot('voltmeter', 'voltmeter');
+    exp.setVoltage(5.7);
+    exp.setKeyClosed(true);
+    exp.recordMeasurement();
+    const recorded = exp.measurements.filter((m: any) => m.task === 'B-power');
+    expect(recorded.length).toBe(1);
+    // I = 5.7/8.2 ≈ 0.695; P = 5.7*0.695 ≈ 3.96 ∈ [3.5,4.5]
+    expect(recorded[0].powerW).toBeGreaterThan(3.5);
+    expect(recorded[0].powerW).toBeLessThan(4.5);
+    expect(host.querySelector('#journal-host')).not.toBeNull();
+    screen.unmount();
+  });
+
+  it('журнал фильтруется по активной задаче (записи A не видны в B)', () => {
+    const { exp, screen } = mountScreen();
+    // запись в A
+    exp.placeInSlot('source', 'power-source'); exp.placeInSlot('key', 'key');
+    exp.placeInSlot('ammeter', 'ammeter'); exp.placeInSlot('resistor', 'resistor-r1');
+    exp.placeInSlot('voltmeter', 'voltmeter'); exp.setKeyClosed(true);
+    exp.recordMeasurement();
+    expect(exp.measurements.filter((m: any) => m.task === 'A-resistance').length).toBe(1);
+    // переключаемся в B — записей B пока нет
+    exp.setActiveTask('B-power');
+    expect(exp.measurements.filter((m: any) => m.task === 'B-power').length).toBe(0);
+    screen.unmount();
   });
 });

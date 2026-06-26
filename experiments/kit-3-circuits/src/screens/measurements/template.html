@@ -1,22 +1,18 @@
 <main class="app-main-v3">
   <section class="workbench" aria-label="Рабочая зона">
     <header class="workbench-header">
-      <ol class="steps" id="steps" aria-label="Этапы измерения">
-        <li class="step" data-step="1">
-          <span class="step-num">1</span>
-          <span class="step-label">Соберите цепь</span>
+      <ol class="steps" id="steps" aria-label="Опыт (что измеряем)">
+        <li class="step" data-task="A-resistance" data-state="active" tabindex="0" role="button" aria-current="true">
+          <span class="step-num">A</span>
+          <span class="step-label">Сопротивление <small>(R = U / I)</small></span>
         </li>
-        <li class="step" data-step="2">
-          <span class="step-num">2</span>
-          <span class="step-label">Замкните ключ</span>
+        <li class="step" data-task="B-power" tabindex="0" role="button" aria-current="false">
+          <span class="step-num">B</span>
+          <span class="step-label">Мощность <small>(P = U · I)</small></span>
         </li>
-        <li class="step" data-step="3">
-          <span class="step-num">3</span>
-          <span class="step-label">Снимите показания</span>
-        </li>
-        <li class="step" data-step="4">
-          <span class="step-num">4</span>
-          <span class="step-label">Запишите R = U / I</span>
+        <li class="step" data-task="C-work" tabindex="0" role="button" aria-current="false">
+          <span class="step-num">C</span>
+          <span class="step-label">Работа тока <small>(A = U · I · t)</small></span>
         </li>
       </ol>
       <div class="workbench-hint" id="hint-bar">
@@ -113,10 +109,10 @@
 
             <div class="formula-display" id="formula-display" hidden>
               <span class="formula-label">Формула:</span>
-              <span class="formula-expr">
+              <span class="formula-expr" id="formula-expr">
                 <em>R</em> = <em>U</em> / <em>I</em>
               </span>
-              <span class="formula-units"><em>U</em> — в В, <em>I</em> — в А, <em>R</em> — в Ом</span>
+              <span class="formula-units" id="formula-units"><em>U</em> — в В, <em>I</em> — в А, <em>R</em> — в Ом</span>
             </div>
 
             <!-- §21 — контейнер для shared renderJournalTable -->
@@ -208,6 +204,16 @@
           data-dropzone-id="card-resistor-r2"
         >
           <lab-resistor variant="R2"></lab-resistor>
+        </lab-equipment-card>
+        <lab-equipment-card
+          title="Резистор R3 ≈ 8,2 Ом"
+          status="available"
+          data-eq="resistor-r3"
+          data-draggable="resistor"
+          data-dropzone="resistor"
+          data-dropzone-id="card-resistor-r3"
+        >
+          <lab-resistor variant="R3"></lab-resistor>
         </lab-equipment-card>
       </div>
     </section>
