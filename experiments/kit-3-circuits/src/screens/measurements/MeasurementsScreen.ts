@@ -1,8 +1,10 @@
 /**
- * MeasurementsScreen — экран «Измерения» (Опыт 3.1 Сопротивление резистора).
+ * MeasurementsScreen — экран «Измерения тока» (мульти-таск, опыты 3.1–3.3).
  *
- * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (стр.18) + КОДИФ §1.29:
- * измерение сопротивления резистора методом амперметра-вольтметра. R = U / I.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) + КОДИФ §1.29:
+ * 3.1 сопротивление резистора (R = U/I), 3.2 мощность тока (P = U·I),
+ * 3.3 работа тока (A = U·I·t) — метод амперметра-вольтметра. Переключатель
+ * задач A/B/C по образцу friction; шапка экрана generic (как «Опыт 2.2–2.5»).
  *
  * Фасад IScreen по образцу FrictionScreen (kit-2):
  *   mount → inject template.html → создать MeasurementsExperiment
@@ -18,10 +20,10 @@ import type { IScreen, ScreenMeta } from '@shell/IScreen';
 export class MeasurementsScreen implements IScreen {
   readonly meta: ScreenMeta = {
     id: 'measurements',
-    label: 'Сопротивление резистора',
-    kicker: 'Опыт 3.1',
+    label: 'Измерения тока',
+    kicker: 'Опыт 3.1–3.3',
     icon: 'gauge',
-    tooltip: 'Измерение сопротивления резистора методом амперметра-вольтметра (R = U / I)',
+    tooltip: 'Сопротивление, мощность и работа электрического тока (R = U/I, P = U·I, A = U·I·t)',
   };
 
   #experiment: MeasurementsExperiment | null = null;
