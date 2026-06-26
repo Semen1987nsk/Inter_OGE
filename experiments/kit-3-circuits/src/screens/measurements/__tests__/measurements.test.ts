@@ -428,4 +428,42 @@ describe('measurements — мульти-таск (Фаза B)', () => {
     expect(exp.measurements.filter((m: any) => m.task === 'B-power').length).toBe(0);
     screen.unmount();
   });
+
+  it('опыт 3.3: setTimeS + сборка R2 → запись → A=U·I·t', () => {
+    const { exp, screen } = mountScreen();
+    exp.setActiveTask('C-work');
+    expect(exp.timeS).toBe(60); // дефолт
+    exp.placeInSlot('source', 'power-source'); exp.placeInSlot('key', 'key');
+    exp.placeInSlot('ammeter', 'ammeter'); exp.placeInSlot('resistor', 'resistor-r2');
+    exp.placeInSlot('voltmeter', 'voltmeter');
+    exp.setVoltage(2.9); exp.setTimeS(60);
+    exp.setKeyClosed(true);
+    exp.recordMeasurement();
+    const rec = exp.measurements.filter((m: any) => m.task === 'C-work');
+    expect(rec.length).toBe(1);
+    expect(rec[0].timeS).toBe(60);
+    // I = 2.9/5.7 ≈ 0.509; A = 2.9*0.509*60 ≈ 88.5 ∈ [75,100]
+    expect(rec[0].workJ).toBeGreaterThan(75);
+    expect(rec[0].workJ).toBeLessThan(100);
+    screen.unmount();
+  });
+
+  it('time-control виден только в задаче C', () => {
+    const { host, exp, screen } = mountScreen();
+    const tc = host.querySelector('#time-control') as HTMLElement;
+    expect(tc.hidden).toBe(true);          // A
+    exp.setActiveTask('C-work');
+    expect(tc.hidden).toBe(false);         // C
+    exp.setActiveTask('B-power');
+    expect(tc.hidden).toBe(true);          // B
+    screen.unmount();
+  });
+
+  it('reset() сохраняет activeTask', () => {
+    const { exp, screen } = mountScreen();
+    exp.setActiveTask('C-work');
+    exp.reset();
+    expect(exp.activeTask).toBe('C-work');
+    screen.unmount();
+  });
 });

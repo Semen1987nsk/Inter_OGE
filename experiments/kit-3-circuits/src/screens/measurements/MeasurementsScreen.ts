@@ -65,6 +65,10 @@ export class MeasurementsScreen implements IScreen {
       // динамическая формула
       formulaExpr: host.querySelector<HTMLElement>('#formula-expr') ?? undefined,
       formulaUnits: host.querySelector<HTMLElement>('#formula-units') ?? undefined,
+      // Опыт 3.3 — секундомер
+      timeControl: host.querySelector<HTMLElement>('#time-control') ?? undefined,
+      timePresets: host.querySelector<HTMLElement>('#time-presets') ?? undefined,
+      stopwatchReadout: host.querySelector<HTMLElement>('#stopwatch-readout') ?? undefined,
     };
 
     this.#experiment = new MeasurementsExperiment(refs);

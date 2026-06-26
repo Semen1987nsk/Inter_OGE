@@ -22,7 +22,7 @@
 import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { CircuitTopology, CircuitAssembly } from '@controller/CircuitAssembly';
-import { current as circuitCurrent, power as circuitPower } from '@physics/circuit/CircuitModel';
+import { current as circuitCurrent, power as circuitPower, workOfCurrent as circuitWork } from '@physics/circuit/CircuitModel';
 
 // §21 — единый журнал v2
 import {
@@ -73,6 +73,8 @@ interface CircuitState {
   measurements: CircuitMeasurement[];
   /** Что сейчас тащат */
   dragging: EquipmentId | null;
+  /** Выбранное время для опыта 3.3 (с) */
+  timeS: number;
 }
 
 export interface CircuitMeasurement {
@@ -84,7 +86,8 @@ export interface CircuitMeasurement {
   readonly voltageV: number;
   readonly currentA: number;
   readonly powerW: number;
-  // timeS/workJ добавит Task 3 (опыт 3.3)
+  readonly timeS: number | null;  // только задача C
+  readonly workJ: number | null;  // только задача C
 }
 
 const INITIAL_STATE: CircuitState = {
@@ -94,6 +97,7 @@ const INITIAL_STATE: CircuitState = {
   activeTask: 'A-resistance',
   measurements: [],
   dragging: null,
+  timeS: 60,
 };
 
 /** Топология опыта 3.1/3.2/3.3 */
@@ -317,6 +321,10 @@ export interface ExperimentRefs {
   // динамическая формула
   formulaExpr?: HTMLElement | undefined;
   formulaUnits?: HTMLElement | undefined;
+  // Опыт 3.3 — секундомер
+  timeControl?: HTMLElement | undefined;
+  timePresets?: HTMLElement | undefined;
+  stopwatchReadout?: HTMLElement | undefined;
 }
 
 // ─── HintEngine (tiny) ───────────────────────────────────────────────────────
@@ -392,6 +400,9 @@ export class MeasurementsExperiment {
   #lastRecordedSignature = '';
   // FIX 3: track zone IDs rewired in #rewireAssemblySlots() so destroy() can remove them
   #rewiredSlotIds: string[] = [];
+  // Секундомер (RAF) — опыт 3.3
+  #stopwatchRaf: number | null = null;
+  #stopwatchStart = 0;
 
   constructor(refs: ExperimentRefs) {
     this.#refs = refs;
@@ -425,8 +436,22 @@ export class MeasurementsExperiment {
     return this.#store.get().activeTask;
   }
 
+  /** Выбранное время опыта 3.3 (с). */
+  get timeS(): number {
+    return this.#store.get().timeS;
+  }
+
+  /** Выбрать длительность опыта (с) — только пресеты 30/60/120. */
+  setTimeS(t: number): void {
+    const allowed = [30, 60, 120];
+    const v = allowed.includes(t) ? t : 60;
+    this.#store.set({ timeS: v });
+    this.#refreshUi();
+  }
+
   /** Переключить задачу опыта (A/B/C). Снимает секундомер (Task 3). */
   setActiveTask(task: CircuitTaskId): void {
+    this.#stopStopwatch();
     this.#store.set({ activeTask: task });
     this.#refreshUi();
     this.#hints.update(this.#store.get());
@@ -479,6 +504,10 @@ export class MeasurementsExperiment {
     const I = circuitCurrent(U, R);
     const P = circuitPower(U, I);
 
+    const isWork = st.activeTask === 'C-work';
+    const tS = isWork ? st.timeS : null;
+    const workJ = isWork ? circuitWork(U, I, st.timeS) : null;
+
     const measurement: CircuitMeasurement = {
       id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       timestamp: Date.now(),
@@ -488,6 +517,8 @@ export class MeasurementsExperiment {
       voltageV: U,
       currentA: I,
       powerW: P,
+      timeS: tS,
+      workJ,
     };
 
     this.#store.update((s: Readonly<CircuitState>) => ({
@@ -502,6 +533,7 @@ export class MeasurementsExperiment {
 
   /** Сброс установки. Сохраняет выбранную задачу. */
   reset(): void {
+    this.#stopStopwatch();
     this.#drag.cancel();
     this.#topology.reset();
     this.#assembly.setKeyClosed(false);
@@ -525,6 +557,7 @@ export class MeasurementsExperiment {
 
   /** Cleanup при unmount. */
   destroy(): void {
+    this.#stopStopwatch();
     this.#drag.cancel();
     // FIX 3: explicitly remove the rewired slot zones before CircuitAssembly.destroy()
     for (const id of this.#rewiredSlotIds) {
@@ -622,6 +655,16 @@ export class MeasurementsExperiment {
       });
     }
 
+    // Пресеты времени (опыт 3.3)
+    if (this.#refs.timePresets) {
+      this.#refs.timePresets.addEventListener('click', (ev) => {
+        const btn = (ev.target as HTMLElement).closest('[data-time]');
+        if (!btn) return;
+        const t = Number((btn as HTMLElement).dataset['time']);
+        if (Number.isFinite(t)) this.setTimeS(t);
+      });
+    }
+
     // Переключатель задач A/B/C
     this.#refs.steps.addEventListener('click', (ev) => {
       const target = (ev.target as HTMLElement).closest('[data-task]');
@@ -705,6 +748,10 @@ export class MeasurementsExperiment {
     const { ok } = this.#topology.validate();
     this.#assembly.setKeyClosed(ok && st.keyClosed);
 
+    if (!(ok && st.keyClosed)) {
+      this.#stopStopwatch();
+    }
+
     // Update instrument displays when circuit is live
     if (ok && st.keyClosed) {
       const resistorSlot = st.placed['resistor'];
@@ -730,6 +777,9 @@ export class MeasurementsExperiment {
           const am = ammeterCard.querySelector('lab-ammeter');
           am?.setAttribute('value', I.toFixed(2));
         }
+
+        // Запустить секундомер в задаче C
+        if (st.activeTask === 'C-work') this.#startStopwatch();
 
         // fully-auto: auto-record on circuit closure
         if (this.#recordMode() === 'fully-auto' && this.#pendingSignature() !== this.#lastRecordedSignature) {
@@ -773,6 +823,23 @@ export class MeasurementsExperiment {
     // Voltage control visibility
     this.#refs.voltageControl.hidden = !st.placed['source'];
 
+    // Time-control виден только в задаче C
+    if (this.#refs.timeControl) {
+      this.#refs.timeControl.hidden = st.activeTask !== 'C-work';
+    }
+    if (this.#refs.timePresets) {
+      const btns = this.#refs.timePresets.querySelectorAll<HTMLButtonElement>('[data-time]');
+      btns.forEach((b) => {
+        const on = Number(b.dataset['time']) === st.timeS;
+        b.setAttribute('data-state', on ? 'active' : '');
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    // Секундомер readout (если не идёт анимация — показать выбранное t)
+    if (this.#refs.stopwatchReadout && !this.#stopwatchRaf) {
+      this.#refs.stopwatchReadout.textContent = `t = ${st.timeS} с`;
+    }
+
     // Per-task measurements
     const taskMeasurements = this.#measurementsForTask();
     const hasMeasurements = taskMeasurements.length > 0;
@@ -809,6 +876,9 @@ export class MeasurementsExperiment {
         const I = circuitCurrent(U, R);
         this.#refs.recordPendingSummary.textContent =
           `U=${U.toFixed(1).replace('.', ',')} В, I=${I.toFixed(2).replace('.', ',')} А`;
+        if (st.activeTask === 'C-work') {
+          this.#refs.recordPendingSummary.textContent += `, t=${st.timeS} с`;
+        }
       }
     }
 
@@ -869,10 +939,9 @@ export class MeasurementsExperiment {
       };
     }
     if (m.task === 'C-work') {
-      // t_s/A_J заполняет Task 3 (поля measurement.timeS/workJ); здесь — заглушка-совместимость
       return {
         idx, timestamp: m.timestamp,
-        values: { ...base, t_s: null, A_J: null },
+        values: { ...base, t_s: m.timeS, A_J: isFullyAuto ? m.workJ : null },
       };
     }
     return {
@@ -933,6 +1002,37 @@ export class MeasurementsExperiment {
     }
   }
 
+  // ─── Stopwatch (RAF) — опыт 3.3 ─────────────────────────────────────────
+
+  #startStopwatch(): void {
+    if (!this.#refs.stopwatchReadout) return;
+    this.#stopStopwatch();
+    const target = this.#store.get().timeS;
+    const reduced =
+      typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || typeof requestAnimationFrame !== 'function') {
+      this.#refs.stopwatchReadout.textContent = `t = ${target} с`;
+      return;
+    }
+    const ACCEL = 20; // 60 c → 3 c реального времени
+    this.#stopwatchStart = performance.now();
+    const tick = (now: number) => {
+      const simElapsed = ((now - this.#stopwatchStart) / 1000) * ACCEL;
+      const shown = Math.min(target, Math.round(simElapsed));
+      if (this.#refs.stopwatchReadout) this.#refs.stopwatchReadout.textContent = `t = ${shown} с`;
+      if (shown >= target) { this.#stopwatchRaf = null; return; }
+      this.#stopwatchRaf = requestAnimationFrame(tick);
+    };
+    this.#stopwatchRaf = requestAnimationFrame(tick);
+  }
+
+  #stopStopwatch(): void {
+    if (this.#stopwatchRaf !== null) {
+      cancelAnimationFrame(this.#stopwatchRaf);
+      this.#stopwatchRaf = null;
+    }
+  }
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   #kindForEquipment(id: EquipmentId): EqKind | null {
@@ -949,6 +1049,7 @@ export class MeasurementsExperiment {
   }
 
   #variantForEquipment(id: EquipmentId): string {
+    if (id === 'resistor-r1') return 'R1';
     if (id === 'resistor-r2') return 'R2';
     if (id === 'resistor-r3') return 'R3';
     return 'R1';
