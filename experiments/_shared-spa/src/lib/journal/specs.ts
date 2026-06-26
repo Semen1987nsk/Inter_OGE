@@ -482,6 +482,52 @@ export const RESISTANCE_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 3.2 «Измерение мощности электрического тока» — P = U·I.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3), п.2 «измерение мощности
+ * электрического тока»; КОДИФ §1.29. Метод амперметра-вольтметра.
+ * Эталон (методичка §2.2.7): R3, U=5,7 В, I=0,70 А → P=4,0 Вт (интервал 3,5–4,5).
+ */
+export const POWER_SPEC: JournalSpec = {
+  experimentId: '3.2',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'resistor', label: 'Резистор', source: 'meta' },
+    { key: 'U_V', label: 'U, В', source: 'direct', unit: 'В', format: 'fixed2' },
+    { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
+    {
+      key: 'P_W', label: 'P, Вт', source: 'derived', unit: 'Вт', format: 'fixed2',
+      tolerance: 0.10, // ФИПИ-интервал P=3,5–4,5 ≈ ±12% вокруг 4,0
+      expectedFromRow: (row) => (row.U_V ?? 0) * (row.I_A ?? 0),
+    },
+  ],
+};
+
+/**
+ * Опыт 3.3 «Измерение работы электрического тока» — A = U·I·t.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3), п.3 «измерение работы
+ * электрического тока»; КОДИФ §1.29.
+ * Эталон (методичка §2.2.7): R2, U=2,9 В, I=0,51 А, t=60 с → A=88,7 Дж (интервал 75–100).
+ * t — direct (ученик задаёт секундомером, авто-заполняется); A — derived (ученик считает).
+ */
+export const WORK_CURRENT_SPEC: JournalSpec = {
+  experimentId: '3.3',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'resistor', label: 'Резистор', source: 'meta' },
+    { key: 'U_V', label: 'U, В', source: 'direct', unit: 'В', format: 'fixed2' },
+    { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
+    { key: 't_s', label: 't, с', source: 'direct', unit: 'с', format: 'int' },
+    {
+      key: 'A_J', label: 'A, Дж', source: 'derived', unit: 'Дж', format: 'fixed1',
+      tolerance: 0.10, // ФИПИ-интервал 75–100 ≈ ±14% вокруг 88,7
+      expectedFromRow: (row) => (row.U_V ?? 0) * (row.I_A ?? 0) * (row.t_s ?? 0),
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -494,6 +540,8 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   ELASTIC_FORCE_SPEC,
   SPRING_WORK_SPEC,
   RESISTANCE_SPEC,
+  POWER_SPEC,
+  WORK_CURRENT_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
