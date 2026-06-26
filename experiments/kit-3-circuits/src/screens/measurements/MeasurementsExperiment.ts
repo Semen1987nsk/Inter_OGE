@@ -778,8 +778,9 @@ export class MeasurementsExperiment {
           am?.setAttribute('value', I.toFixed(2));
         }
 
-        // Запустить секундомер в задаче C
-        if (st.activeTask === 'C-work') this.#startStopwatch();
+        // Запустить секундомер в задаче C — но НЕ перезапускать уже идущую анимацию
+        // при изменении живой цепи (setVoltage/смена резистора при замкнутом ключе).
+        if (st.activeTask === 'C-work' && this.#stopwatchRaf === null) this.#startStopwatch();
 
         // fully-auto: auto-record on circuit closure
         if (this.#recordMode() === 'fully-auto' && this.#pendingSignature() !== this.#lastRecordedSignature) {
@@ -954,7 +955,8 @@ export class MeasurementsExperiment {
     const st = this.#store.get();
     const { ok } = this.#topology.validate();
     if (!ok || !st.keyClosed) return '';
-    return `${st.activeTask}-${st.voltage.toFixed(2)}-${st.placed['resistor']?.equipmentId ?? ''}`;
+    // timeS включён в подпись: в задаче C смена пресета времени → новая pending-плашка (semi-auto).
+    return `${st.activeTask}-${st.voltage.toFixed(2)}-${st.placed['resistor']?.equipmentId ?? ''}-${st.timeS}`;
   }
 
   #recordMode(): RecordMode {

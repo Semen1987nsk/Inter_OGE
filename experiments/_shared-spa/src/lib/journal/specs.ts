@@ -476,7 +476,7 @@ export const RESISTANCE_SPEC: JournalSpec = {
     { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
     {
       key: 'R_Ohm', label: 'R, Ом', source: 'derived', unit: 'Ом', format: 'fixed2',
-      tolerance: 0.10, // ФИПИ-интервал R1=4.2–5.2 ≈ ±10%
+      tolerance: 0.10, // допуск на арифметику ученика: R vs U/I (10%); это НЕ интервал приёмки ФИПИ
       expectedFromRow: (row) => { const I = row.I_A ?? 0; return I > 0 ? (row.U_V ?? 0) / I : 0; },
     },
   ],
@@ -498,7 +498,7 @@ export const POWER_SPEC: JournalSpec = {
     { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
     {
       key: 'P_W', label: 'P, Вт', source: 'derived', unit: 'Вт', format: 'fixed2',
-      tolerance: 0.10, // ФИПИ-интервал P=3,5–4,5 ≈ ±12% вокруг 4,0
+      tolerance: 0.10, // допуск на арифметику ученика: P vs U·I (10%); это НЕ интервал приёмки ФИПИ (3,5–4,5)
       expectedFromRow: (row) => (row.U_V ?? 0) * (row.I_A ?? 0),
     },
   ],
@@ -522,7 +522,7 @@ export const WORK_CURRENT_SPEC: JournalSpec = {
     { key: 't_s', label: 't, с', source: 'direct', unit: 'с', format: 'int' },
     {
       key: 'A_J', label: 'A, Дж', source: 'derived', unit: 'Дж', format: 'fixed1',
-      tolerance: 0.10, // ФИПИ-интервал 75–100 ≈ ±14% вокруг 88,7
+      tolerance: 0.10, // допуск на арифметику ученика: A vs U·I·t (10%); это НЕ интервал приёмки ФИПИ (75–100)
       expectedFromRow: (row) => (row.U_V ?? 0) * (row.I_A ?? 0) * (row.t_s ?? 0),
     },
   ],
