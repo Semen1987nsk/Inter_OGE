@@ -229,6 +229,9 @@ describe('MeasurementsExperiment — state machine', () => {
     const expectedI = circuitCurrent(3.0, 4.7);
     expect(m.currentA).toBeCloseTo(expectedI, 4);
     expect(m.resistorVariant).toBe('R1');
+    // Контракт: время и работа — только в задаче C (M3)
+    expect(m.timeS).toBeNull();
+    expect(m.workJ).toBeNull();
   });
 
   it('запись без замкнутого ключа — игнорируется', () => {
@@ -411,6 +414,9 @@ describe('measurements — мульти-таск (Фаза B)', () => {
     // I = 5.7/8.2 ≈ 0.695; P = 5.7*0.695 ≈ 3.96 ∈ [3.5,4.5]
     expect(recorded[0].powerW).toBeGreaterThan(3.5);
     expect(recorded[0].powerW).toBeLessThan(4.5);
+    // Контракт: время и работа — только в задаче C (M3)
+    expect(recorded[0].timeS).toBeNull();
+    expect(recorded[0].workJ).toBeNull();
     expect(host.querySelector('#journal-host')).not.toBeNull();
     screen.unmount();
   });
