@@ -1,34 +1,34 @@
 /**
  * selfcheck-3-2-3-3.mjs — reality-check опытов 3.2 «Мощность тока» и 3.3 «Работа тока».
  *
- * PLAYBOOK Шаг 7: запускает Playwright, открывает ?screen=measurements,
- * проверяет оба опыта через page.mouse (реальный D&D) + API.
+ * PLAYBOOK Шаг 7 + REFERENCE §13 + урок «D&D self-check через mouse»:
+ * сборка цепи ОБЯЗАНА идти реальным page.mouse.move/down/up — programmatic placeInSlot
+ * обходит drop-flow и не ловит overlay-dup. Здесь все 5 приборов перетаскиваются мышью,
+ * и после каждого дропа проверяется, что слот реально занят (card[data-placed]).
  *
  * Запуск:
  *   npm run dev -w experiments/kit-3-circuits -- --host 127.0.0.1 --port 5197 --strictPort
  *   node experiments/kit-3-circuits/selfcheck-3-2-3-3.mjs
  *
- * Шаги опыт 3.2 (мощность, P = U·I, резистор R3, U≈5.7 В):
+ * Опыт 3.2 (мощность, P = U·I, резистор R3, U≈5.7 В):
  *   1. Навигация ?screen=measurements
  *   2. Клик вкладки B-power
- *   3. D&D + API: source, key, ammeter, resistor-r3, voltmeter → слоты
+ *   3. mouse-D&D source/key/ammeter/resistor-r3/voltmeter → гнёзда (каждый дроп подтверждён)
  *   4. Напряжение U=5.7 В
  *   5. Замыкание ключа
- *   6. Запись измерения (recordMeasurement API)
+ *   6. Запись измерения (pending-плашка #record-pending-btn)
  *   7. ФИПИ-инвариант: P ∈ [3.5, 4.5] Вт; timeS===null; workJ===null
  *   8. overlay-dup=0
  *
- * Шаги опыт 3.3 (работа тока, A = U·I·t, резистор R2, t=60 с, U≈2.9 В):
- *   1. reset() → переключить задачу C-work
- *   2. D&D + API: source, key, ammeter, resistor-r2, voltmeter → слоты
- *   3. Пресет 60 с
- *   4. Напряжение U=2.9 В
- *   5. Замыкание ключа
- *   6. Ожидание секундомера (#stopwatch-readout == 't = 60 с', timeout 8000)
- *   7. Запись измерения
- *   8. ФИПИ-инвариант: A ∈ [75, 100] Дж; timeS===60
- *   9. Multi-state скриншоты (REST/assembled/live/journal)
- *  10. overlay-dup=0
+ * Опыт 3.3 (работа тока, A = U·I·t, резистор R2, t=60 с, U≈2.9 В):
+ *   1. reset() → клик вкладки C-work
+ *   2. mouse-D&D source/key/ammeter/resistor-r2/voltmeter → гнёзда (каждый дроп подтверждён)
+ *   3. Пресет 60 с; U=2.9 В
+ *   4. Замыкание ключа (стартует RAF-секундомер, ACCEL=20 → 60 c за ~3 c реального времени)
+ *   5. waitForFunction: #stopwatch-readout достигает «t = 60 с» (timeout 8000)
+ *   6. Запись измерения (pending-плашка)
+ *   7. ФИПИ-инвариант: A ∈ [75, 100] Дж; timeS===60 (фильтр по task==='C-work')
+ *   8. overlay-dup=0; #stopwatch-readout виден
  */
 
 import { chromium } from 'playwright';
@@ -47,6 +47,17 @@ const FIPI_A_MIN = 75;    // работа нижняя граница, Дж
 const FIPI_A_MAX = 100;   // работа верхняя граница, Дж
 const TARGET_VOLTAGE_B = 5.7;  // опыт 3.2 — U=5.7 В, R3=8.2 Ом → I≈0.695 А, P≈3.96 Вт
 const TARGET_VOLTAGE_C = 2.9;  // опыт 3.3 — U=2.9 В, R2=5.7 Ом → I≈0.509 А, A≈88.6 Дж
+
+// Соответствие слот → ID карточки в комплекте (для конкретного варианта резистора).
+function assemblyPlan(resistorEquipmentId) {
+  return [
+    { slot: 'source',    eq: 'power-source' },
+    { slot: 'key',       eq: 'key' },
+    { slot: 'ammeter',   eq: 'ammeter' },
+    { slot: 'resistor',  eq: resistorEquipmentId },
+    { slot: 'voltmeter', eq: 'voltmeter' },
+  ];
+}
 
 fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
 
@@ -80,47 +91,82 @@ async function screenshot(page, name) {
 }
 
 /**
- * Drag элемент реальной мышью (PLAYBOOK: page.mouse.move/down/up).
- * Требование из memory feedback_dragdrop_test_through_mouse:
- * «programmatic addItem() обходит drop-flow — для D&D ОБЯЗАН page.mouse.move/down/up»
+ * Реальный mouse-drag прибора из карточки комплекта в гнездо платы.
+ * Цель — viewport-координаты гнезда через board.getSlotRect(slotId) (публичный метод).
+ * Источник — центр draggable-элемента внутри карточки.
+ * Возвращает true только если после mouse.up слот реально занят (card[data-placed]).
  */
-async function dragElement(page, sourceSelector, targetSelector) {
-  const source = page.locator(sourceSelector).first();
-  const target = page.locator(targetSelector).first();
+async function dragInstrumentToSlot(page, equipmentId, slotId) {
+  const cardSel = `lab-equipment-card[data-eq="${equipmentId}"]`;
+  const draggableSel = `${cardSel} > lab-power-source, ${cardSel} > lab-voltmeter, ${cardSel} > lab-ammeter, ${cardSel} > lab-resistor, ${cardSel} > lab-key`;
 
-  const srcBox = await source.boundingBox();
-  const tgtBox = await target.boundingBox();
+  // Карточка «Ключ» — последняя в правой панели и при viewport 900px её центр
+  // уходит ниже фолда. Прокручиваем draggable в зону видимости, иначе page.mouse
+  // не может корректно схватить элемент с центром за пределами окна.
+  const draggable = page.locator(draggableSel).first();
+  await draggable.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(60);
 
-  if (!srcBox || !tgtBox) {
-    throw new Error(`Element not found: ${!srcBox ? sourceSelector : targetSelector}`);
+  // Источник: центр draggable-элемента внутри карточки.
+  const srcBox = await draggable.boundingBox();
+  if (!srcBox) {
+    throw new Error(`draggable не найден для ${equipmentId}`);
+  }
+
+  // Цель: viewport-rect гнезда через публичный board.getSlotRect.
+  const tgt = await page.evaluate((sid) => {
+    const board = document.querySelector('#circuit-board');
+    if (!board || typeof board.getSlotRect !== 'function') return null;
+    const r = board.getSlotRect(sid);
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  }, slotId);
+  if (!tgt || (tgt.width === 0 && tgt.height === 0)) {
+    throw new Error(`getSlotRect('${slotId}') вернул пустой rect`);
   }
 
   const sx = srcBox.x + srcBox.width / 2;
   const sy = srcBox.y + srcBox.height / 2;
-  const tx = tgtBox.x + tgtBox.width / 2;
-  const ty = tgtBox.y + tgtBox.height / 2;
+  const tx = tgt.x + tgt.width / 2;
+  const ty = tgt.y + tgt.height / 2;
 
   await page.mouse.move(sx, sy);
   await page.mouse.down();
-  // Медленный drag — поднимает pointermove hover на drop-зонах
-  await page.mouse.move(sx + (tx - sx) * 0.3, sy + (ty - sy) * 0.3, { steps: 5 });
-  await page.mouse.move(tx, ty, { steps: 10 });
+  // Медленный drag — поднимает pointermove hover на drop-зонах.
+  await page.mouse.move(sx + (tx - sx) * 0.3, sy + (ty - sy) * 0.3, { steps: 6 });
+  await page.mouse.move(tx, ty, { steps: 12 });
   await page.mouse.up();
-  // Даём DOM осесть
-  await page.waitForTimeout(100);
+  await page.waitForTimeout(120);
+
+  // Подтверждение: дроп сел только если card получила data-placed (ставит ТОЛЬКО onDrop drop-flow).
+  const placedSlot = await page.evaluate((sel) => {
+    const card = document.querySelector(sel);
+    return card ? card.getAttribute('data-placed') : null;
+  }, cardSel);
+
+  return placedSlot === slotId;
 }
 
-/** Сборка цепи через API (надёжнее в headless-среде). */
-async function assembleViaApi(page, resistorEquipmentId) {
-  await page.evaluate((rId) => {
-    const exp = window.measurementsExperiment;
-    if (!exp) return;
-    exp.placeInSlot('source', 'power-source');
-    exp.placeInSlot('key', 'key');
-    exp.placeInSlot('ammeter', 'ammeter');
-    exp.placeInSlot('resistor', rId);
-    exp.placeInSlot('voltmeter', 'voltmeter');
-  }, resistorEquipmentId);
+/**
+ * Собрать цепь полностью реальным mouse-D&D. Каждый дроп подтверждается.
+ * При несостоявшемся дропе — FAIL (без тихого API-фоллбэка).
+ * Возвращает количество успешно посаженных приборов.
+ */
+async function assembleViaMouse(page, taskLabel, resistorEquipmentId) {
+  let placed = 0;
+  for (const { slot, eq } of assemblyPlan(resistorEquipmentId)) {
+    try {
+      const ok = await dragInstrumentToSlot(page, eq, slot);
+      if (ok) {
+        placed++;
+        pass(`${taskLabel}: mouse-D&D ${eq} → слот ${slot} (слот занят)`);
+      } else {
+        fail(`${taskLabel}: mouse-D&D ${eq} → слот ${slot}`, 'дроп не сел (card без data-placed)');
+      }
+    } catch (err) {
+      fail(`${taskLabel}: mouse-D&D ${eq} → слот ${slot}`, err.message);
+    }
+  }
+  return placed;
 }
 
 /** Проверка overlay-dup: не должно быть элементов в #drag-overlay. */
@@ -130,11 +176,27 @@ async function checkOverlayDup(page, stepName) {
     if (overlayChildren === 0) {
       pass(`${stepName}: overlay-dup=0 (нет задвоений ghost)`);
     } else {
-      fail(`${stepName}: overlay-dup`, `${overlayChildren} элементов в overlay без drag`);
+      fail(`${stepName}: overlay-dup`, `${overlayChildren} элементов в overlay`);
     }
   } catch (err) {
     skip(`${stepName}: overlay-dup`, err.message);
   }
+}
+
+/** Запись измерения через pending-плашку (semi-auto), как делает ученик. */
+async function recordViaPendingButton(page, stepName) {
+  const btn = page.locator('#record-pending-btn');
+  const visible = await btn.isVisible().catch(() => false);
+  if (visible) {
+    await btn.click();
+    await page.waitForTimeout(150);
+    pass(`${stepName}: запись через #record-pending-btn (semi-auto)`);
+    return;
+  }
+  // Фоллбэк: pending-плашка скрыта (режим не semi-auto) — запись через API-триггер.
+  await page.evaluate(() => window.measurementsExperiment?.recordMeasurement());
+  await page.waitForTimeout(100);
+  skip(`${stepName}: pending-плашка скрыта → запись через API-триггер`, 'record-mode не semi-auto');
 }
 
 // ─── Опыт 3.2 — Мощность тока ────────────────────────────────────────────────
@@ -158,45 +220,12 @@ async function runTask32(page) {
 
   await screenshot(page, '3-2-01-task-B-rest');
 
-  // D&D резистора R3 через реальную мышь (приоритетный путь)
-  let dndWorked = false;
-  try {
-    const resistorCard = page.locator('lab-equipment-card[data-eq="resistor-r3"]');
-    const boardBox = await page.locator('#circuit-board').boundingBox();
-
-    if (boardBox) {
-      const srcBox = await resistorCard.boundingBox();
-      if (srcBox) {
-        // Целевая позиция слота resistor ≈ 73% x, 18% y от circuit-board
-        const tx = boardBox.x + boardBox.width * 0.73;
-        const ty = boardBox.y + boardBox.height * 0.18;
-        const sx = srcBox.x + srcBox.width / 2;
-        const sy = srcBox.y + srcBox.height / 2;
-
-        await page.mouse.move(sx, sy);
-        await page.mouse.down();
-        await page.mouse.move(sx + (tx - sx) * 0.3, sy + (ty - sy) * 0.3, { steps: 5 });
-        await page.mouse.move(tx, ty, { steps: 10 });
-        await page.mouse.up();
-        await page.waitForTimeout(150);
-        dndWorked = true;
-        pass('3.2-Step 2: D&D резистора R3 → слот (мышь)');
-      } else {
-        skip('3.2-Step 2: D&D R3', 'boundingBox карточки не найден');
-      }
-    } else {
-      skip('3.2-Step 2: D&D R3', 'circuit-board не найден');
-    }
-  } catch (err) {
-    skip('3.2-Step 2: D&D R3', err.message);
-  }
-
-  // Остальные приборы через API (надёжнее в headless)
-  try {
-    await assembleViaApi(page, 'resistor-r3');
-    pass('3.2-Step 3: все 5 приборов размещены (API, включая R3)');
-  } catch (err) {
-    fail('3.2-Step 3: размещение приборов', err.message);
+  // Сборка цепи реальным mouse-D&D (все 5 приборов, R3)
+  const placed = await assembleViaMouse(page, '3.2-Step 2', 'resistor-r3');
+  if (placed === 5) {
+    pass('3.2-Step 2: все 5 приборов посажены реальным mouse-D&D');
+  } else {
+    fail('3.2-Step 2: сборка цепи', `посажено ${placed}/5 приборов`);
   }
 
   await screenshot(page, '3-2-02-assembled');
@@ -206,85 +235,58 @@ async function runTask32(page) {
     await page.evaluate((v) => window.measurementsExperiment?.setVoltage(v), TARGET_VOLTAGE_B);
     const voltageVal = await page.evaluate(() => window.measurementsExperiment?.voltage);
     if (Math.abs(voltageVal - TARGET_VOLTAGE_B) < 0.01) {
-      pass(`3.2-Step 4: напряжение установлено ${TARGET_VOLTAGE_B} В`);
+      pass(`3.2-Step 3: напряжение установлено ${TARGET_VOLTAGE_B} В`);
     } else {
-      fail('3.2-Step 4: напряжение', `Ожидалось ${TARGET_VOLTAGE_B}, получено ${voltageVal}`);
+      fail('3.2-Step 3: напряжение', `Ожидалось ${TARGET_VOLTAGE_B}, получено ${voltageVal}`);
     }
   } catch (err) {
-    fail('3.2-Step 4: напряжение', err.message);
+    fail('3.2-Step 3: напряжение', err.message);
   }
 
   // Замыкание ключа
   try {
     await page.evaluate(() => window.measurementsExperiment?.setKeyClosed(true));
-    pass('3.2-Step 5: ключ замкнут');
+    pass('3.2-Step 4: ключ замкнут');
     await screenshot(page, '3-2-03-key-closed');
   } catch (err) {
-    fail('3.2-Step 5: замкнуть ключ', err.message);
+    fail('3.2-Step 4: замкнуть ключ', err.message);
   }
 
-  // Запись измерения
-  try {
-    await page.evaluate(() => window.measurementsExperiment?.recordMeasurement());
-    const measCount = await page.evaluate(() => window.measurementsExperiment?.measurements.length ?? 0);
-    if (measCount >= 1) {
-      pass(`3.2-Step 6: измерение записано (${measCount} строк)`);
-    } else {
-      fail('3.2-Step 6: запись измерения', 'measurements пуст после recordMeasurement()');
-    }
-  } catch (err) {
-    fail('3.2-Step 6: запись измерения', err.message);
-  }
-
+  // Запись измерения через pending-плашку
+  await recordViaPendingButton(page, '3.2-Step 5');
   await screenshot(page, '3-2-04-recorded');
 
-  // ФИПИ-инвариант: P ∈ [3.5, 4.5] Вт
+  // ФИПИ-инвариант: P ∈ [3.5, 4.5] Вт + контракт timeS/workJ === null
   try {
-    const measurements = await page.evaluate(() => {
+    const bMeasurements = await page.evaluate(() => {
       const exp = window.measurementsExperiment;
-      return exp ? [...exp.measurements] : [];
+      return exp ? exp.measurements.filter(m => m.task === 'B-power') : [];
     });
 
-    const bMeasurements = measurements.filter(m => m.task === 'B-power');
     if (bMeasurements.length === 0) {
-      skip('3.2-Step 7: ФИПИ P ∈ [3.5, 4.5]', 'нет записей для задачи B-power');
+      fail('3.2-Step 6: ФИПИ P ∈ [3.5, 4.5]', 'нет записей для задачи B-power');
     } else {
       const m = bMeasurements[0];
       const P = m.powerW;
       if (P >= FIPI_P_MIN && P <= FIPI_P_MAX) {
-        pass(`3.2-Step 7: ФИПИ P = ${P.toFixed(2)} Вт ∈ [${FIPI_P_MIN}–${FIPI_P_MAX}]`);
+        pass(`3.2-Step 6: ФИПИ P = ${P.toFixed(2)} Вт ∈ [${FIPI_P_MIN}–${FIPI_P_MAX}]`);
       } else {
-        fail(`3.2-Step 7: ФИПИ P ∈ [${FIPI_P_MIN}, ${FIPI_P_MAX}]`,
+        fail(`3.2-Step 6: ФИПИ P ∈ [${FIPI_P_MIN}, ${FIPI_P_MAX}]`,
           `P=${P.toFixed(2)} Вт вышло за диапазон (U=${m.voltageV}, I=${m.currentA})`);
       }
-    }
-  } catch (err) {
-    fail('3.2-Step 7: ФИПИ P', err.message);
-  }
-
-  // Контракт: timeS===null, workJ===null для задачи B (M3)
-  try {
-    const measurements = await page.evaluate(() => {
-      const exp = window.measurementsExperiment;
-      return exp ? [...exp.measurements] : [];
-    });
-    const bMeasurements = measurements.filter(m => m.task === 'B-power');
-    if (bMeasurements.length === 0) {
-      skip('3.2-Step 7b: контракт timeS/workJ=null', 'нет записей для задачи B-power');
-    } else {
-      const m = bMeasurements[0];
+      // Контракт M3: timeS===null, workJ===null для задачи B
       if (m.timeS === null && m.workJ === null) {
-        pass('3.2-Step 7b: контракт timeS===null, workJ===null (только задача C имеет время)');
+        pass('3.2-Step 6b: контракт timeS===null, workJ===null (время только в задаче C)');
       } else {
-        fail('3.2-Step 7b: контракт timeS/workJ',
+        fail('3.2-Step 6b: контракт timeS/workJ',
           `Ожидалось null/null, получено timeS=${m.timeS}, workJ=${m.workJ}`);
       }
     }
   } catch (err) {
-    fail('3.2-Step 7b: контракт timeS/workJ', err.message);
+    fail('3.2-Step 6: ФИПИ P', err.message);
   }
 
-  await checkOverlayDup(page, '3.2-Step 8');
+  await checkOverlayDup(page, '3.2-Step 7');
 }
 
 // ─── Опыт 3.3 — Работа тока ──────────────────────────────────────────────────
@@ -316,44 +318,12 @@ async function runTask33(page) {
 
   await screenshot(page, '3-3-01-task-C-rest');
 
-  // D&D резистора R2 через реальную мышь
-  let dndWorked33 = false;
-  try {
-    const resistorCard = page.locator('lab-equipment-card[data-eq="resistor-r2"]');
-    const boardBox = await page.locator('#circuit-board').boundingBox();
-
-    if (boardBox) {
-      const srcBox = await resistorCard.boundingBox();
-      if (srcBox) {
-        const tx = boardBox.x + boardBox.width * 0.73;
-        const ty = boardBox.y + boardBox.height * 0.18;
-        const sx = srcBox.x + srcBox.width / 2;
-        const sy = srcBox.y + srcBox.height / 2;
-
-        await page.mouse.move(sx, sy);
-        await page.mouse.down();
-        await page.mouse.move(sx + (tx - sx) * 0.3, sy + (ty - sy) * 0.3, { steps: 5 });
-        await page.mouse.move(tx, ty, { steps: 10 });
-        await page.mouse.up();
-        await page.waitForTimeout(150);
-        dndWorked33 = true;
-        pass('3.3-Step 2: D&D резистора R2 → слот (мышь)');
-      } else {
-        skip('3.3-Step 2: D&D R2', 'boundingBox карточки не найден');
-      }
-    } else {
-      skip('3.3-Step 2: D&D R2', 'circuit-board не найден');
-    }
-  } catch (err) {
-    skip('3.3-Step 2: D&D R2', err.message);
-  }
-
-  // Остальные приборы через API
-  try {
-    await assembleViaApi(page, 'resistor-r2');
-    pass('3.3-Step 3: все 5 приборов размещены (API, включая R2)');
-  } catch (err) {
-    fail('3.3-Step 3: размещение приборов', err.message);
+  // Сборка цепи реальным mouse-D&D (все 5 приборов, R2)
+  const placed = await assembleViaMouse(page, '3.3-Step 2', 'resistor-r2');
+  if (placed === 5) {
+    pass('3.3-Step 2: все 5 приборов посажены реальным mouse-D&D');
+  } else {
+    fail('3.3-Step 2: сборка цепи', `посажено ${placed}/5 приборов`);
   }
 
   await screenshot(page, '3-3-02-assembled');
@@ -363,12 +333,12 @@ async function runTask33(page) {
     await page.evaluate(() => window.measurementsExperiment?.setTimeS(60));
     const timeS = await page.evaluate(() => window.measurementsExperiment?.timeS);
     if (timeS === 60) {
-      pass('3.3-Step 4: пресет 60 с установлен');
+      pass('3.3-Step 3: пресет 60 с установлен');
     } else {
-      fail('3.3-Step 4: пресет 60 с', `Ожидалось 60, получено ${timeS}`);
+      fail('3.3-Step 3: пресет 60 с', `Ожидалось 60, получено ${timeS}`);
     }
   } catch (err) {
-    fail('3.3-Step 4: пресет 60 с', err.message);
+    fail('3.3-Step 3: пресет 60 с', err.message);
   }
 
   // Напряжение U=2.9 В
@@ -376,63 +346,52 @@ async function runTask33(page) {
     await page.evaluate((v) => window.measurementsExperiment?.setVoltage(v), TARGET_VOLTAGE_C);
     const voltageVal = await page.evaluate(() => window.measurementsExperiment?.voltage);
     if (Math.abs(voltageVal - TARGET_VOLTAGE_C) < 0.01) {
-      pass(`3.3-Step 5: напряжение установлено ${TARGET_VOLTAGE_C} В`);
+      pass(`3.3-Step 4: напряжение установлено ${TARGET_VOLTAGE_C} В`);
     } else {
-      fail('3.3-Step 5: напряжение', `Ожидалось ${TARGET_VOLTAGE_C}, получено ${voltageVal}`);
+      fail('3.3-Step 4: напряжение', `Ожидалось ${TARGET_VOLTAGE_C}, получено ${voltageVal}`);
     }
   } catch (err) {
-    fail('3.3-Step 5: напряжение', err.message);
+    fail('3.3-Step 4: напряжение', err.message);
   }
 
-  // Замыкание ключа
+  // Замыкание ключа — стартует RAF-секундомер в задаче C
   try {
     await page.evaluate(() => window.measurementsExperiment?.setKeyClosed(true));
-    pass('3.3-Step 6: ключ замкнут (секундомер должен запуститься)');
+    pass('3.3-Step 5: ключ замкнут (RAF-секундомер запущен)');
     await screenshot(page, '3-3-03-key-closed');
   } catch (err) {
-    fail('3.3-Step 6: замкнуть ключ', err.message);
+    fail('3.3-Step 5: замкнуть ключ', err.message);
   }
 
-  // Ожидание секундомера: #stopwatch-readout = 't = 60 с' (timeout 8000 мс)
-  // Заметка: секундомер реализован на RAF, фактический тик — 60 секунд.
-  // В headless env 60-секундное ожидание реально — либо мы симулируем запись напрямую
-  // через recordMeasurement(). Бриф разрешает: «либо pendingRecord или ?record=fully-auto».
-  // Используем прямую запись через API (как selfcheck-3-1) + отдельную проверку timeS.
-  //
-  // Если хотим дождаться реального тика — раскомментировать waitForFunction ниже:
-  // await page.waitForFunction(
-  //   () => document.querySelector('#stopwatch-readout')?.textContent?.trim() === 't = 60 с',
-  //   { timeout: 8000 }
-  // );
-  //
-  // Но 60 секунд ожидания в selfcheck неприемлемы. Секундомер тикает в реальном времени;
-  // для selfcheck используем API с явным setTimeS(60) + recordMeasurement().
-
-  // Запись измерения (API — как в selfcheck-3-1)
+  // Ожидание реального тика секундомера: #stopwatch-readout достигает «t = 60 с».
+  // ACCEL=20 → 60 c симуляции за ~3 c реального времени; timeout 8000 мс с запасом.
   try {
-    await page.evaluate(() => window.measurementsExperiment?.recordMeasurement());
-    const measCount = await page.evaluate(() => window.measurementsExperiment?.measurements.length ?? 0);
-    if (measCount >= 1) {
-      pass(`3.3-Step 7: измерение записано (${measCount} строк)`);
-    } else {
-      fail('3.3-Step 7: запись измерения', 'measurements пуст после recordMeasurement()');
-    }
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('#stopwatch-readout');
+        return !!el && (el.textContent ?? '').includes('60');
+      },
+      { timeout: 8000 },
+    );
+    const readout = await page.locator('#stopwatch-readout').textContent();
+    pass(`3.3-Step 6: секундомер дотикал до «${(readout ?? '').trim()}»`);
   } catch (err) {
-    fail('3.3-Step 7: запись измерения', err.message);
+    fail('3.3-Step 6: секундомер не дотикал до t = 60 с', err.message);
   }
 
+  // Запись измерения через pending-плашку (после реального тика)
+  await recordViaPendingButton(page, '3.3-Step 7');
   await screenshot(page, '3-3-04-recorded');
 
-  // ФИПИ-инвариант: A ∈ [75, 100] Дж
+  // ФИПИ-инвариант: A ∈ [75, 100] Дж + timeS===60 (фильтр по task='C-work')
   try {
-    const measurements = await page.evaluate(() => {
+    const cMeasurements = await page.evaluate(() => {
       const exp = window.measurementsExperiment;
-      return exp ? [...exp.measurements] : [];
+      return exp ? exp.measurements.filter(m => m.task === 'C-work') : [];
     });
 
-    const cMeasurements = measurements.filter(m => m.task === 'C-work');
     if (cMeasurements.length === 0) {
-      skip('3.3-Step 8: ФИПИ A ∈ [75, 100]', 'нет записей для задачи C-work');
+      fail('3.3-Step 8: ФИПИ A ∈ [75, 100]', 'нет записей для задачи C-work');
     } else {
       const m = cMeasurements[0];
       const A = m.workJ;
@@ -442,22 +401,7 @@ async function runTask33(page) {
         fail(`3.3-Step 8: ФИПИ A ∈ [${FIPI_A_MIN}, ${FIPI_A_MAX}]`,
           `A=${A === null ? 'null' : A.toFixed(1)} Дж вышло за диапазон`);
       }
-    }
-  } catch (err) {
-    fail('3.3-Step 8: ФИПИ A', err.message);
-  }
-
-  // Контракт: timeS===60 для задачи C
-  try {
-    const measurements = await page.evaluate(() => {
-      const exp = window.measurementsExperiment;
-      return exp ? [...exp.measurements] : [];
-    });
-    const cMeasurements = measurements.filter(m => m.task === 'C-work');
-    if (cMeasurements.length === 0) {
-      skip('3.3-Step 8b: контракт timeS===60', 'нет записей для задачи C-work');
-    } else {
-      const m = cMeasurements[0];
+      // Контракт: timeS===60 для задачи C
       if (m.timeS === 60) {
         pass('3.3-Step 8b: контракт timeS===60 (время записано корректно)');
       } else {
@@ -465,7 +409,7 @@ async function runTask33(page) {
       }
     }
   } catch (err) {
-    fail('3.3-Step 8b: контракт timeS', err.message);
+    fail('3.3-Step 8: ФИПИ A', err.message);
   }
 
   // Проверка видимости #stopwatch-readout в задаче C
@@ -507,11 +451,9 @@ async function run() {
   const page = await context.newPage();
 
   // ── Step 0: Загрузка страницы ───────────────────────────────────────────────
-  let loaded = false;
   try {
     const resp = await page.goto(`${BASE_URL}${SCREEN}`, { timeout: 10000, waitUntil: 'domcontentloaded' });
     if (resp && resp.ok()) {
-      loaded = true;
       pass('Step 0: страница загрузилась (200 OK)');
     } else {
       fail('Step 0: страница загрузилась', `HTTP ${resp?.status()}`);
