@@ -528,6 +528,29 @@ export const WORK_CURRENT_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 3.4 «Исследование зависимости силы тока от напряжения (ВАХ)» — I(U).
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3), п.4 «исследование зависимости
+ * силы тока в проводнике (резисторы, лампочка) от напряжения»; КОДИФ §1.29.
+ * Резистор: I=U/R (R=const). Лампочка: R растёт с нагревом (R=U/I растёт с U).
+ * R_Ohm — derived (ученик считает U/I); для лампы R по точкам РАЗНОЕ — это и показывает нелинейность.
+ */
+export const IV_CURVE_SPEC: JournalSpec = {
+  experimentId: '3.4',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'element', label: 'Элемент', source: 'meta' },
+    { key: 'U_V', label: 'U, В', source: 'direct', unit: 'В', format: 'fixed2' },
+    { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
+    {
+      key: 'R_Ohm', label: 'R, Ом', source: 'derived', unit: 'Ом', format: 'fixed2',
+      tolerance: 0.10, // допуск на арифметику ученика: R vs U/I (10%); НЕ интервал приёмки ФИПИ
+      expectedFromRow: (row) => { const I = row.I_A ?? 0; return I > 0 ? (row.U_V ?? 0) / I : 0; },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -542,6 +565,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   RESISTANCE_SPEC,
   POWER_SPEC,
   WORK_CURRENT_SPEC,
+  IV_CURVE_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
