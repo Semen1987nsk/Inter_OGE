@@ -140,10 +140,13 @@ describe('ConnectionsScreen — опыт 3.9 параллель', () => {
     expect(m.value).toBeCloseTo(current(U, R1), 3);
   });
 
-  it('B-parallel: вольтметр range=6 (урок Фазы C)', () => {
+  it('вольтметр range=6 во всех секциях (урок Фазы C)', () => {
     const { host, screen: s } = mountScreen(); screen = s;
-    const vm = host.querySelector('lab-voltmeter');
-    expect(vm?.getAttribute('range')).toBe('6');
+    const voltmeters = host.querySelectorAll('lab-voltmeter');
+    expect(voltmeters.length).toBeGreaterThan(0);
+    voltmeters.forEach((vm) => {
+      expect(vm.getAttribute('range')).toBe('6');
+    });
   });
 });
 
@@ -218,5 +221,26 @@ describe('ConnectionsScreen — подвижный прибор: один в п�
 
     exp.placeInSlot('v-pos-r2', 'voltmeter');
     expect(exp.movableInstrumentPosition()).toBe('R2');
+  });
+
+  it('placeInSlot ставит card[data-placed]/status — зеркало onDrop', () => {
+    const { host, exp, screen: s } = mountScreen(); screen = s;
+    assembleBase(exp, 'A-series');
+    const ammeterCard = host.querySelector('lab-equipment-card[data-eq="ammeter"]');
+    expect(ammeterCard?.getAttribute('status')).toBe('placed');
+    expect(ammeterCard?.getAttribute('data-placed')).toBe('ammeter');
+  });
+
+  it('eviction подвижного прибора: data-placed = новая позиция', () => {
+    const { host, exp, screen: s } = mountScreen(); screen = s;
+    assembleBase(exp, 'A-series');
+    exp.placeInSlot('v-pos-r1', 'voltmeter');
+    const vmCard = host.querySelector('lab-equipment-card[data-eq="voltmeter"]');
+    expect(vmCard?.getAttribute('data-placed')).toBe('v-pos-r1');
+
+    exp.placeInSlot('v-pos-total', 'voltmeter');
+    // Та же карточка: data-placed переписан на новую позицию, прибор не «потерян».
+    expect(vmCard?.getAttribute('data-placed')).toBe('v-pos-total');
+    expect(vmCard?.getAttribute('status')).toBe('placed');
   });
 });

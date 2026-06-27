@@ -245,7 +245,12 @@ export class ConnectionsExperiment {
   #drag: CircuitDragController<EqKind, ConnectionEquipmentId>;
   #hints: HintEngine;
   #topology: CircuitTopology;
-  #cardByEquipmentId = new Map<ConnectionEquipmentId, LabEquipmentCard>();
+  /**
+   * Multimap: один equipmentId (voltmeter/ammeter) присутствует в ОБЕИХ секциях
+   * (задача A и B) шаблона. Все карточки прибора держим вместе, чтобы status/
+   * data-placed синхронно проставлялись и в видимой, и в скрытой секции.
+   */
+  #cardsByEquipmentId = new Map<ConnectionEquipmentId, LabEquipmentCard[]>();
 
   /** §21 — drafts + verdicts */
   #journalDrafts = new Map<number, Record<string, number>>();
@@ -289,10 +294,7 @@ export class ConnectionsExperiment {
     this.#drag.cancel();
     this.#topology.reset();
 
-    for (const card of this.#cardByEquipmentId.values()) {
-      card.setAttribute('status', 'available');
-      card.removeAttribute('data-placed');
-    }
+    this.#resetAllCards();
 
     const keepMeasurements = [...this.#store.get().measurements];
     this.#store.set({
@@ -302,6 +304,8 @@ export class ConnectionsExperiment {
       measurements: keepMeasurements,
     });
     this.#lastRecordedSignature = '';
+    // Сброс guard result-panel: иначе A→B→A с теми же показаниями не перерисует панель.
+    this.#lastAnnouncedConclusion = '';
 
     const slotDefs = task === 'A-series' ? SLOTS_SERIES : SLOTS_PARALLEL;
     this.#topology = new CircuitTopology(slotDefs);
@@ -315,7 +319,10 @@ export class ConnectionsExperiment {
     this.#hints.update(this.#store.get());
   }
 
-  /** Программно разместить прибор в слот (для тестов). */
+  /**
+   * Программно разместить прибор в слот (тест-API).
+   * Полностью зеркалит эффект onDrop: eviction position-слотов + card[data-placed]/status.
+   */
   placeInSlot(slotId: ConnectionSlotId, equipmentId: ConnectionEquipmentId): boolean {
     const kind = this.#kindForEquipment(equipmentId);
     if (!kind) return false;
@@ -334,6 +341,10 @@ export class ConnectionsExperiment {
         [slotId]: { equipmentId, kind },
       } as Partial<Record<ConnectionSlotId, PlacedInstrument>>,
     }));
+
+    // Зеркало onDrop: карточка прибора → placed (для подвижного прибора это ТА ЖЕ
+    // карточка, что была убрана при eviction — итог: data-placed = новая позиция).
+    this.#markCardsPlaced(equipmentId, slotId);
 
     this.#afterCircuitChange();
     return true;
@@ -427,10 +438,7 @@ export class ConnectionsExperiment {
     this.#lastRecordedSignature = '';
     this.#lastAnnouncedConclusion = '';
 
-    for (const card of this.#cardByEquipmentId.values()) {
-      card.setAttribute('status', 'available');
-      card.removeAttribute('data-placed');
-    }
+    this.#resetAllCards();
     this.#refs.voltageInput.value = String(keepVoltage);
     this.#refs.voltageReadout.textContent = `${keepVoltage.toFixed(1).replace('.', ',')} В`;
 
@@ -460,12 +468,13 @@ export class ConnectionsExperiment {
   // ─── Wiring ──────────────────────────────────────────────────────────────
 
   #wireUp(): void {
-    this.#refs.cards.forEach((card) => {
+    this.#refs.cards.forEach((card, cardIdx) => {
       const equipmentId = card.dataset['eq'] as ConnectionEquipmentId | undefined;
       if (!equipmentId) return;
-      // Каждая карточка регистрируется; если одинаковый equipmentId в двух секциях,
-      // Map сохраняет обе (последний wins), но секция скрыта через data-task-instrument.
-      this.#cardByEquipmentId.set(equipmentId, card);
+      // voltmeter/ammeter присутствуют в обеих секциях — храним все карточки прибора.
+      const list = this.#cardsByEquipmentId.get(equipmentId) ?? [];
+      list.push(card);
+      this.#cardsByEquipmentId.set(equipmentId, list);
 
       const kind = this.#kindForEquipment(equipmentId);
       if (!kind) return;
@@ -482,16 +491,16 @@ export class ConnectionsExperiment {
         onDragEnd: () => this.#store.set({ dragging: null }),
       });
 
-      const cardDropZoneId = card.dataset['dropzoneId'];
-      if (cardDropZoneId) {
-        this.#drag.addSnapZone({
-          id: cardDropZoneId,
-          accepts: [kind],
-          getRect: () => card.getBoundingClientRect(),
-          onHover: (active) => { card.toggleAttribute('data-drop-hover', active); },
-          onDrop: () => false,
-        });
-      }
+      // Уникальный id зоны на КАРТОЧКУ (data-dropzone-id дублируется между секциями).
+      const baseZoneId = card.dataset['dropzoneId'] ?? `card-${equipmentId}`;
+      const cardDropZoneId = `${baseZoneId}-${cardIdx}`;
+      this.#drag.addSnapZone({
+        id: cardDropZoneId,
+        accepts: [kind],
+        getRect: () => card.getBoundingClientRect(),
+        onHover: (active) => { card.toggleAttribute('data-drop-hover', active); },
+        onDrop: () => false,
+      });
     });
 
     this.#rewireAssemblySlots();
@@ -594,11 +603,7 @@ export class ConnectionsExperiment {
             } as Partial<Record<ConnectionSlotId, PlacedInstrument>>,
           }));
 
-          const card = this.#cardByEquipmentId.get(equipmentId as ConnectionEquipmentId);
-          if (card) {
-            card.setAttribute('status', 'placed');
-            card.dataset['placed'] = slotId;
-          }
+          this.#markCardsPlaced(equipmentId as ConnectionEquipmentId, slotId);
 
           this.#afterCircuitChange();
           return true;
@@ -620,12 +625,32 @@ export class ConnectionsExperiment {
         delete placed[pid as ConnectionSlotId];
         return { placed };
       });
-      if (prev) {
-        const prevCard = this.#cardByEquipmentId.get(prev.equipmentId);
-        if (prevCard) {
-          prevCard.setAttribute('status', 'available');
-          prevCard.removeAttribute('data-placed');
-        }
+      if (prev) this.#markCardsAvailable(prev.equipmentId);
+    }
+  }
+
+  /** Все карточки прибора → placed (видимая + скрытая секция). */
+  #markCardsPlaced(equipmentId: ConnectionEquipmentId, slotId: string): void {
+    for (const card of this.#cardsByEquipmentId.get(equipmentId) ?? []) {
+      card.setAttribute('status', 'placed');
+      card.dataset['placed'] = slotId;
+    }
+  }
+
+  /** Все карточки прибора → available. */
+  #markCardsAvailable(equipmentId: ConnectionEquipmentId): void {
+    for (const card of this.#cardsByEquipmentId.get(equipmentId) ?? []) {
+      card.setAttribute('status', 'available');
+      card.removeAttribute('data-placed');
+    }
+  }
+
+  /** Сброс всех карточек всех приборов. */
+  #resetAllCards(): void {
+    for (const cards of this.#cardsByEquipmentId.values()) {
+      for (const card of cards) {
+        card.setAttribute('status', 'available');
+        card.removeAttribute('data-placed');
       }
     }
   }
@@ -658,8 +683,7 @@ export class ConnectionsExperiment {
       const I_ser = circuitCurrent(U, R_ser);
       const ammPlaced = st.placed['ammeter'];
       if (ammPlaced) {
-        const ammCard = this.#cardByEquipmentId.get(ammPlaced.equipmentId);
-        const am = ammCard?.querySelector('lab-ammeter');
+        const am = this.#visibleCardFor(ammPlaced.equipmentId)?.querySelector('lab-ammeter');
         am?.setAttribute('value', I_ser.toFixed(2));
       }
 
@@ -668,8 +692,7 @@ export class ConnectionsExperiment {
       if (vmKey) {
         const vmPlaced = st.placed[vmKey as ConnectionSlotId];
         if (vmPlaced) {
-          const vmCard = this.#cardByEquipmentId.get(vmPlaced.equipmentId);
-          const vm = vmCard?.querySelector('lab-voltmeter');
+          const vm = this.#visibleCardFor(vmPlaced.equipmentId)?.querySelector('lab-voltmeter');
           const vmVal = pos === 'R1' ? I_ser * R1_OHM : pos === 'R2' ? I_ser * R2_OHM : U;
           vm?.setAttribute('value', vmVal.toFixed(2));
         }
@@ -677,8 +700,7 @@ export class ConnectionsExperiment {
     } else {
       const vmPlaced = st.placed['voltmeter'];
       if (vmPlaced) {
-        const vmCard = this.#cardByEquipmentId.get(vmPlaced.equipmentId);
-        const vm = vmCard?.querySelector('lab-voltmeter');
+        const vm = this.#visibleCardFor(vmPlaced.equipmentId)?.querySelector('lab-voltmeter');
         vm?.setAttribute('value', U.toFixed(2));
       }
 
@@ -687,8 +709,7 @@ export class ConnectionsExperiment {
       if (ammKey) {
         const ammPlaced = st.placed[ammKey as ConnectionSlotId];
         if (ammPlaced) {
-          const ammCard = this.#cardByEquipmentId.get(ammPlaced.equipmentId);
-          const am = ammCard?.querySelector('lab-ammeter');
+          const am = this.#visibleCardFor(ammPlaced.equipmentId)?.querySelector('lab-ammeter');
           const ammVal = pos === 'R1' ? circuitCurrent(U, R1_OHM)
             : pos === 'R2' ? circuitCurrent(U, R2_OHM)
             : circuitCurrent(U, R1_OHM) + circuitCurrent(U, R2_OHM);
@@ -696,6 +717,21 @@ export class ConnectionsExperiment {
         }
       }
     }
+  }
+
+  /**
+   * Видимая карточка прибора — та, чья секция совпадает с активной задачей.
+   * Прибор (voltmeter/ammeter) дублируется в обеих секциях; показания пишем
+   * в карточку видимой секции. Fallback — первая карточка.
+   */
+  #visibleCardFor(equipmentId: ConnectionEquipmentId): LabEquipmentCard | undefined {
+    const cards = this.#cardsByEquipmentId.get(equipmentId);
+    if (!cards || cards.length === 0) return undefined;
+    const active = this.#store.get().activeTask;
+    return cards.find((c) => {
+      const section = c.closest<HTMLElement>('section[data-task-instrument]');
+      return !section || section.dataset['taskInstrument'] === active;
+    }) ?? cards[0];
   }
 
   #handleRecordModeChange(): void {

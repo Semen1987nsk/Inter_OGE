@@ -254,8 +254,8 @@ describe('lab-connection-board — topology="series"', () => {
 
   it('смена topology через атрибут переключает активный SVG', () => {
     const el = makeBoard('series');
-    const svgSeries = el.shadowRoot.querySelector<SVGSVGElement>('#svg-series');
-    const svgParallel = el.shadowRoot.querySelector<SVGSVGElement>('#svg-parallel');
+    const svgSeries = el.shadowRoot.querySelector('#svg-series') as SVGSVGElement | null;
+    const svgParallel = el.shadowRoot.querySelector('#svg-parallel') as SVGSVGElement | null;
     expect(svgSeries?.style.display).not.toBe('none');
     expect(svgParallel?.style.display).toBe('none');
 
