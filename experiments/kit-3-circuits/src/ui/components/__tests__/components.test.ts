@@ -7,6 +7,7 @@ import '../lab-key';
 import '../lab-lamp';
 import '../lab-graph';
 import '../lab-circuit-board';
+import '../lab-wire-resistor';
 
 describe('circuit lab-* components register & render', () => {
   for (const tag of ['lab-power-source', 'lab-voltmeter', 'lab-ammeter', 'lab-resistor', 'lab-key']) {
@@ -68,6 +69,82 @@ describe('lab-graph — мульти-серия', () => {
       ],
     };
     expect(el.shadowRoot.querySelectorAll('circle.point').length).toBe(4);
+    el.remove();
+  });
+});
+
+describe('lab-wire-resistor', () => {
+  function make(attrs: Record<string, string>) {
+    const el = document.createElement('lab-wire-resistor');
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    document.body.appendChild(el);
+    return el as any;
+  }
+
+  it('паспорт в подписи: материал, l, S — без R/Ом', () => {
+    const el = make({ material: 'нихром', length: '1.0', area: '0.25' });
+    const txt = el.shadowRoot.textContent;
+    expect(txt).toContain('нихром');
+    expect(txt).toContain('1,0');
+    expect(txt).toContain('0,25');
+    expect(txt).not.toMatch(/Ом/);
+    el.remove();
+  });
+
+  it('геттеры material/length/area', () => {
+    const el = make({ material: 'константан', length: '2.0', area: '0.5' });
+    expect(el.material).toBe('константан');
+    expect(el.length).toBeCloseTo(2.0);
+    expect(el.area).toBeCloseTo(0.5);
+    el.remove();
+  });
+
+  it('aria-label = паспорт без R/Ом', () => {
+    const el = make({ material: 'никелин', length: '2.0', area: '0.25' });
+    const label =
+      el.getAttribute('aria-label') ??
+      el.shadowRoot.querySelector('svg')?.getAttribute('aria-label') ??
+      '';
+    expect(label).toMatch(/никелин/);
+    expect(label).not.toMatch(/Ом/);
+    el.remove();
+  });
+
+  it('getTerminalPositions возвращает plus/minus', () => {
+    const el = make({ material: 'нихром', length: '1.0', area: '0.25' });
+    const t = el.getTerminalPositions();
+    expect(t.plus).toBeDefined();
+    expect(t.minus).toBeDefined();
+    el.remove();
+  });
+
+  it('монтируется с svg и shadowRoot', () => {
+    const el = make({ material: 'нихром', length: '1.0', area: '0.25' });
+    expect(el.shadowRoot).not.toBeNull();
+    expect(el.shadowRoot.querySelector('svg')).not.toBeNull();
+    el.remove();
+  });
+
+  it('цвет витка меняется по материалу: нихром тёмно-серый, константан медный', () => {
+    const ni = make({ material: 'нихром', length: '1.0', area: '0.25' });
+    const ko = make({ material: 'константан', length: '1.0', area: '0.25' });
+    // Проверяем что coil-group содержит path с заполнением (цвет не совпадает)
+    const niCoilPath = ni.shadowRoot.querySelector('.coil-wire');
+    const koCoilPath = ko.shadowRoot.querySelector('.coil-wire');
+    expect(niCoilPath).not.toBeNull();
+    expect(koCoilPath).not.toBeNull();
+    const niColor = niCoilPath?.getAttribute('stroke') ?? '';
+    const koColor = koCoilPath?.getAttribute('stroke') ?? '';
+    expect(niColor).not.toBe(koColor);
+    ni.remove();
+    ko.remove();
+  });
+
+  it('подпись форматирует l через запятую (1,0 а не 1.0)', () => {
+    const el = make({ material: 'нихром', length: '1.0', area: '0.25' });
+    const txt = el.shadowRoot.textContent ?? '';
+    expect(txt).toContain('1,0');
+    expect(txt).not.toContain('1.0');
     el.remove();
   });
 });
