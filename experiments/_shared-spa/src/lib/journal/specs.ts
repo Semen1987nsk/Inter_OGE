@@ -587,6 +587,41 @@ export const R_AREA_SPEC: JournalSpec = { experimentId: '3.6', kitId: 'kit-3', c
  */
 export const R_RHO_SPEC: JournalSpec = { experimentId: '3.7', kitId: 'kit-3', columns: WIRE_COLUMNS };
 
+/**
+ * Опыт 3.8 «Правило напряжений для последовательного соединения» — U = U1 + U2.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.8
+ * «последовательное соединение проводников: U = U1 + U2»; КОДИФ §1.29.
+ * Методика: ученик снимает U1 (across R1), U2 (across R2), U_общ (across R1+R2)
+ * вольтметром в 3 позициях; правило U1+U2=U_общ — в result-panel.
+ * Нет derived-колонок (правило — не построчная проверка, а итоговый вывод).
+ */
+export const SERIES_VOLTAGE_SPEC: JournalSpec = {
+  experimentId: '3.8',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx',   label: '№',     source: 'meta', format: 'int' },
+    { key: 'point', label: 'Точка', source: 'meta' },
+    { key: 'U_V',   label: 'U, В',  source: 'direct', unit: 'В', format: 'fixed2' },
+  ],
+};
+
+/**
+ * Опыт 3.9 «Правило токов для параллельного соединения» — I = I1 + I2.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.9
+ * «параллельное соединение проводников: I = I1 + I2»; КОДИФ §1.29.
+ * Методика: ученик снимает I1 (ветвь R1), I2 (ветвь R2), I_общ (главная линия)
+ * амперметром в 3 позициях; правило I1+I2=I_общ — в result-panel.
+ */
+export const PARALLEL_CURRENT_SPEC: JournalSpec = {
+  experimentId: '3.9',
+  kitId: 'kit-3',
+  columns: [
+    { key: 'idx',   label: '№',     source: 'meta', format: 'int' },
+    { key: 'point', label: 'Точка', source: 'meta' },
+    { key: 'I_A',   label: 'I, А',  source: 'direct', unit: 'А', format: 'fixed2' },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -605,6 +640,8 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   R_LENGTH_SPEC,
   R_AREA_SPEC,
   R_RHO_SPEC,
+  SERIES_VOLTAGE_SPEC,
+  PARALLEL_CURRENT_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
