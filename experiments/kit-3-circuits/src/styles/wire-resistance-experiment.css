@@ -1,0 +1,48 @@
+/**
+ * wire-resistance-experiment.css — стили экрана «Сопротивление проводника» (опыты 3.5–3.7).
+ *
+ * Пер-скрин layout-дополнения поверх circuit-experiment.css.
+ * Общий layout (.app-main-v3, .workbench, .workbench-stage, .measurement-panel,
+ * .equipment-panel, .steps, .key-btn и т.д.) — из circuit-experiment.css.
+ *
+ * Специфика экрана:
+ *   - 9 карточек lab-wire-resistor (по 3 на задачу), фильтруются по активной задаче.
+ *   - wire-group секции с атрибутом hidden — JS переключает видимость.
+ *   - equipment-grid-1 для wire-карточек (1 столбец — карточки шире).
+ */
+
+/* ─── Wire-группы: фильтрация по задаче ──────────────────────────── */
+
+/* Секции wire-group[hidden] скрываются стандартным атрибутом hidden.
+   Но lab-equipment-card[hidden] внутри секции нужен явный display:none —
+   card-элементы могут иметь display:block из компонентного CSS. */
+lab-equipment-card[hidden] {
+  display: none !important;
+}
+
+/* ─── Wire equipment cards: чуть шире чем резисторы ─────────────── */
+
+.wire-group .equipment-grid-1 {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: 1fr;
+}
+
+/* ─── lab-wire-resistor в карточке ──────────────────────────────── */
+
+lab-wire-resistor {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+/* ─── Result panel (R_теор + вывод о пропорциональности) ───────── */
+
+/* Цвет уже задан в circuit-experiment.css (.result-panel).
+   Здесь только специфичное для wire-resistance форматирование. */
+#result-panel {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
