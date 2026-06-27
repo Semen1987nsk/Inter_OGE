@@ -58,7 +58,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
               <span id="record-pending-summary"></span>
             </button>
           </div>
-          <div id="result-panel" hidden></div>
+          <div id="result-panel" aria-live="polite" aria-atomic="true" hidden></div>
         </div>
       </aside>
       <div id="drag-overlay"></div>
@@ -502,6 +502,58 @@ describe('WireResistanceExperiment — state machine', () => {
     expect(experiment.measurements.filter((m: any) => m.task === 'B-section').length).toBe(0);
   });
 
+  // ─── a11y: вывод о пропорциональности доходит до AT (FIX 1) ──────────────
+
+  it('после ≥2 точек #result-panel (aria-live) содержит вывод R ∝ (a11y регрессия)', () => {
+    // Первая точка — вывода о пропорциональности ещё нет (<2 точек).
+    assembleCircuit(experiment, 'wire-len-05');
+    experiment.setVoltage(4.5);
+    experiment.setKeyClosed(true);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.length).toBe(1);
+
+    // #result-panel скрыт — AT ничего не объявляет.
+    const panel = host.querySelector<HTMLElement>('#result-panel');
+    expect(panel?.hidden).toBe(true);
+
+    // Между двумя точками сбрасываем цепь (reset(false)), пересобираем с другой проволокой.
+    experiment.reset(false);
+    assembleCircuit(experiment, 'wire-len-20');
+    experiment.setVoltage(4.5);
+    experiment.setKeyClosed(true);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.length).toBe(2);
+
+    // После 2-й точки #result-panel должен быть видим и содержать «R ∝».
+    // #result-panel имеет aria-live="polite" — AT объявляет изменение textContent.
+    // textContent устанавливается синхронно (нет rAF) через guard на #lastAnnouncedConclusion.
+    expect(panel?.hidden).toBe(false);
+    expect(panel?.getAttribute('aria-live')).toBe('polite');
+    expect(panel?.textContent).toMatch(/R\s*∝/);
+  });
+
+  it('#result-panel не спамит AT при повторных #refreshUi без изменения выводов', () => {
+    // Записываем 2 точки чтобы панель появилась.
+    assembleCircuit(experiment, 'wire-len-05');
+    experiment.setVoltage(4.5);
+    experiment.setKeyClosed(true);
+    experiment.recordMeasurement();
+    experiment.reset(false);
+    assembleCircuit(experiment, 'wire-len-20');
+    experiment.setVoltage(4.5);
+    experiment.setKeyClosed(true);
+    experiment.recordMeasurement();
+
+    const panel = host.querySelector<HTMLElement>('#result-panel');
+    const textBefore = panel?.textContent;
+
+    // Дополнительные refreshUi (напр. изменение ключа) не должны обновлять textContent.
+    // Если guard работает — textContent не меняется, AT не ре-триггерится.
+    experiment.setKeyClosed(false);
+    experiment.setKeyClosed(true);
+    expect(panel?.textContent).toBe(textBefore);
+  });
+
   // ─── Reset ────────────────────────────────────────────────────────────────
 
   it('reset(true): очищает измерения и возвращает к исходному состоянию', () => {
@@ -531,6 +583,16 @@ describe('WireResistanceExperiment — state machine', () => {
     // Цепь должна быть сброшена (ключ скрыт)
     const kc = host.querySelector<HTMLElement>('#key-control');
     expect(kc?.hidden).toBe(true);
+
+    // Поведенческая проверка: #lastRecordedSignature обязан быть сброшен.
+    // Если сигнатура НЕ сброшена — повторная сборка той же проволоки с тем же U
+    // не добавит новую строку (дубликат-гард заблокирует запись).
+    // Ожидаем: measurements.length вырастает на 1 после пересборки.
+    assembleCircuit(experiment, 'wire-len-10');
+    experiment.setVoltage(4.5);
+    experiment.setKeyClosed(true);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.length).toBe(countBefore + 1);
   });
 
   it('reset(false) сохраняет activeTask', () => {

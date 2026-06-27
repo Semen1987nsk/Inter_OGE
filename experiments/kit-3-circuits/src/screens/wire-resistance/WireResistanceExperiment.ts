@@ -259,6 +259,8 @@ export class WireResistanceExperiment {
   #journalVerdicts = new Map<number, Record<string, JournalVerdict>>();
   #detachRecordModeToggle: (() => void) | null = null;
   #lastRecordedSignature = '';
+  /** a11y: последний объявленный вывод о пропорциональности (guard дублирования). */
+  #lastAnnouncedConclusion = '';
   #rewiredSlotIds: string[] = [];
 
   constructor(refs: ExperimentRefs) {
@@ -392,6 +394,7 @@ export class WireResistanceExperiment {
       this.#journalVerdicts.clear();
     }
     this.#lastRecordedSignature = '';
+    this.#lastAnnouncedConclusion = '';
     // Вернуть карточки в «available»
     for (const card of this.#cardByEquipmentId.values()) {
       card.setAttribute('status', 'available');
@@ -852,7 +855,13 @@ export class WireResistanceExperiment {
     }
 
     panel.hidden = false;
-    panel.textContent = conclusions;
+    // a11y: #result-panel имеет aria-live="polite" — AT объявляет изменения автоматически.
+    // Guard: не перезаписываем идентичный textContent, чтобы не ре-триггерить
+    // aria-live при каждом #refreshUi без реального изменения выводов.
+    if (conclusions !== this.#lastAnnouncedConclusion) {
+      this.#lastAnnouncedConclusion = conclusions;
+      panel.textContent = conclusions;
+    }
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
