@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I } from '../CircuitModel';
-import { wireResistance, RESISTIVITY } from '../CircuitModel';
+import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I, wireResistance, RESISTIVITY } from '../CircuitModel';
 
 describe('resistance R=U/I', () => {
   it('R1: U=1.5, I=0.32 → ≈4.69 Ом', () => {
@@ -93,10 +92,12 @@ describe('wireResistance R=ρl/S', () => {
     const r2 = wireResistance(RESISTIVITY.нихром, 2.0, 0.5e-6);
     expect(r1 / r2).toBeCloseTo(2, 6);
   });
-  it('R ∝ ρ: отношение R = отношению ρ', () => {
+  it('R ∝ ρ: абсолютные значения набора (l=2,0 S=0,25мм²) и отношение', () => {
     const rNi = wireResistance(RESISTIVITY.нихром, 2.0, 0.25e-6);
     const rKo = wireResistance(RESISTIVITY.константан, 2.0, 0.25e-6);
-    expect(rNi / rKo).toBeCloseTo(RESISTIVITY.нихром / RESISTIVITY.константан, 6);
+    expect(rNi).toBeCloseTo(8.8, 5); // нихром → 8,8 Ом (эталон набора)
+    expect(rKo).toBeCloseTo(4.0, 5); // константан → 4,0 Ом
+    expect(rNi / rKo).toBeCloseTo(1.1 / 0.5, 6); // хардкод-эталон, не из RESISTIVITY
   });
   it.each([[0, 1, 1e-6], [1e-6, 0, 1e-6], [1e-6, 1, 0], [-1e-6, 1, 1e-6], [NaN, 1, 1e-6]])(
     'RangeError на невалидных (%p,%p,%p)', (rho, l, s) => {
