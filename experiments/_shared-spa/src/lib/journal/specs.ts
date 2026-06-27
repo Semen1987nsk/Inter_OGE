@@ -19,7 +19,7 @@
  * μ = F_тр / N.
  */
 
-import type { JournalSpec } from './types';
+import type { ColumnSpec, JournalSpec } from './types';
 
 const G = 9.8;
 const RHO_WATER = 1000;
@@ -551,6 +551,42 @@ export const IV_CURVE_SPEC: JournalSpec = {
   ],
 };
 
+// Общие колонки 3.5–3.7: метод R=U/I, варьируемый параметр виден в паспортных колонках.
+const WIRE_COLUMNS: ColumnSpec[] = [
+  { key: 'idx', label: '№', source: 'meta', format: 'int' },
+  { key: 'material', label: 'Материал', source: 'meta' },
+  { key: 'l_m', label: 'l, м', source: 'meta', unit: 'м', format: 'fixed1' },
+  { key: 'S_mm2', label: 'S, мм²', source: 'meta', unit: 'мм²', format: 'fixed2' },
+  { key: 'U_V', label: 'U, В', source: 'direct', unit: 'В', format: 'fixed2' },
+  { key: 'I_A', label: 'I, А', source: 'direct', unit: 'А', format: 'fixed2' },
+  {
+    key: 'R_Ohm', label: 'R, Ом', source: 'derived', unit: 'Ом', format: 'fixed2',
+    tolerance: 0.10, // допуск на арифметику ученика: R vs U/I (10%); НЕ интервал приёмки ФИПИ
+    expectedFromRow: (row) => { const I = row.I_A ?? 0; return I > 0 ? (row.U_V ?? 0) / I : 0; },
+  },
+];
+
+/**
+ * Опыт 3.5 «Зависимость R проводника от длины» — R(l), метод R=U/I.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.5; КОДИФ §1.29.
+ * Набор: нихром S=0,25 мм², l=0,5/1,0/2,0 м → R=2,2/4,4/8,8 Ом (R∝l).
+ */
+export const R_LENGTH_SPEC: JournalSpec = { experimentId: '3.5', kitId: 'kit-3', columns: WIRE_COLUMNS };
+
+/**
+ * Опыт 3.6 «Зависимость R проводника от площади сечения» — R(S), метод R=U/I.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.6; КОДИФ §1.29.
+ * Набор: нихром l=2,0 м, S=0,25/0,5/1,0 мм² → R=8,8/4,4/2,2 Ом (R∝1/S).
+ */
+export const R_AREA_SPEC: JournalSpec = { experimentId: '3.6', kitId: 'kit-3', columns: WIRE_COLUMNS };
+
+/**
+ * Опыт 3.7 «Зависимость R проводника от удельного сопротивления» — R(ρ), метод R=U/I.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.7; КОДИФ §1.29.
+ * Набор: l=2,0 м S=0,25 мм², нихром/константан/никелин → R=8,8/4,0/3,2 Ом (R∝ρ).
+ */
+export const R_RHO_SPEC: JournalSpec = { experimentId: '3.7', kitId: 'kit-3', columns: WIRE_COLUMNS };
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -566,6 +602,9 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   POWER_SPEC,
   WORK_CURRENT_SPEC,
   IV_CURVE_SPEC,
+  R_LENGTH_SPEC,
+  R_AREA_SPEC,
+  R_RHO_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
