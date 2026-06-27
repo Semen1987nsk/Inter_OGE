@@ -45,7 +45,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
         </header>
         <div id="measurement-body">
           <div id="voltage-control" hidden>
-            <input id="voltage-input" type="range" min="1.5" max="7.5" step="0.5" value="4.5"/>
+            <input id="voltage-input" type="range" min="1.5" max="6.0" step="0.5" value="4.5"/>
             <span id="voltage-readout">4,5 В</span>
           </div>
           <div id="journal-empty">Соберите цепь.</div>
@@ -75,7 +75,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
       <lab-power-source voltage="4.5"></lab-power-source>
     </lab-equipment-card>
     <lab-equipment-card data-eq="voltmeter" data-draggable="voltmeter" data-dropzone="voltmeter" data-dropzone-id="card-voltmeter" status="available">
-      <lab-voltmeter range="3" value="0"></lab-voltmeter>
+      <lab-voltmeter range="6" value="0"></lab-voltmeter>
     </lab-equipment-card>
     <lab-equipment-card data-eq="ammeter" data-draggable="ammeter" data-dropzone="ammeter" data-dropzone-id="card-ammeter" status="available">
       <lab-ammeter range="3" value="0"></lab-ammeter>

@@ -149,6 +149,8 @@ export class LabGraph extends HTMLElement {
   }
 
   connectedCallback(): void {
+    if (!this.hasAttribute('role')) this.setAttribute('role', 'img');
+    this.#updateTitle();
     this.#resizeObserver.observe(this);
     this.#render();
   }
@@ -166,6 +168,16 @@ export class LabGraph extends HTMLElement {
     return this.#data;
   }
 
+  #updateTitle(): void {
+    const label = this.getAttribute('aria-label') ?? 'График вольт-амперной характеристики';
+    let titleEl = this.#svg.querySelector<SVGTitleElement>('title');
+    if (!titleEl) {
+      titleEl = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      this.#svg.prepend(titleEl);
+    }
+    titleEl.textContent = label;
+  }
+
   #render(): void {
     const rect = this.#svg.getBoundingClientRect();
     const w = rect.width || 400;
@@ -173,6 +185,7 @@ export class LabGraph extends HTMLElement {
 
     this.#svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     this.#svg.innerHTML = '';
+    this.#updateTitle();
 
     const innerW = w - PADDING.left - PADDING.right;
     const innerH = h - PADDING.top - PADDING.bottom;

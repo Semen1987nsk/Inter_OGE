@@ -181,7 +181,7 @@ describe('iv-curve экран (опыт 3.4)', () => {
     placeAll(exp, 'resistor-r1');
     exp.setKeyClosed(true);
 
-    for (const U of [1.5, 3.0, 4.5, 6.0, 7.5]) {
+    for (const U of [1.5, 3.0, 4.5, 5.5, 6.0]) {
       exp.setVoltage(U);
       exp.recordMeasurement();
     }
@@ -422,5 +422,73 @@ describe('iv-curve экран (опыт 3.4)', () => {
     screen2.unmount();
     host1.remove();
     host2.remove();
+  });
+
+  // ─── FIX B: reset(false) сбрасывает #lastRecordedSignature ───────────────
+
+  it('reset(false): повторная запись той же конфигурации + U после reset(false) проходит', () => {
+    const { exp, screen } = mount();
+
+    // Первая сборка: записать точку
+    placeAll(exp, 'resistor-r1');
+    exp.setVoltage(3.0);
+    exp.setKeyClosed(true);
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(1);
+
+    // reset(false) — данные сохраняются, цепь сбрасывается
+    exp.reset(false);
+    expect(exp.measurements.length).toBe(1);
+
+    // Повторно собрать ту же цепь с тем же U → запись должна пройти (сигнатура сброшена)
+    placeAll(exp, 'resistor-r1');
+    exp.setVoltage(3.0);
+    exp.setKeyClosed(true);
+    exp.recordMeasurement();
+
+    // Без фикса: вторая запись пропустилась бы (сигнатура не была сброшена)
+    expect(exp.measurements.length).toBe(2);
+    screen.unmount();
+  });
+
+  // ─── FIX C: lab-graph role="img" + <title> ───────────────────────────────
+
+  it('lab-graph: host имеет role="img" после монтажа', () => {
+    const el = document.createElement('lab-graph') as any;
+    el.setAttribute('aria-label', 'Тест ВАХ');
+    document.body.appendChild(el);
+    expect(el.getAttribute('role')).toBe('img');
+    el.remove();
+  });
+
+  it('lab-graph: внутри shadow SVG есть непустой <title>', () => {
+    const el = document.createElement('lab-graph') as any;
+    el.setAttribute('aria-label', 'График вольт-амперной характеристики');
+    document.body.appendChild(el);
+    const titleEl = el.shadowRoot.querySelector('svg title');
+    expect(titleEl).not.toBeNull();
+    expect(titleEl?.textContent?.length).toBeGreaterThan(0);
+    el.remove();
+  });
+
+  // ─── FIX D: aria-label кнопки ключа обновляется динамически ──────────────
+
+  it('key-btn: aria-label обновляется при смене состояния ключа', () => {
+    const { host, exp, screen } = mount();
+    placeAll(exp, 'resistor-r1');
+
+    const keyBtn = host.querySelector<HTMLButtonElement>('#key-btn')!;
+    // Изначально ключ разомкнут
+    expect(keyBtn.getAttribute('aria-label')).toBe('Замкнуть ключ');
+
+    // Замкнуть
+    exp.setKeyClosed(true);
+    expect(keyBtn.getAttribute('aria-label')).toBe('Разомкнуть ключ');
+
+    // Разомкнуть
+    exp.setKeyClosed(false);
+    expect(keyBtn.getAttribute('aria-label')).toBe('Замкнуть ключ');
+
+    screen.unmount();
   });
 });

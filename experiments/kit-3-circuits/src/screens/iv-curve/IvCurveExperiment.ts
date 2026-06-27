@@ -283,7 +283,7 @@ export class IvCurveExperiment {
 
   /** Программно установить напряжение (для тестов). */
   setVoltage(v: number): void {
-    const clamped = Math.max(1.0, Math.min(7.5, v));
+    const clamped = Math.max(1.0, Math.min(6.0, v));
     this.#store.set({ voltage: clamped });
     this.#refs.voltageInput.value = String(clamped);
     this.#refs.voltageReadout.textContent = `${clamped.toFixed(1).replace('.', ',')} В`;
@@ -360,6 +360,7 @@ export class IvCurveExperiment {
       // Сохраняем измерения, сбрасываем только цепь/ключ/слоты
       const measurements = this.#store.get().measurements;
       this.#store.set({ ...INITIAL_STATE, measurements });
+      this.#lastRecordedSignature = '';
     }
 
     // Вернуть карточки в «available»
@@ -608,6 +609,7 @@ export class IvCurveExperiment {
     if (keyPlaced) {
       const closed = st.keyClosed;
       this.#refs.keyBtn.setAttribute('aria-pressed', closed ? 'true' : 'false');
+      this.#refs.keyBtn.setAttribute('aria-label', closed ? 'Разомкнуть ключ' : 'Замкнуть ключ');
       this.#refs.keyBtn.className = `key-btn key-btn--${closed ? 'closed' : 'open'}`;
       this.#refs.keyBtnLabel.textContent = closed ? 'Разомкнуть ключ' : 'Замкнуть ключ';
     }

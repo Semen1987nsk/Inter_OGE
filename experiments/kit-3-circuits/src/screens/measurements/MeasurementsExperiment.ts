@@ -312,7 +312,7 @@ export class MeasurementsExperiment {
 
   /** Программно установить напряжение (для тестов). */
   setVoltage(v: number): void {
-    const clamped = Math.max(1.5, Math.min(7.5, v));
+    const clamped = Math.max(1.5, Math.min(6.0, v));
     this.#store.set({ voltage: clamped });
     this.#refs.voltageInput.value = String(clamped);
     this.#refs.voltageReadout.textContent = `${clamped.toFixed(1).replace('.', ',')} В`;
@@ -650,6 +650,7 @@ export class MeasurementsExperiment {
     if (keyPlaced) {
       const closed = st.keyClosed;
       this.#refs.keyBtn.setAttribute('aria-pressed', closed ? 'true' : 'false');
+      this.#refs.keyBtn.setAttribute('aria-label', closed ? 'Разомкнуть ключ' : 'Замкнуть ключ');
       this.#refs.keyBtn.className = `key-btn key-btn--${closed ? 'closed' : 'open'}`;
       this.#refs.keyBtnLabel.textContent = closed ? 'Разомкнуть ключ' : 'Замкнуть ключ';
     }
