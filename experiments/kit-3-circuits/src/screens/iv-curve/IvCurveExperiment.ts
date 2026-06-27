@@ -686,11 +686,16 @@ export class IvCurveExperiment {
   }
 
   #renderGraph(): void {
+    // Авто-масштаб оси I под данные (запас 10%, шаг 0,5, минимум 1,0) — иначе
+    // точки резистора при U>4,7 (I>1 А) обрезались бы сверху (рассинхрон журнал↔график).
+    const allY = [...this.#resistorPoints, ...this.#lampPoints].map((p) => p.y);
+    const maxY = allY.length ? Math.max(...allY) : 0;
+    const yMax = Math.max(1, Math.ceil(maxY * 1.1 * 2) / 2);
     this.#refs.ivGraph.data = {
       xLabel: 'U, В',
       yLabel: 'I, А',
       xMax: 8,
-      yMax: 1,
+      yMax,
       series: [
         {
           id: 'resistor',
