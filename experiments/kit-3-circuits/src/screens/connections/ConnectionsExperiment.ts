@@ -781,6 +781,13 @@ export class ConnectionsExperiment {
     this.#refs.journalEmpty.hidden = hasMeasurements || isLive;
     if (this.#refs.formulaDisplay) {
       this.#refs.formulaDisplay.hidden = !hasMeasurements;
+      const formulaExpr = this.#refs.formulaDisplay.querySelector('#formula-expr');
+      if (formulaExpr) {
+        formulaExpr.innerHTML =
+          this.#store.get().activeTask === 'A-series'
+            ? 'U = U<sub>1</sub> + U<sub>2</sub>'
+            : 'I = I<sub>1</sub> + I<sub>2</sub>';
+      }
     }
 
     const isPending = isLive && this.#pendingSignature() !== this.#lastRecordedSignature;

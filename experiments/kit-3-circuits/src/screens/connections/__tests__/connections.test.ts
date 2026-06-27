@@ -36,6 +36,30 @@ function assembleBase(exp: any, task: 'A-series' | 'B-parallel') {
   }
 }
 
+describe('ConnectionsScreen — формула по задаче (reality-check)', () => {
+  let screen: ConnectionsScreen;
+  afterEach(() => { screen?.unmount(); });
+
+  it('A-series → формула «U = U1 + U2»; B-parallel → «I = I1 + I2»', () => {
+    const { host, exp, screen: s } = mountScreen(); screen = s;
+    exp.setVoltage(4.5);
+    // Серия: записать точку, формула про напряжение
+    assembleBase(exp, 'A-series');
+    exp.setKeyClosed(true);
+    exp.placeInSlot('v-pos-r1', 'voltmeter');
+    exp.recordMeasurement();
+    const expr = host.querySelector('#formula-expr') as HTMLElement;
+    expect(expr.textContent?.replace(/\s/g, '')).toBe('U=U1+U2');
+    // Параллель: формула про ток (не должна остаться про напряжение)
+    exp.reset(true);
+    assembleBase(exp, 'B-parallel');
+    exp.setKeyClosed(true);
+    exp.placeInSlot('a-pos-r1', 'ammeter');
+    exp.recordMeasurement();
+    expect(expr.textContent?.replace(/\s/g, '')).toBe('I=I1+I2');
+  });
+});
+
 describe('ConnectionsScreen — опыт 3.8 серия', () => {
   let screen: ConnectionsScreen;
 
