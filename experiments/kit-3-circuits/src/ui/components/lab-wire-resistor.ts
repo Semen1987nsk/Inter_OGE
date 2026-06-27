@@ -218,7 +218,7 @@ export class LabWireResistor extends HTMLElement {
     // Паспортная подпись: «нихром · l=1,0 м · S=0,25 мм²» (без R)
     const lStr = len.toFixed(1).replace('.', ',');
     const sStr = ar.toFixed(2).replace('.', ',');
-    const passport = `${mat} · l=${lStr} м · S=${sStr} мм²`;
+    const passport = `${mat} · l=${lStr} м · S=${sStr} мм²`;
     this.#passportLabel.textContent = passport;
 
     // aria-label = тот же паспорт (без R/Ом)

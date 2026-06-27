@@ -271,6 +271,7 @@ export class WireResistanceExperiment {
     this.#assembly = new CircuitAssembly(refs.circuitBoard, this.#topology, this.#drag);
 
     this.#wireUp();
+    this.#refreshEquipmentFilter();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
@@ -398,6 +399,8 @@ export class WireResistanceExperiment {
     }
     this.#refs.voltageInput.value = '4.5';
     this.#refs.voltageReadout.textContent = '4,5 В';
+    // Переприменить фильтр панели к сохранённой задаче (секции wire-group).
+    this.#refreshEquipmentFilter();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
     this.#hints.announce('Установка сброшена. Все приборы вернулись в комплект.');
@@ -765,12 +768,28 @@ export class WireResistanceExperiment {
     });
   }
 
+  /**
+   * Фильтр панели по активной задаче: видна только секция проволок текущей задачи.
+   *
+   * В template.html wire-карточки лежат внутри `<section class="… wire-group--<task>">`,
+   * которая стартово может быть `hidden`. Переключать только `card.hidden`
+   * НЕДОСТАТОЧНО — родительская секция остаётся hidden и проволоки B/C не видны
+   * в браузере (баг ревью Task 4). Поэтому переключаем `hidden` на САМОЙ секции,
+   * и дублируем на карточке (на случай плоской разметки без секций-обёрток).
+   */
   #refreshEquipmentFilter(): void {
     const active = this.#store.get().activeTask;
+    const seenSections = new Set<HTMLElement>();
     this.#refs.cards.forEach((card) => {
       const group = card.dataset['taskGroup'];
       if (!group) return; // не wire-карточка (источник, вольтметр и т.д. всегда видны)
-      card.hidden = group !== active;
+      const visible = group === active;
+      card.hidden = !visible;
+      const section = card.closest<HTMLElement>('section[class*="wire-group"]');
+      if (section && !seenSections.has(section)) {
+        seenSections.add(section);
+        section.hidden = !visible;
+      }
     });
   }
 

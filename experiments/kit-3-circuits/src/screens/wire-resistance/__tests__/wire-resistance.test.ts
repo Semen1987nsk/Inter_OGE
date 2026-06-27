@@ -424,6 +424,28 @@ describe('WireResistanceExperiment — state machine', () => {
     expect(rKo).toBeGreaterThan(rNk);
   });
 
+  it('C-rho: R(нихром)/R(константан) ≈ ρ_нихром/ρ_константан (R∝ρ, эталон)', () => {
+    experiment.setActiveTask('C-rho');
+
+    const measure = (wireId: EquipmentId): number => {
+      experiment.reset(false);
+      experiment.setActiveTask('C-rho');
+      assembleCircuit(experiment, wireId);
+      experiment.setVoltage(4.5);
+      experiment.setKeyClosed(true);
+      experiment.recordMeasurement();
+      const m = experiment.measurements.at(-1)!;
+      return (m['U_V'] as number) / (m['I_A'] as number);
+    };
+
+    const rNi = measure('wire-mat-ni');
+    const rKo = measure('wire-mat-ko');
+    const rNk = measure('wire-mat-nk');
+    // l, S одинаковы → R∝ρ. ρ: нихром 1.1e-6, константан 0.5e-6, никелин 0.4e-6.
+    expect(rNi / rKo).toBeCloseTo(RESISTIVITY['нихром'] / RESISTIVITY['константан'], 2); // ≈ 2.2
+    expect(rNi / rNk).toBeCloseTo(RESISTIVITY['нихром'] / RESISTIVITY['никелин'], 2);    // ≈ 2.75
+  });
+
   // ─── Журнал v2: host получает рендер ─────────────────────────────────────
 
   it('после записи #journal-host перестаёт быть hidden', () => {
@@ -590,6 +612,64 @@ describe('WireResistanceScreen — мульти-таск (Фаза D)', () => {
     exp.setActiveTask('C-rho');
     exp.reset(true);
     expect(exp.activeTask).toBe('C-rho');
+    screen.unmount();
+  });
+
+  // ─── Фильтр панели по задаче: ВИДИМОСТЬ СЕКЦИЙ wire-group (баг ревью Task 4) ─
+  // В реальном template.html карточки лежат внутри <section ... wire-group--<task>>,
+  // и секции B/C стартово hidden. Переключение только card.hidden НЕ показывает
+  // проволоки B/C — родительская секция остаётся hidden. Эти тесты используют
+  // реальный template (full mount), поэтому ловят именно секционную видимость.
+
+  function sectionFor(host: HTMLElement, task: string): HTMLElement {
+    return host.querySelector<HTMLElement>(`section.wire-group--${task}`)!;
+  }
+
+  it('по умолчанию (A-length) видна секция A, секции B/C скрыты', () => {
+    const { host, screen } = mountScreen();
+    expect(sectionFor(host, 'A-length').hidden).toBe(false);
+    expect(sectionFor(host, 'B-section').hidden).toBe(true);
+    expect(sectionFor(host, 'C-rho').hidden).toBe(true);
+    screen.unmount();
+  });
+
+  it('setActiveTask(B-section): секция B видима, A/C скрыты', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('B-section');
+    expect(sectionFor(host, 'A-length').hidden).toBe(true);
+    expect(sectionFor(host, 'B-section').hidden).toBe(false);
+    expect(sectionFor(host, 'C-rho').hidden).toBe(true);
+    screen.unmount();
+  });
+
+  it('setActiveTask(C-rho): секция C видима, A/B скрыты', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('C-rho');
+    expect(sectionFor(host, 'A-length').hidden).toBe(true);
+    expect(sectionFor(host, 'B-section').hidden).toBe(true);
+    expect(sectionFor(host, 'C-rho').hidden).toBe(false);
+    screen.unmount();
+  });
+
+  it('карточки задачи B доступны (видимы) после переключения на B', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('B-section');
+    // Карточка B-section видна и её секция-обёртка не скрыта.
+    const cardB = host.querySelector<HTMLElement>('[data-eq="wire-sec-025"]')!;
+    expect(cardB.hidden).toBe(false);
+    expect(cardB.closest<HTMLElement>('section.wire-group--B-section')!.hidden).toBe(false);
+    // Карточка A-section скрыта.
+    const cardA = host.querySelector<HTMLElement>('[data-eq="wire-len-05"]')!;
+    expect(cardA.closest<HTMLElement>('section.wire-group--A-length')!.hidden).toBe(true);
+    screen.unmount();
+  });
+
+  it('reset(true) переприменяет фильтр к сохранённой задаче (секция C видима)', () => {
+    const { host, exp, screen } = mountScreen();
+    exp.setActiveTask('C-rho');
+    exp.reset(true);
+    expect(sectionFor(host, 'C-rho').hidden).toBe(false);
+    expect(sectionFor(host, 'A-length').hidden).toBe(true);
     screen.unmount();
   });
 });
