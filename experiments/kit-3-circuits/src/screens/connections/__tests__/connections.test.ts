@@ -232,6 +232,35 @@ describe('ConnectionsScreen — result-panel правило', () => {
   });
 });
 
+describe('ConnectionsScreen — guard recordMeasurement', () => {
+  let screen: ConnectionsScreen;
+
+  afterEach(() => { screen?.unmount(); });
+
+  it('запись без замкнутого ключа — игнорируется', () => {
+    const { exp, screen: s } = mountScreen(); screen = s;
+    assembleBase(exp, 'A-series');
+    exp.setVoltage(4.5);
+    exp.placeInSlot('v-pos-r1', 'voltmeter');
+    // keyClosed остаётся false (default)
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(0);
+  });
+
+  it('запись без position-позиции (неполная цепь) — игнорируется', () => {
+    const { exp, screen: s } = mountScreen(); screen = s;
+    exp.placeInSlot('source', 'power-source');
+    exp.placeInSlot('key', 'key');
+    exp.placeInSlot('r1', 'r1');
+    exp.placeInSlot('r2', 'r2');
+    exp.placeInSlot('ammeter', 'ammeter');
+    // нет ни одной v-pos-* → #isCircuitReady() == false (нет position)
+    exp.setKeyClosed(true);
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(0);
+  });
+});
+
 describe('ConnectionsScreen — подвижный прибор: один в позиции', () => {
   let screen: ConnectionsScreen;
 
@@ -266,5 +295,8 @@ describe('ConnectionsScreen — подвижный прибор: один в п�
     // Та же карточка: data-placed переписан на новую позицию, прибор не «потерян».
     expect(vmCard?.getAttribute('data-placed')).toBe('v-pos-total');
     expect(vmCard?.getAttribute('status')).toBe('placed');
+    // Старая позиция v-pos-r1 должна быть освобождена В ТОПОЛОГИИ:
+    // если #evictPositionSlots забыл вызвать topology.remove, placeInSlot вернёт false.
+    expect(exp.placeInSlot('v-pos-r1', 'voltmeter')).toBe(true);
   });
 });

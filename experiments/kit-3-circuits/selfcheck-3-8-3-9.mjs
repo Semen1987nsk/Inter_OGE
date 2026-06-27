@@ -360,6 +360,37 @@ async function runTaskA(page) {
 
   await screenshot(page, '02-A-all-3-recorded');
 
+  // ── Result-panel: появляется после 3 точек, содержит правило напряжений + ✓ ──
+  console.log('\n       Проверка #result-panel (правило напряжений)');
+  try {
+    const panelVisible = await page.evaluate(() => {
+      const panel = document.querySelector('#result-panel');
+      return panel && !panel.hidden;
+    });
+    if (panelVisible) {
+      pass('3.8-A result-panel: panel visible после 3 записей');
+    } else {
+      fail('3.8-A result-panel: panel visible', 'panel hidden или не найден после 3 записей');
+    }
+
+    const panelText = await page.evaluate(() => {
+      const panel = document.querySelector('#result-panel');
+      return panel ? panel.textContent : '';
+    });
+    if (panelText && panelText.includes('правило напряжений')) {
+      pass(`3.8-A result-panel: содержит «правило напряжений»`);
+    } else {
+      fail('3.8-A result-panel: содержит «правило напряжений»', `textContent = '${String(panelText).slice(0, 120)}'`);
+    }
+    if (panelText && panelText.includes('✓')) {
+      pass('3.8-A result-panel: содержит символ ✓ (инвариант выполнен)');
+    } else {
+      fail('3.8-A result-panel: содержит ✓', `textContent = '${String(panelText).slice(0, 120)}'`);
+    }
+  } catch (err) {
+    skip('3.8-A result-panel', err.message);
+  }
+
   // ── Инварианты U1+U2≈U_общ ───────────────────────────────────────────────────
   if (U1 !== null && U2 !== null && U_total !== null) {
     if (U1 < U_total) {
@@ -571,6 +602,37 @@ async function runTaskB(page) {
   }
 
   await screenshot(page, '04-B-all-3-recorded');
+
+  // ── Result-panel: появляется после 3 точек, содержит правило токов + ✓ ────────
+  console.log('\n       Проверка #result-panel (правило токов)');
+  try {
+    const panelVisible = await page.evaluate(() => {
+      const panel = document.querySelector('#result-panel');
+      return panel && !panel.hidden;
+    });
+    if (panelVisible) {
+      pass('3.9-B result-panel: panel visible после 3 записей');
+    } else {
+      fail('3.9-B result-panel: panel visible', 'panel hidden или не найден после 3 записей');
+    }
+
+    const panelText = await page.evaluate(() => {
+      const panel = document.querySelector('#result-panel');
+      return panel ? panel.textContent : '';
+    });
+    if (panelText && panelText.includes('правило токов')) {
+      pass(`3.9-B result-panel: содержит «правило токов»`);
+    } else {
+      fail('3.9-B result-panel: содержит «правило токов»', `textContent = '${String(panelText).slice(0, 120)}'`);
+    }
+    if (panelText && panelText.includes('✓')) {
+      pass('3.9-B result-panel: содержит символ ✓ (инвариант выполнен)');
+    } else {
+      fail('3.9-B result-panel: содержит ✓', `textContent = '${String(panelText).slice(0, 120)}'`);
+    }
+  } catch (err) {
+    skip('3.9-B result-panel', err.message);
+  }
 
   // ── Инварианты I1+I2≈I_общ ───────────────────────────────────────────────────
   if (I1 !== null && I2 !== null && I_total !== null) {
