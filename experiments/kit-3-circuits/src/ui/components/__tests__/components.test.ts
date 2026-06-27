@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, afterEach } from 'vitest';
 import '../lab-power-source';
 import '../lab-voltmeter';
 import '../lab-ammeter';
 import '../lab-resistor';
+import '../lab-connection-board';
 import '../lab-key';
 import '../lab-lamp';
 import '../lab-graph';
@@ -157,5 +158,109 @@ describe('lab-circuit-board — element-label', () => {
     const lbl = b.shadowRoot.querySelector('[data-slot="resistor"] .slot-label-top');
     expect(lbl?.textContent).toBe('Элемент');
     b.remove();
+  });
+});
+
+describe('lab-connection-board — topology="series"', () => {
+  function makeBoard(topology: string) {
+    const el = document.createElement('lab-connection-board') as any;
+    el.setAttribute('topology', topology);
+    document.body.appendChild(el);
+    return el;
+  }
+
+  afterEach(() => {
+    document.querySelectorAll('lab-connection-board').forEach((el) => el.remove());
+  });
+
+  it('topology="series": присутствуют слоты source, key, ammeter, r1, r2', () => {
+    const el = makeBoard('series');
+    const ids = ['source', 'key', 'ammeter', 'r1', 'r2'];
+    for (const id of ids) {
+      expect(
+        el.shadowRoot.querySelector(`[data-slot="${id}"]`),
+        `слот ${id} должен быть в series`,
+      ).not.toBeNull();
+    }
+  });
+
+  it('topology="series": присутствуют слоты v-pos-r1, v-pos-r2, v-pos-total', () => {
+    const el = makeBoard('series');
+    for (const id of ['v-pos-r1', 'v-pos-r2', 'v-pos-total']) {
+      expect(
+        el.shadowRoot.querySelector(`[data-slot="${id}"]`),
+        `слот ${id} должен быть в series`,
+      ).not.toBeNull();
+    }
+  });
+
+  it('topology="series": НЕТ слотов a-pos-* (они только в parallel)', () => {
+    const el = makeBoard('series');
+    expect(el.shadowRoot.querySelector('[data-slot="a-pos-r1"]')).toBeNull();
+    expect(el.shadowRoot.querySelector('[data-slot="a-pos-main"]')).toBeNull();
+  });
+
+  it('topology="parallel": присутствуют слоты source, key, voltmeter, r1, r2', () => {
+    const el = makeBoard('parallel');
+    for (const id of ['source', 'key', 'voltmeter', 'r1', 'r2']) {
+      expect(
+        el.shadowRoot.querySelector(`[data-slot="${id}"]`),
+        `слот ${id} должен быть в parallel`,
+      ).not.toBeNull();
+    }
+  });
+
+  it('topology="parallel": присутствуют слоты a-pos-r1, a-pos-r2, a-pos-main', () => {
+    const el = makeBoard('parallel');
+    for (const id of ['a-pos-r1', 'a-pos-r2', 'a-pos-main']) {
+      expect(
+        el.shadowRoot.querySelector(`[data-slot="${id}"]`),
+        `слот ${id} должен быть в parallel`,
+      ).not.toBeNull();
+    }
+  });
+
+  it('topology="parallel": НЕТ слотов v-pos-* (они только в series)', () => {
+    const el = makeBoard('parallel');
+    expect(el.shadowRoot.querySelector('[data-slot="v-pos-r1"]')).toBeNull();
+    expect(el.shadowRoot.querySelector('[data-slot="v-pos-total"]')).toBeNull();
+  });
+
+  it('getSlotRect(существующий слот) возвращает DOMRect', () => {
+    const el = makeBoard('series');
+    const rect = el.getSlotRect('ammeter');
+    expect(rect).toBeInstanceOf(DOMRect);
+  });
+
+  it('getSlotRect(несуществующий слот) возвращает пустой DOMRect (не бросает)', () => {
+    const el = makeBoard('series');
+    const rect = el.getSlotRect('nonexistent-slot');
+    expect(rect).toBeInstanceOf(DOMRect);
+    expect(rect.width).toBe(0);
+  });
+
+  it('setCurrentAnimating(true) ставит атрибут current-animating', () => {
+    const el = makeBoard('series');
+    el.setCurrentAnimating(true);
+    expect(el.hasAttribute('current-animating')).toBe(true);
+  });
+
+  it('setCurrentAnimating(false) снимает атрибут', () => {
+    const el = makeBoard('series');
+    el.setCurrentAnimating(true);
+    el.setCurrentAnimating(false);
+    expect(el.hasAttribute('current-animating')).toBe(false);
+  });
+
+  it('смена topology через атрибут переключает активный SVG', () => {
+    const el = makeBoard('series');
+    const svgSeries = el.shadowRoot.querySelector('#svg-series');
+    const svgParallel = el.shadowRoot.querySelector('#svg-parallel');
+    expect(svgSeries?.hidden).toBe(false);
+    expect(svgParallel?.hidden).toBe(true);
+
+    el.setAttribute('topology', 'parallel');
+    expect(svgSeries?.hidden).toBe(true);
+    expect(svgParallel?.hidden).toBe(false);
   });
 });
