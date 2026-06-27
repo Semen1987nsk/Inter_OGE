@@ -319,13 +319,17 @@ export class LabConnectionBoard extends HTMLElement {
     if (!ser || !par) return;
 
     if (topology === 'parallel') {
-      ser.style.display = 'none';
-      par.style.display = '';
+      // Показываем par (убираем hidden-атрибут), скрываем ser (ставим hidden-атрибут).
+      // SVGSVGElement не имеет свойства .hidden — управляем только атрибутом.
+      // CSS правило svg[hidden]{display:none} обеспечивает скрытие.
+      par.removeAttribute('hidden');
+      ser.setAttribute('hidden', '');
       ser.innerHTML = `<title id="ser-title">Монтажная панель — последовательное соединение</title>`;
       par.innerHTML = parallelInnerHtml();
     } else {
-      ser.style.display = '';
-      par.style.display = 'none';
+      // Показываем ser, скрываем par.
+      ser.removeAttribute('hidden');
+      par.setAttribute('hidden', '');
       ser.innerHTML = seriesInnerHtml();
       par.innerHTML = `<title id="par-title">Монтажная панель — параллельное соединение</title>`;
     }

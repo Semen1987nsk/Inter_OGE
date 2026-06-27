@@ -256,11 +256,14 @@ describe('lab-connection-board — topology="series"', () => {
     const el = makeBoard('series');
     const svgSeries = el.shadowRoot.querySelector('#svg-series') as SVGSVGElement | null;
     const svgParallel = el.shadowRoot.querySelector('#svg-parallel') as SVGSVGElement | null;
-    expect(svgSeries?.style.display).not.toBe('none');
-    expect(svgParallel?.style.display).toBe('none');
+    // В series: ser видим (hidden-атрибут отсутствует), par скрыт (hidden-атрибут присутствует).
+    // SVGElement не имеет свойства .hidden — проверяем через hasAttribute.
+    expect(svgSeries?.hasAttribute('hidden')).toBe(false);
+    expect(svgParallel?.hasAttribute('hidden')).toBe(true);
 
     el.setAttribute('topology', 'parallel');
-    expect(svgSeries?.style.display).toBe('none');
-    expect(svgParallel?.style.display).not.toBe('none');
+    // В parallel: ser скрыт, par видим.
+    expect(svgSeries?.hasAttribute('hidden')).toBe(true);
+    expect(svgParallel?.hasAttribute('hidden')).toBe(false);
   });
 });
