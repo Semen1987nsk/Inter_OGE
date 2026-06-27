@@ -286,15 +286,35 @@ template.innerHTML = `
 // ─── Компонент ────────────────────────────────────────────────────────────────
 
 export class LabCircuitBoard extends HTMLElement {
+  static observedAttributes = ['element-label'];
+
+  #resistorLabel: SVGTextElement | null = null;
+
   constructor() {
     super();
     const shadow = this.attachShadow({ mode: 'open' });
     shadow.appendChild(template.content.cloneNode(true));
+    this.#resistorLabel = shadow.querySelector<SVGTextElement>(
+      '[data-slot="resistor"] .slot-label-top',
+    );
   }
 
   connectedCallback(): void {
     this.setAttribute('role', 'img');
     this.setAttribute('aria-label', 'Монтажная панель электрической цепи');
+    this.#updateElementLabel();
+  }
+
+  attributeChangedCallback(name: string): void {
+    if (name === 'element-label') {
+      this.#updateElementLabel();
+    }
+  }
+
+  #updateElementLabel(): void {
+    if (this.#resistorLabel) {
+      this.#resistorLabel.textContent = this.getAttribute('element-label') ?? 'Резистор';
+    }
   }
 
   /**

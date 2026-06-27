@@ -1,25 +1,34 @@
 /**
- * <lab-graph> — SVG-график I(U) или другой зависимости.
+ * <lab-graph> — SVG-график с поддержкой нескольких серий (I(U) или другой зависимости).
  *
- * Принимает массив measurements через свойство `data`.
- * При добавлении новой точки — pop-scale-анимация.
- * Hover на точке — кнопка удаления → событие `delete-point` с id.
+ * Принимает данные через свойство `data` (мульти-серийный API).
+ * Каждая серия: {id, color, fit:'line'|'curve'|null, points[]}.
+ *   fit:'line'  — линейный МНК через 0 (slope = Σxy/Σx²), линия цветом серии
+ *   fit:'curve' — polyline через точки, отсортированные по x, цветом серии
+ *   fit:null    — только точки, без линии
+ * Hover на точке → событие `delete-point` с id.
  */
 
-interface GraphPoint {
+export interface GraphPoint {
   id: string;
   x: number;
   y: number;
   label?: string;
 }
 
-interface GraphData {
+export interface GraphSeries {
+  id: string;
+  color: string;
+  fit: 'line' | 'curve' | null;
   points: ReadonlyArray<GraphPoint>;
+}
+
+export interface GraphData {
+  series: ReadonlyArray<GraphSeries>;
   xLabel: string;
   yLabel: string;
   xMax: number;
   yMax: number;
-  fitSlope: number | null;
 }
 
 const PADDING = { top: 16, right: 16, bottom: 32, left: 40 };
@@ -72,15 +81,19 @@ template.innerHTML = `
   }
 
   .fit-line {
-    stroke: var(--phys-displacement, #2ba84a);
     stroke-width: 1.5;
     stroke-dasharray: 4 3;
     fill: none;
     opacity: 0.7;
   }
 
+  .fit-curve {
+    stroke-width: 1.5;
+    fill: none;
+    opacity: 0.7;
+  }
+
   .point {
-    fill: var(--color-brand-blue, #3a86ff);
     stroke: #fff;
     stroke-width: 1.5;
     cursor: pointer;
@@ -92,7 +105,7 @@ template.innerHTML = `
 
   .point:hover {
     r: 7;
-    fill: var(--color-brand-orange, #ffbe0b);
+    filter: brightness(1.3);
   }
 
   @keyframes pop-in {
@@ -109,13 +122,6 @@ template.innerHTML = `
     text-anchor: middle;
   }
 
-  .fit-label {
-    fill: var(--phys-displacement, #2ba84a);
-    font-family: var(--font-mono, monospace);
-    font-size: 12px;
-    font-weight: 600;
-  }
-
   svg[hidden] { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -130,7 +136,7 @@ template.innerHTML = `
 
 export class LabGraph extends HTMLElement {
   #svg: SVGSVGElement;
-  #data: GraphData = { points: [], xLabel: 'x', yLabel: 'y', xMax: 10, yMax: 10, fitSlope: null };
+  #data: GraphData = { series: [], xLabel: 'x', yLabel: 'y', xMax: 10, yMax: 10 };
   #resizeObserver: ResizeObserver;
 
   constructor() {
@@ -183,18 +189,37 @@ export class LabGraph extends HTMLElement {
     this.#drawAxisTicks(x0, y0, xToPx, yToPx);
     this.#drawAxisTitles(h, x0, y0, innerW, innerH);
 
-    if (this.#data.points.length === 0) {
+    const allEmpty = this.#data.series.every((s) => s.points.length === 0);
+    if (allEmpty) {
       this.#drawEmptyState(w, h);
       return;
     }
 
-    if (this.#data.points.length >= 2 && this.#data.fitSlope !== null) {
-      this.#drawFitLine(this.#data.fitSlope, xToPx, yToPx);
-    }
+    for (const series of this.#data.series) {
+      if (series.points.length === 0) continue;
 
-    for (const p of this.#data.points) {
-      this.#drawPoint(p, xToPx, yToPx);
+      if (series.fit === 'line' && series.points.length >= 2) {
+        const slope = this.#leastSquaresSlope(series.points);
+        this.#drawFitLine(slope, series.color, xToPx, yToPx);
+      } else if (series.fit === 'curve' && series.points.length >= 2) {
+        this.#drawCurve(series.points, series.color, xToPx, yToPx);
+      }
+
+      for (const p of series.points) {
+        this.#drawPoint(p, series.color, xToPx, yToPx);
+      }
     }
+  }
+
+  /** Наклон линии через 0 методом МНК: slope = Σ(x·y) / Σ(x²) */
+  #leastSquaresSlope(points: ReadonlyArray<GraphPoint>): number {
+    let sumXY = 0;
+    let sumX2 = 0;
+    for (const p of points) {
+      sumXY += p.x * p.y;
+      sumX2 += p.x * p.x;
+    }
+    return sumX2 === 0 ? 0 : sumXY / sumX2;
   }
 
   #drawGrid(x0: number, innerW: number, innerH: number, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
@@ -239,22 +264,33 @@ export class LabGraph extends HTMLElement {
     this.#svg.appendChild(yLabel);
   }
 
-  #drawFitLine(slope: number, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
-    const x1 = 0;
-    const y1 = 0;
+  #drawFitLine(slope: number, color: string, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
     const x2 = this.#data.xMax;
-    const y2 = slope * x2;
-    const line = this.#line(xToPx(x1), yToPx(y1), xToPx(x2), yToPx(Math.min(y2, this.#data.yMax)), 'fit-line');
+    const y2 = Math.min(slope * x2, this.#data.yMax);
+    const line = this.#line(xToPx(0), yToPx(0), xToPx(x2), yToPx(y2), 'fit-line');
+    line.setAttribute('stroke', color);
     this.#svg.appendChild(line);
   }
 
-  #drawPoint(p: GraphPoint, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
+  #drawCurve(points: ReadonlyArray<GraphPoint>, color: string, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
+    const sorted = [...points].sort((a, b) => a.x - b.x);
+    const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    const pts = sorted.map((p) => `${xToPx(p.x)},${yToPx(p.y)}`).join(' ');
+    polyline.setAttribute('points', pts);
+    polyline.setAttribute('fill', 'none');
+    polyline.setAttribute('stroke', color);
+    polyline.classList.add('fit-curve');
+    this.#svg.appendChild(polyline);
+  }
+
+  #drawPoint(p: GraphPoint, color: string, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
     const cx = xToPx(p.x);
     const cy = yToPx(p.y);
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     circle.setAttribute('cx', String(cx));
     circle.setAttribute('cy', String(cy));
     circle.setAttribute('r', '5');
+    circle.setAttribute('fill', color);
     circle.classList.add('point');
     circle.dataset['pointId'] = p.id;
 
@@ -264,7 +300,7 @@ export class LabGraph extends HTMLElement {
 
     circle.addEventListener('click', () => {
       this.dispatchEvent(
-        new CustomEvent('delete-point', { detail: { id: p.id }, bubbles: true }),
+        new CustomEvent('delete-point', { detail: { id: p.id }, bubbles: true, composed: true }),
       );
     });
 
