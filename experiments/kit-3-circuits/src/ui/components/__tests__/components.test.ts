@@ -254,13 +254,13 @@ describe('lab-connection-board — topology="series"', () => {
 
   it('смена topology через атрибут переключает активный SVG', () => {
     const el = makeBoard('series');
-    const svgSeries = el.shadowRoot.querySelector('#svg-series');
-    const svgParallel = el.shadowRoot.querySelector('#svg-parallel');
-    expect(svgSeries?.hidden).toBe(false);
-    expect(svgParallel?.hidden).toBe(true);
+    const svgSeries = el.shadowRoot.querySelector<SVGSVGElement>('#svg-series');
+    const svgParallel = el.shadowRoot.querySelector<SVGSVGElement>('#svg-parallel');
+    expect(svgSeries?.style.display).not.toBe('none');
+    expect(svgParallel?.style.display).toBe('none');
 
     el.setAttribute('topology', 'parallel');
-    expect(svgSeries?.hidden).toBe(true);
-    expect(svgParallel?.hidden).toBe(false);
+    expect(svgSeries?.style.display).toBe('none');
+    expect(svgParallel?.style.display).not.toBe('none');
   });
 });

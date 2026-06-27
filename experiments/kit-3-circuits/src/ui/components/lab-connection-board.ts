@@ -319,13 +319,13 @@ export class LabConnectionBoard extends HTMLElement {
     if (!ser || !par) return;
 
     if (topology === 'parallel') {
-      ser.hidden = true;
-      par.hidden = false;
+      ser.style.display = 'none';
+      par.style.display = '';
       ser.innerHTML = `<title id="ser-title">Монтажная панель — последовательное соединение</title>`;
       par.innerHTML = parallelInnerHtml();
     } else {
-      ser.hidden = false;
-      par.hidden = true;
+      ser.style.display = '';
+      par.style.display = 'none';
       ser.innerHTML = seriesInnerHtml();
       par.innerHTML = `<title id="par-title">Монтажная панель — параллельное соединение</title>`;
     }

@@ -1,0 +1,36 @@
+/**
+ * connections-experiment.css — стили экрана «Соединения проводников» (опыты 3.8–3.9).
+ *
+ * Пер-скрин layout-дополнения поверх circuit-experiment.css.
+ * Общий layout (.app-main-v3, .workbench, .workbench-stage, .measurement-panel,
+ * .equipment-panel, .steps, .key-btn и т.д.) — из circuit-experiment.css.
+ *
+ * Специфика экрана:
+ *   - Секции приборов с data-task-instrument="A-series"|"B-parallel" — JS переключает hidden.
+ *   - lab-connection-board (series/parallel) — SVG монтажная плата с топологией.
+ *   - result-panel: правило U1+U2=U_общ или I1+I2=I_общ.
+ */
+
+/* ─── Фильтрация панели по задаче ───────────────────────────────────── */
+
+/* Секции [data-task-instrument][hidden] скрываются стандартным атрибутом.
+   lab-equipment-card[hidden] внутри — явный display:none для надёжности. */
+lab-equipment-card[hidden] {
+  display: none !important;
+}
+
+/* ─── lab-connection-board: адаптивный размер ────────────────────────── */
+
+lab-connection-board {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+}
+
+/* ─── Result panel (правило U1+U2 / I1+I2) ─────────────────────────── */
+
+#result-panel {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
