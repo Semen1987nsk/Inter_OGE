@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { current, resistance, power, workOfCurrent } from '../CircuitModel';
+import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I } from '../CircuitModel';
 
 describe('resistance R=U/I', () => {
   it('R1: U=1.5, I=0.32 → ≈4.69 Ом', () => {
@@ -22,6 +22,60 @@ describe('power P=U*I', () => {
 describe('workOfCurrent A=U*I*t', () => {
   it('U=2.9, I=0.51, t=60 → ≈88.7 Дж', () => { expect(workOfCurrent(2.9, 0.51, 60)).toBeCloseTo(88.74, 2); });
   it('бросает при t<=0', () => { expect(() => workOfCurrent(3, 0.5, 0)).toThrow(RangeError); });
+});
+
+describe('lampCurrent — нелинейная ВАХ лампы', () => {
+  it('номинал: U=4,8 В → I≈0,5 А', () => {
+    expect(lampCurrent(4.8)).toBeCloseTo(0.5, 2);
+    expect(lampCurrent(LAMP_RATED_U)).toBeCloseTo(LAMP_RATED_I, 2);
+  });
+  it('I(0)=0', () => { expect(lampCurrent(0)).toBe(0); });
+  it('монотонно возрастает', () => {
+    expect(lampCurrent(3)).toBeGreaterThan(lampCurrent(2));
+    expect(lampCurrent(6)).toBeGreaterThan(lampCurrent(4));
+  });
+  it('вогнута: прирост I падает при росте U (нелинейность)', () => {
+    const d1 = lampCurrent(2) - lampCurrent(1);
+    const d2 = lampCurrent(6) - lampCurrent(5);
+    expect(d2).toBeLessThan(d1);
+  });
+  it('сопротивление лампы растёт с напряжением (нагрев)', () => {
+    expect(lampResistance(5)).toBeGreaterThan(lampResistance(1));
+  });
+  it('lampResistance(0) = R_cold (холодная нить)', () => {
+    expect(lampResistance(0)).toBeCloseTo(2.4, 3);
+  });
+  it('бросает на невалидных входах', () => {
+    expect(() => lampCurrent(NaN)).toThrow(RangeError);
+    expect(() => lampCurrent(-1)).toThrow(RangeError);
+  });
+});
+
+describe('lampCurrent — property фаззинг', () => {
+  const Us: number[] = [];
+  for (let u = 0; u <= 7.5; u = +(u + 0.05).toFixed(2)) Us.push(u);
+  it('всегда конечно и >=0', () => {
+    for (const u of Us) { const i = lampCurrent(u); expect(Number.isFinite(i)).toBe(true); expect(i).toBeGreaterThanOrEqual(0); }
+  });
+  it('строго монотонна при U>0', () => {
+    for (let n = 1; n < Us.length; n++) if (Us[n]! > 0) expect(lampCurrent(Us[n]!)).toBeGreaterThan(lampCurrent(Us[n - 1]!));
+  });
+  it('вогнута: вторая разность <= 0', () => {
+    for (let n = 2; n < Us.length; n++) {
+      const d2 = lampCurrent(Us[n]!) - 2 * lampCurrent(Us[n - 1]!) + lampCurrent(Us[n - 2]!);
+      expect(d2).toBeLessThanOrEqual(1e-9);
+    }
+  });
+  it('лампа ниже линейной экстраполяции из 0 (нелинейность вниз)', () => {
+    // касательная в 0 имеет наклон 1/R_cold; реальная кривая ниже неё при U>0
+    for (const u of Us) if (u > 0) expect(lampCurrent(u)).toBeLessThanOrEqual(u / 2.4 + 1e-9);
+  });
+  it('R лампы монотонно растёт с U', () => {
+    for (let n = 1; n < Us.length; n++) if (Us[n]! > 0 && Us[n - 1]! > 0) expect(lampResistance(Us[n]!)).toBeGreaterThanOrEqual(lampResistance(Us[n - 1]!) - 1e-9);
+  });
+  it('R лампы в диапазоне [R_cold, рабочая] для рабочих U', () => {
+    for (const u of Us) if (u > 0 && u <= 4.8) { const r = lampResistance(u); expect(r).toBeGreaterThanOrEqual(2.4 - 1e-9); expect(r).toBeLessThanOrEqual(9.6 + 1e-9); }
+  });
 });
 
 // ---------------------------------------------------------------------------

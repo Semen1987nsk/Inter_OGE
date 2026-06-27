@@ -32,3 +32,29 @@ export function workOfCurrent(U_V: number, I_A: number, t_s: number): number {
   if (t_s <= 0) throw new RangeError(`t must be > 0, got ${t_s}`);
   return U_V * I_A * t_s;
 }
+
+/** Лампа накаливания (ФИПИ 4,8 В · 0,5 А): нить греется → R растёт с током. */
+export const LAMP_R_COLD = 2.4; // Ом, холодная нить
+export const LAMP_K = 14.4;     // Ом/А, рост R с током (тюнинг под номинал)
+export const LAMP_RATED_U = 4.8;
+export const LAMP_RATED_I = 0.5;
+
+/**
+ * Сила тока через лампу I(U) [А] — нелинейная вогнутая ВАХ.
+ * Модель R(I)=R_cold+k·I ⇒ U=I·(R_cold+k·I) ⇒ I=(−R_cold+√(R_cold²+4kU))/(2k).
+ * Монотонна, вогнута, I(0)=0, проходит через номинал (4,8 В → 0,5 А).
+ */
+export function lampCurrent(U_V: number): number {
+  guard(U_V);
+  if (U_V < 0) throw new RangeError(`U must be >= 0, got ${U_V}`);
+  if (U_V === 0) return 0;
+  return (-LAMP_R_COLD + Math.sqrt(LAMP_R_COLD * LAMP_R_COLD + 4 * LAMP_K * U_V)) / (2 * LAMP_K);
+}
+
+/** Сопротивление лампы R(U)=U/I [Ом]; при U=0 → R_cold (нить холодная). */
+export function lampResistance(U_V: number): number {
+  guard(U_V);
+  if (U_V < 0) throw new RangeError(`U must be >= 0, got ${U_V}`);
+  if (U_V === 0) return LAMP_R_COLD;
+  return U_V / lampCurrent(U_V);
+}
