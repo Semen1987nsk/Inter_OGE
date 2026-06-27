@@ -514,7 +514,10 @@ export class WireResistanceExperiment {
     this.#rewiredSlotIds = [];
     for (const slotDef of SLOTS_WIRE) {
       const slotId = slotDef.id as SlotId;
-      const zoneId = `wire-slot-${slotId}`;
+      // Используем тот же ID, что и CircuitAssembly ('circuit-slot-*'),
+      // чтобы ЗАМЕНИТЬ зону в Map и не дублировать её (иначе circuit-slot-*
+      // находится первым и onDrop не обновляет card.dataset['placed']).
+      const zoneId = `circuit-slot-${slotId}`;
 
       this.#drag.removeSnapZone(zoneId);
 
