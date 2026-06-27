@@ -80,3 +80,31 @@ export function wireResistance(rho_Ohm_m: number, length_m: number, area_m2: num
   }
   return (rho_Ohm_m * length_m) / area_m2;
 }
+
+/**
+ * Суммарное сопротивление последовательного соединения: R = ΣR_i.
+ * Опыт 3.8 «Правило напряжений» — U = U1 + U2.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.8; КОДИФ §1.29.
+ */
+export function seriesResistance(...R_Ohm: number[]): number {
+  if (R_Ohm.length === 0) throw new RangeError('seriesResistance: нужен хотя бы один резистор');
+  guard(...R_Ohm);
+  for (const r of R_Ohm) {
+    if (r <= 0) throw new RangeError(`seriesResistance: R должен быть >0, получено ${r}`);
+  }
+  return R_Ohm.reduce((sum, r) => sum + r, 0);
+}
+
+/**
+ * Суммарное сопротивление параллельного соединения: R = 1/Σ(1/R_i).
+ * Опыт 3.9 «Правило токов» — I = I1 + I2.
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№3 (сноска 3) п.9; КОДИФ §1.29.
+ */
+export function parallelResistance(...R_Ohm: number[]): number {
+  if (R_Ohm.length === 0) throw new RangeError('parallelResistance: нужен хотя бы один резистор');
+  guard(...R_Ohm);
+  for (const r of R_Ohm) {
+    if (r <= 0) throw new RangeError(`parallelResistance: R должен быть >0, получено ${r}`);
+  }
+  return 1 / R_Ohm.reduce((sum, r) => sum + 1 / r, 0);
+}

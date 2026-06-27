@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I, wireResistance, RESISTIVITY } from '../CircuitModel';
+import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I, wireResistance, RESISTIVITY, seriesResistance, parallelResistance } from '../CircuitModel';
 
 describe('resistance R=U/I', () => {
   it('R1: U=1.5, I=0.32 → ≈4.69 Ом', () => {
@@ -277,5 +277,123 @@ describe('property fuzzing — 12 инвариантных категорий (~
       expect(() => power(v, 1)).toThrow(RangeError);
       expect(() => workOfCurrent(v, 1, 1)).toThrow(RangeError);
     }
+  });
+});
+
+describe('seriesResistance R = ΣR', () => {
+  it('два резистора: R1=4,7 R2=5,7 → 10,4 Ом', () => {
+    expect(seriesResistance(4.7, 5.7)).toBeCloseTo(10.4, 5);
+  });
+  it('один резистор: passthrough', () => {
+    expect(seriesResistance(4.7)).toBeCloseTo(4.7, 6);
+  });
+  it('три резистора: 1+2+3=6', () => {
+    expect(seriesResistance(1, 2, 3)).toBeCloseTo(6, 6);
+  });
+  it('R_послед ≥ max(Ri)', () => {
+    const r = seriesResistance(4.7, 5.7, 2.0);
+    expect(r).toBeGreaterThanOrEqual(Math.max(4.7, 5.7, 2.0));
+  });
+  it('RangeError на пустом аргументе', () => {
+    expect(() => seriesResistance()).toThrow(RangeError);
+  });
+  it('RangeError на нечисловом', () => {
+    expect(() => seriesResistance(NaN, 5.7)).toThrow(RangeError);
+  });
+  it('RangeError на нуле', () => {
+    expect(() => seriesResistance(0, 5.7)).toThrow(RangeError);
+  });
+  it('RangeError на отрицательном', () => {
+    expect(() => seriesResistance(-1, 5.7)).toThrow(RangeError);
+  });
+  it('фаззинг: seriesResistance ≥ max(Ri) для случайных положительных', () => {
+    for (let i = 0; i < 300; i++) {
+      const a = 0.5 + i * 0.03;
+      const b = 0.3 + i * 0.02;
+      const r = seriesResistance(a, b);
+      expect(r).toBeGreaterThanOrEqual(Math.max(a, b) - 1e-9);
+      expect(r).toBeCloseTo(a + b, 9);
+    }
+  });
+});
+
+describe('parallelResistance R = 1/Σ(1/R)', () => {
+  it('R1=4,7 R2=5,7 → ≈2,575 Ом', () => {
+    expect(parallelResistance(4.7, 5.7)).toBeCloseTo((4.7 * 5.7) / (4.7 + 5.7), 5);
+  });
+  it('один резистор: passthrough', () => {
+    expect(parallelResistance(4.7)).toBeCloseTo(4.7, 6);
+  });
+  it('два равных R: R_пар = R/2', () => {
+    expect(parallelResistance(6.0, 6.0)).toBeCloseTo(3.0, 6);
+  });
+  it('R_пар ≤ min(Ri)', () => {
+    const r = parallelResistance(4.7, 5.7);
+    expect(r).toBeLessThanOrEqual(Math.min(4.7, 5.7) + 1e-9);
+  });
+  it('RangeError на пустом аргументе', () => {
+    expect(() => parallelResistance()).toThrow(RangeError);
+  });
+  it('RangeError на нечисловом', () => {
+    expect(() => parallelResistance(NaN, 5.7)).toThrow(RangeError);
+  });
+  it('RangeError на нуле', () => {
+    expect(() => parallelResistance(0, 5.7)).toThrow(RangeError);
+  });
+  it('RangeError на отрицательном', () => {
+    expect(() => parallelResistance(-1, 5.7)).toThrow(RangeError);
+  });
+  it('фаззинг: parallelResistance ≤ min(Ri)', () => {
+    for (let i = 0; i < 300; i++) {
+      const a = 0.5 + i * 0.03;
+      const b = 0.3 + i * 0.02;
+      const r = parallelResistance(a, b);
+      expect(r).toBeLessThanOrEqual(Math.min(a, b) + 1e-9);
+      expect(r).toBeGreaterThan(0);
+    }
+  });
+  it('фаззинг: серия ≥ параллель для тех же резисторов', () => {
+    for (let i = 1; i <= 200; i++) {
+      const a = i * 0.05;
+      const b = i * 0.07;
+      expect(seriesResistance(a, b)).toBeGreaterThan(parallelResistance(a, b));
+    }
+  });
+});
+
+describe('серия/параллель — физические инварианты R1=4,7 R2=5,7', () => {
+  const R1 = 4.7;
+  const R2 = 5.7;
+  const U = 4.5;
+
+  it('серия: U1 + U2 = U_источника', () => {
+    const R_ser = seriesResistance(R1, R2);
+    const I_ser = current(U, R_ser);
+    const U1 = I_ser * R1;
+    const U2 = I_ser * R2;
+    expect(U1 + U2).toBeCloseTo(U, 6);
+  });
+
+  it('параллель: I1 + I2 = I_общ', () => {
+    const I1 = current(U, R1);
+    const I2 = current(U, R2);
+    const R_par = parallelResistance(R1, R2);
+    const I_total = current(U, R_par);
+    expect(I1 + I2).toBeCloseTo(I_total, 6);
+  });
+
+  it('серия: U1 < U_общ, U2 < U_общ (ни одно не всё напряжение)', () => {
+    const R_ser = seriesResistance(R1, R2);
+    const I_ser = current(U, R_ser);
+    const U1 = I_ser * R1;
+    const U2 = I_ser * R2;
+    expect(U1).toBeLessThan(U);
+    expect(U2).toBeLessThan(U);
+  });
+
+  it('параллель: I1 + I2 > max(I1, I2) (сумма больше каждой ветви)', () => {
+    const I1 = current(U, R1);
+    const I2 = current(U, R2);
+    expect(I1 + I2).toBeGreaterThan(Math.max(I1, I2));
   });
 });
