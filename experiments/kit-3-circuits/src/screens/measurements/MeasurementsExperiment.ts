@@ -22,6 +22,7 @@
 import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { CircuitTopology, CircuitAssembly } from '@controller/CircuitAssembly';
+import { CircuitDragController } from '@controller/CircuitDragController';
 import { current as circuitCurrent, power as circuitPower, workOfCurrent as circuitWork } from '@physics/circuit/CircuitModel';
 
 // §21 — единый журнал v2
@@ -117,174 +118,6 @@ const RESISTANCE_BY_VARIANT: Record<string, number> = {
 };
 
 const RECORD_MODE_KIT = 'kit-3';
-
-// ─── DragController (простая реализация для circuit) ─────────────────────────
-
-interface SnapZone {
-  id: string;
-  accepts: ReadonlyArray<string>;
-  getRect(): DOMRect;
-  onHover?(active: boolean): void;
-  onDrop(payload: { equipmentId: string }): boolean;
-}
-
-interface DragState {
-  el: HTMLElement;
-  kind: EqKind;
-  equipmentId: EquipmentId;
-  startX: number;
-  startY: number;
-  pointerId: number;
-  ghost: HTMLElement | null;
-  grabOffsetX: number;
-  grabOffsetY: number;
-}
-
-class CircuitDragController {
-  #overlay: HTMLElement;
-  #zones: Map<string, SnapZone> = new Map();
-  #active: DragState | null = null;
-  #lastHoveredZoneId: string | null = null;
-
-  constructor(overlay: HTMLElement) {
-    this.#overlay = overlay;
-  }
-
-  attach(
-    el: HTMLElement,
-    opts: {
-      equipmentId: EquipmentId;
-      kind: EqKind;
-      onDragStart(): void;
-      onDragEnd(): void;
-    },
-  ): void {
-    el.addEventListener('pointerdown', (ev) => {
-      if (ev.button !== 0) return;
-      ev.preventDefault();
-
-      const rect = el.getBoundingClientRect();
-      const ghost = el.cloneNode(true) as HTMLElement;
-      ghost.style.cssText = [
-        'position:fixed',
-        'pointer-events:none',
-        'z-index:9999',
-        'opacity:0.85',
-        `width:${rect.width}px`,
-        `height:${rect.height}px`,
-        `left:${ev.clientX - rect.width / 2}px`,
-        `top:${ev.clientY - rect.height / 2}px`,
-        'transition:none',
-      ].join(';');
-      this.#overlay.appendChild(ghost);
-
-      el.dataset['dragging'] = 'true';
-      this.#active = {
-        el,
-        kind: opts.kind,
-        equipmentId: opts.equipmentId,
-        startX: ev.clientX,
-        startY: ev.clientY,
-        pointerId: ev.pointerId,
-        ghost,
-        grabOffsetX: ev.clientX - rect.left,
-        grabOffsetY: ev.clientY - rect.top,
-      };
-
-      opts.onDragStart();
-      el.setPointerCapture(ev.pointerId);
-    });
-
-    el.addEventListener('pointermove', (ev) => {
-      if (!this.#active || this.#active.el !== el) return;
-      if (this.#active.ghost) {
-        this.#active.ghost.style.left = `${ev.clientX - this.#active.grabOffsetX}px`;
-        this.#active.ghost.style.top = `${ev.clientY - this.#active.grabOffsetY}px`;
-      }
-
-      // Hover over zones
-      const newHover = this.#findZone(ev.clientX, ev.clientY, this.#active.kind);
-      if (newHover !== this.#lastHoveredZoneId) {
-        if (this.#lastHoveredZoneId) {
-          this.#zones.get(this.#lastHoveredZoneId)?.onHover?.(false);
-        }
-        if (newHover) {
-          this.#zones.get(newHover)?.onHover?.(true);
-        }
-        this.#lastHoveredZoneId = newHover;
-      }
-    });
-
-    el.addEventListener('pointerup', (ev) => {
-      if (!this.#active || this.#active.el !== el) return;
-      const st = this.#active;
-      this.#active = null;
-
-      // Clear hover
-      if (this.#lastHoveredZoneId) {
-        this.#zones.get(this.#lastHoveredZoneId)?.onHover?.(false);
-        this.#lastHoveredZoneId = null;
-      }
-
-      // Remove ghost
-      if (st.ghost) {
-        st.ghost.remove();
-      }
-      delete el.dataset['dragging'];
-
-      // Try drop
-      const zone = this.#findZone(ev.clientX, ev.clientY, st.kind);
-      if (zone) {
-        this.#zones.get(zone)?.onDrop({ equipmentId: st.equipmentId });
-      }
-
-      opts.onDragEnd();
-    });
-
-    el.addEventListener('pointercancel', () => {
-      if (!this.#active || this.#active.el !== el) return;
-      if (this.#lastHoveredZoneId) {
-        this.#zones.get(this.#lastHoveredZoneId)?.onHover?.(false);
-        this.#lastHoveredZoneId = null;
-      }
-      if (this.#active.ghost) this.#active.ghost.remove();
-      delete el.dataset['dragging'];
-      this.#active = null;
-      opts.onDragEnd();
-    });
-  }
-
-  addSnapZone(zone: SnapZone): void {
-    this.#zones.set(zone.id, zone);
-  }
-
-  removeSnapZone(id: string): void {
-    this.#zones.delete(id);
-  }
-
-  cancel(): void {
-    if (this.#active) {
-      if (this.#active.ghost) this.#active.ghost.remove();
-      delete this.#active.el.dataset['dragging'];
-      this.#active = null;
-    }
-    if (this.#lastHoveredZoneId) {
-      this.#zones.get(this.#lastHoveredZoneId)?.onHover?.(false);
-      this.#lastHoveredZoneId = null;
-    }
-  }
-
-  #findZone(cx: number, cy: number, kind: EqKind): string | null {
-    for (const [id, zone] of this.#zones) {
-      if (!zone.accepts.includes(kind)) continue;
-      const r = zone.getRect();
-      if (cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom) {
-        return id;
-      }
-    }
-    return null;
-  }
-}
 
 // ─── ExperimentRefs ───────────────────────────────────────────────────────────
 
@@ -387,7 +220,7 @@ class HintEngine {
 export class MeasurementsExperiment {
   #refs: ExperimentRefs;
   #store: Store<CircuitState>;
-  #drag: CircuitDragController;
+  #drag: CircuitDragController<EqKind, EquipmentId>;
   #hints: HintEngine;
   #topology: CircuitTopology;
   #assembly: CircuitAssembly;

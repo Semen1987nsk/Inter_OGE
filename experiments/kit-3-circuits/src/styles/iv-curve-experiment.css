@@ -1,0 +1,101 @@
+/**
+ * iv-curve-experiment.css — стили экрана «ВАХ резистора и лампочки», опыт 3.4.
+ *
+ * Расширяет circuit-experiment.css. Новые компоненты:
+ *   - Увеличенная плавающая панель (вмещает график + журнал)
+ *   - График ВАХ + легенда + кнопка «Очистить»
+ */
+
+/* ─── Расширенная панель измерений для iv-curve (высота под график) ── */
+
+.iv-measurement-panel {
+  width: 360px;
+  max-width: calc(100% - 32px);
+}
+
+.iv-measurement-panel .measurement-body {
+  max-height: 560px;
+}
+
+/* ─── График ВАХ ─────────────────────────────────────────────────── */
+
+.graph-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-section[hidden] {
+  display: none;
+}
+
+/* ─── Легенда ────────────────────────────────────────────────────── */
+
+.graph-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.graph-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.graph-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ─── Кнопка «Очистить график» ───────────────────────────────────── */
+
+.clear-data-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid rgb(239 68 68 / 0.4);
+  border-radius: var(--radius-md);
+  color: rgb(239 68 68 / 0.8);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-end;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.clear-data-btn:hover {
+  background: rgb(239 68 68 / 0.1);
+  border-color: rgb(239 68 68 / 0.7);
+  color: #ef4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clear-data-btn {
+    transition: none;
+  }
+}
+
+/* ─── Адаптив — tablet ───────────────────────────────────────────── */
+
+@media (max-width: 1023px) {
+  .iv-measurement-panel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .iv-measurement-panel .measurement-body {
+    max-height: none;
+  }
+}

@@ -23,6 +23,7 @@ import './styles/reset.css';
 import './styles/components.css';
 import './styles/kit-shell.css';
 import './styles/circuit-experiment.css';
+import './styles/iv-curve-experiment.css';
 // §21 — shared journal v2 styles (.lab-journal-table, .j-verdict--*, .record-pending-btn).
 import '@labosfera/shared-spa/lib/journal/journal.css';
 
@@ -39,12 +40,14 @@ import './ui/components/lab-ammeter';
 import './ui/components/lab-resistor';
 import './ui/components/lab-key';
 import './ui/components/lab-circuit-board';
+import './ui/components/lab-lamp';
 
 import { KitShell } from '@shell/KitShell';
 import type { IScreen, ScreenId } from '@shell/IScreen';
 import type { LabKitNav } from './ui/components/lab-kit-nav';
 import type { LabKitHeader } from './ui/components/lab-kit-header';
 import { MeasurementsScreen } from '@screens/measurements/MeasurementsScreen';
+import { IvCurveScreen } from '@screens/iv-curve/IvCurveScreen';
 import { homeUrl, readRoleFromUrl, persistRole, readPersistedRole, type Role } from './lib/urls';
 
 // ─── Role: ?role=teacher|student → body[data-role] + role-badge ───
@@ -76,6 +79,7 @@ const header = document.getElementById('kit-header') as LabKitHeader;
 
 const screens: IScreen[] = [
   new MeasurementsScreen(),
+  new IvCurveScreen(),
 ];
 
 navBar.setScreens(screens.map((s) => s.meta));

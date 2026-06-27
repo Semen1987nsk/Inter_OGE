@@ -29,6 +29,7 @@ export default defineConfig({
         // Каждый screen — отдельный chunk для кода-сплиттинга и быстрой загрузки
         manualChunks: {
           'screen-measurements': ['./src/screens/measurements/MeasurementsScreen.ts'],
+          'screen-iv-curve': ['./src/screens/iv-curve/IvCurveScreen.ts'],
         },
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',

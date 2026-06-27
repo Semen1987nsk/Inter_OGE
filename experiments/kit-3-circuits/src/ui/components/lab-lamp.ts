@@ -62,7 +62,6 @@ template.innerHTML = `
   :host(:focus-visible) .focus-ring { opacity: 1; }
 </style>
 <svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg" role="img">
-  <title>Лампа накаливания</title>
   <defs>
     <!-- Градиент стекла колбы -->
     <radialGradient id="lamp-glass" cx="40%" cy="35%" r="60%">
