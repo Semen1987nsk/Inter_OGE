@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { current, resistance, power, workOfCurrent, lampCurrent, lampResistance, LAMP_RATED_U, LAMP_RATED_I } from '../CircuitModel';
+import { wireResistance, RESISTIVITY } from '../CircuitModel';
 
 describe('resistance R=U/I', () => {
   it('R1: U=1.5, I=0.32 → ≈4.69 Ом', () => {
@@ -75,6 +76,40 @@ describe('lampCurrent — property фаззинг', () => {
   });
   it('R лампы в диапазоне [R_cold, рабочая] для рабочих U', () => {
     for (const u of Us) if (u > 0 && u <= 4.8) { const r = lampResistance(u); expect(r).toBeGreaterThanOrEqual(2.4 - 1e-9); expect(r).toBeLessThanOrEqual(9.6 + 1e-9); }
+  });
+});
+
+describe('wireResistance R=ρl/S', () => {
+  it('номинал набора: нихром l=1,0 S=0,25мм² → 4,4 Ом', () => {
+    expect(wireResistance(RESISTIVITY.нихром, 1.0, 0.25e-6)).toBeCloseTo(4.4, 5);
+  });
+  it('R ∝ l: удвоение длины удваивает R', () => {
+    const r1 = wireResistance(RESISTIVITY.нихром, 1.0, 0.25e-6);
+    const r2 = wireResistance(RESISTIVITY.нихром, 2.0, 0.25e-6);
+    expect(r2 / r1).toBeCloseTo(2, 6);
+  });
+  it('R ∝ 1/S: удвоение сечения вдвое уменьшает R', () => {
+    const r1 = wireResistance(RESISTIVITY.нихром, 2.0, 0.25e-6);
+    const r2 = wireResistance(RESISTIVITY.нихром, 2.0, 0.5e-6);
+    expect(r1 / r2).toBeCloseTo(2, 6);
+  });
+  it('R ∝ ρ: отношение R = отношению ρ', () => {
+    const rNi = wireResistance(RESISTIVITY.нихром, 2.0, 0.25e-6);
+    const rKo = wireResistance(RESISTIVITY.константан, 2.0, 0.25e-6);
+    expect(rNi / rKo).toBeCloseTo(RESISTIVITY.нихром / RESISTIVITY.константан, 6);
+  });
+  it.each([[0, 1, 1e-6], [1e-6, 0, 1e-6], [1e-6, 1, 0], [-1e-6, 1, 1e-6], [NaN, 1, 1e-6]])(
+    'RangeError на невалидных (%p,%p,%p)', (rho, l, s) => {
+      expect(() => wireResistance(rho, l, s)).toThrow(RangeError);
+    });
+  it('фаззинг: R>0 и монотонно растёт по l при фикс ρ,S', () => {
+    for (let i = 0; i < 200; i++) {
+      const l1 = 0.1 + i * 0.01, l2 = l1 + 0.05;
+      const r1 = wireResistance(RESISTIVITY.нихром, l1, 0.5e-6);
+      const r2 = wireResistance(RESISTIVITY.нихром, l2, 0.5e-6);
+      expect(r1).toBeGreaterThan(0);
+      expect(r2).toBeGreaterThan(r1);
+    }
   });
 });
 

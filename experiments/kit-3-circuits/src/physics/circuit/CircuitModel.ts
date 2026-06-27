@@ -58,3 +58,25 @@ export function lampResistance(U_V: number): number {
   if (U_V === 0) return LAMP_R_COLD;
   return U_V / lampCurrent(U_V);
 }
+
+/** Удельные сопротивления (Ом·м) проволочных материалов набора кит-3. */
+export const RESISTIVITY = {
+  нихром: 1.1e-6,
+  константан: 0.5e-6,
+  никелин: 0.4e-6,
+} as const;
+
+/**
+ * Сопротивление проволочного резистора: R = ρ·l/S.
+ * rho_Ohm_m — удельное сопротивление (Ом·м); length_m — длина (м);
+ * area_m2 — площадь поперечного сечения (м²). R=ρl/S (спека §4).
+ */
+export function wireResistance(rho_Ohm_m: number, length_m: number, area_m2: number): number {
+  if (!Number.isFinite(rho_Ohm_m) || !Number.isFinite(length_m) || !Number.isFinite(area_m2)) {
+    throw new RangeError('wireResistance: ρ, l, S должны быть конечными числами');
+  }
+  if (rho_Ohm_m <= 0 || length_m <= 0 || area_m2 <= 0) {
+    throw new RangeError('wireResistance: ρ, l, S должны быть положительными');
+  }
+  return (rho_Ohm_m * length_m) / area_m2;
+}
