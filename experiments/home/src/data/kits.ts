@@ -117,7 +117,7 @@ export const KITS: ReadonlyArray<Kit> = [
       { id: 'measurements',         title: 'Измерение сопротивления',              resultVerb: 'Измерь электрическое сопротивление резистора',         fipiTask: '3.1', isFipi: true, done: true },
       { id: 'measurements',         title: 'Измерение мощности тока',              resultVerb: 'Измерь мощность электрического тока',                  fipiTask: '3.2', isFipi: true, done: true },
       { id: 'measurements',         title: 'Измерение работы тока',                resultVerb: 'Измерь работу электрического тока',                    fipiTask: '3.3', isFipi: true, done: true },
-      { id: 'iv-curve',             title: 'ВАХ резистора и лампочки',             resultVerb: 'Исследуй зависимость тока от напряжения',              fipiTask: '3.4', isFipi: true, done: false },
+      { id: 'iv-curve',             title: 'ВАХ резистора и лампочки',             resultVerb: 'Исследуй зависимость тока от напряжения',              fipiTask: '3.4', isFipi: true, done: true },
       { id: 'wire-resistance',      title: 'Зависимость R от длины',               resultVerb: 'Исследуй зависимость R от длины проводника',            fipiTask: '3.5', isFipi: true, done: false },
       { id: 'wire-resistance',      title: 'Зависимость R от сечения',             resultVerb: 'Исследуй зависимость R от площади поперечного сечения', fipiTask: '3.6', isFipi: true, done: false },
       { id: 'wire-resistance',      title: 'Зависимость R от удельного R',         resultVerb: 'Исследуй зависимость R от удельного сопротивления',     fipiTask: '3.7', isFipi: true, done: false },

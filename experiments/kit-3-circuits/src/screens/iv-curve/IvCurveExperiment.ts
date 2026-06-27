@@ -483,7 +483,11 @@ export class IvCurveExperiment {
     this.#rewiredSlotIds = [];
     for (const slotDef of SLOTS_IV) {
       const slotId = slotDef.id as SlotId;
-      const zoneId = `iv-slot-${slotId}`;
+      // Use the same zone-ID prefix as CircuitAssembly so we REPLACE its handler
+      // (CircuitAssembly registers 'circuit-slot-<id>'; using a different prefix
+      //  would leave the Assembly's handler first in the Map and our onDrop
+      //  would never be called — because #findZone returns the first match).
+      const zoneId = `circuit-slot-${slotId}`;
 
       this.#drag.removeSnapZone(zoneId);
 
