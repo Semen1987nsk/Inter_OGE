@@ -398,7 +398,6 @@ export class LensBenchExperiment {
     if (st.activeTask === 'C-image') {
       const d = st.objectDistanceMm;
       const F = st.lensF_mm;
-      const g = magnification(F, d);
       const zone = zoneLabelRu(objectZone(F, d));
       const measurement: BenchMeasurement = {
         id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
@@ -418,7 +417,6 @@ export class LensBenchExperiment {
           ? `Записана зона ${zone}.`
           : `Записана зона ${zone}. Классифицируйте изображение в журнале и проверьте.`,
       );
-      void g;
       return;
     }
 
@@ -895,7 +893,6 @@ export class LensBenchExperiment {
     const isFullyAuto = this.#recordMode() === 'fully-auto';
     if (m.task === 'C-image') {
       const props = imageProperties(m.F_mm, m.d_mm);
-      const auto = isFullyAuto;
       return {
         idx,
         timestamp: m.timestamp,
@@ -905,10 +902,10 @@ export class LensBenchExperiment {
           // скрытый числовой контекст для грейда (render не покажет — нет колонок d_mm/F_mm)
           d_mm: m.d_mm,
           F_mm: m.F_mm,
-          kind: auto ? props.kind : null,
-          orientation: auto ? props.orientation : null,
-          size: auto ? props.size : null,
-          gamma: auto ? (Number.isFinite(props.gamma) ? props.gamma : null) : null,
+          kind: isFullyAuto ? props.kind : null,
+          orientation: isFullyAuto ? props.orientation : null,
+          size: isFullyAuto ? props.size : null,
+          gamma: isFullyAuto ? (Number.isFinite(props.gamma) ? props.gamma : null) : null,
         },
       };
     }

@@ -785,7 +785,7 @@ describe('LensBenchExperiment — задача C (опыт 4.4 свойства 
     expect(td.textContent).toContain('действительное');
   });
 
-  it('a11y: в semi-auto live-region и result-panel НЕ содержат правильную категорию', () => {
+  it('a11y: в semi-auto live-region и result-panel НЕ содержат правильную категорию', async () => {
     const { exp, refs } = make();
     localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
     exp.setActiveTask('C-image');
@@ -794,11 +794,20 @@ describe('LensBenchExperiment — задача C (опыт 4.4 свойства 
     exp.placeInSlot('screen', 'screen');
     exp.setObjectDistanceMm(300);
     exp.recordMeasurement();
+    // HintEngine.announce пишет через requestAnimationFrame — ждём кадр.
+    await new Promise<void>((r) => requestAnimationFrame(() => r()));
+    const liveText = refs.liveRegion.textContent ?? '';
+    // Announce реально отработал — строка непустая.
+    expect(liveText).not.toBe('');
     for (const node of [refs.liveRegion, refs.resultPanel]) {
       const t = node.textContent ?? '';
       expect(t).not.toContain('уменьшенное');
       expect(t).not.toContain('перевёрнутое');
       expect(t).not.toContain('действительное');
+      expect(t).not.toContain('увеличенное');
+      expect(t).not.toContain('мнимое');
+      expect(t).not.toContain('прямое');
+      expect(t).not.toContain('равное');
     }
   });
 
@@ -824,7 +833,8 @@ describe('LensBenchExperiment — задача C (опыт 4.4 свойства 
     exp.setObjectDistanceMm(300);
     // Кликаем кнопку «Авто» в record-mode-slot, которую renderRecordModeToggle отрендерил.
     const autoBtn = host.querySelector<HTMLButtonElement>('.lab-record-mode-toggle__segment[data-mode="fully-auto"]');
-    autoBtn?.click();
+    expect(autoBtn).not.toBeNull();
+    autoBtn!.click();
     expect(exp.measurements.filter((m) => m.task === 'C-image').length).toBe(0);
   });
 });
