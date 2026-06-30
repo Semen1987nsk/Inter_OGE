@@ -673,6 +673,34 @@ export const LENS_POWER_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 4.2 «Измерение фокусного расстояния собирающей линзы по равенству размеров».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19), сноска (4):
+ * «...фокусного расстояния собирающей линзы (по свойству равенства размеров предмета
+ *  и изображения, когда предмет расположен в двойном фокусе)...». КОДИФ §1.29.
+ *
+ * Метод: добиться резкого изображения, равного предмету по размеру (Γ=−1) → предмет в 2F.
+ *   Снять расстояние предмет→линза при равенстве (= 2F) [мм]; F = 2F / 2 [мм].
+ * Физика инлайнится (не импортируется из kit-4), по канону specs.ts (§21.A.4).
+ */
+export const FOCAL_2F_SPEC: JournalSpec = {
+  experimentId: '4.2',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'twoF_mm', label: '2F', source: 'direct', unit: 'мм', format: 'int' },
+    {
+      key: 'F_mm',
+      label: 'F',
+      source: 'derived',
+      unit: 'мм',
+      format: 'int',
+      tolerance: 0.05,
+      // F = 2F / 2  [фокус по двойному фокусу; считаем ТОЛЬКО из прямого twoF_mm]
+      expectedFromRow: (r) => (r.twoF_mm ?? 0) / 2,
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -694,6 +722,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   SERIES_VOLTAGE_SPEC,
   PARALLEL_CURRENT_SPEC,
   LENS_POWER_SPEC,
+  FOCAL_2F_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {

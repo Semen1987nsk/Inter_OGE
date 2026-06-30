@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LENS_POWER_SPEC, ALL_SPECS } from '../src/lib/journal/specs';
+import { LENS_POWER_SPEC, ALL_SPECS, FOCAL_2F_SPEC, getSpecByExperimentId } from '../src/lib/journal/specs';
 import { verifyRow } from '../src/lib/journal/verify';
 
 describe('LENS_POWER_SPEC (4.1)', () => {
@@ -95,5 +95,38 @@ describe('LENS_POWER_SPEC (4.1)', () => {
   it('порядок колонок: d_mm, f_mm, F_mm, D_dptr', () => {
     const keys = LENS_POWER_SPEC.columns.map((c) => c.key);
     expect(keys).toEqual(['d_mm', 'f_mm', 'F_mm', 'D_dptr']);
+  });
+});
+
+describe('FOCAL_2F_SPEC (опыт 4.2)', () => {
+  it('experimentId=4.2, kitId=kit-4', () => {
+    expect(FOCAL_2F_SPEC.experimentId).toBe('4.2');
+    expect(FOCAL_2F_SPEC.kitId).toBe('kit-4');
+  });
+
+  it('колонки: twoF_mm (direct) + F_mm (derived)', () => {
+    const keys = FOCAL_2F_SPEC.columns.map((c) => c.key);
+    expect(keys).toEqual(['twoF_mm', 'F_mm']);
+    const twoF = FOCAL_2F_SPEC.columns.find((c) => c.key === 'twoF_mm')!;
+    const F = FOCAL_2F_SPEC.columns.find((c) => c.key === 'F_mm')!;
+    expect(twoF.source).toBe('direct');
+    expect(F.source).toBe('derived');
+  });
+
+  it('F_mm = twoF_mm / 2 (считается ТОЛЬКО из twoF_mm)', () => {
+    const F = FOCAL_2F_SPEC.columns.find((c) => c.key === 'F_mm')!;
+    expect(F.expectedFromRow!({ twoF_mm: 200 })).toBeCloseTo(100, 6);
+    expect(F.expectedFromRow!({ twoF_mm: 100 })).toBeCloseTo(50, 6);
+    // не использует посторонние поля
+    expect(F.expectedFromRow!({ twoF_mm: 200, F_mm: 999 })).toBeCloseTo(100, 6);
+  });
+
+  it('F_mm.expectedFromRow на пустой строке → 0 (без NaN)', () => {
+    const F = FOCAL_2F_SPEC.columns.find((c) => c.key === 'F_mm')!;
+    expect(F.expectedFromRow!({})).toBe(0);
+  });
+
+  it('зарегистрирован в ALL_SPECS / getSpecByExperimentId', () => {
+    expect(getSpecByExperimentId('4.2')).toBe(FOCAL_2F_SPEC);
   });
 });
