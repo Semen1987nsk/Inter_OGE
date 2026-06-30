@@ -509,6 +509,122 @@ describe('LensBenchExperiment — record-mode gating (regression M2/M3)', () => 
   });
 });
 
+describe('LensBenchExperiment — задача B (опыт 4.2, равенство размеров)', () => {
+  let host: HTMLElement;
+  let experiment: LensBenchExperiment;
+  function build(): void {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    experiment = new LensBenchExperiment(buildRefs(host));
+  }
+  function assemble(exp: LensBenchExperiment): void {
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+  }
+  afterEach(() => {
+    experiment?.destroy();
+    host?.remove();
+    globalThis.localStorage.removeItem('inter-oge.record-mode.kit-4'); // не протекать режимом между тестами
+    globalThis.gc?.();
+  });
+
+  it('default activeTask = A-power', () => {
+    build();
+    expect(experiment.activeTask).toBe('A-power');
+  });
+
+  it('setActiveTask(B) переключает задачу и применяет дефолты B (d=150,screen=250)', () => {
+    build();
+    experiment.setActiveTask('B-focal2f');
+    expect(experiment.activeTask).toBe('B-focal2f');
+    expect(experiment.objectDistanceMm).toBe(150);
+    expect(experiment.screenDistanceMm).toBe(250);
+  });
+
+  it('isSizesEqual: true при d=2F (200, F=100), false иначе', () => {
+    build();
+    experiment.setActiveTask('B-focal2f');
+    assemble(experiment);
+    experiment.setObjectDistanceMm(200); // |Γ|=1
+    expect(experiment.isSizesEqual).toBe(true);
+    experiment.setObjectDistanceMm(150); // |Γ|=2
+    expect(experiment.isSizesEqual).toBe(false);
+  });
+
+  it('task B: запись игнорируется пока не резко И равно', () => {
+    build();
+    experiment.setActiveTask('B-focal2f');
+    assemble(experiment);
+    // d=150 (не равно), экран=250 (не резко)
+    experiment.recordMeasurement();
+    expect(experiment.measurements.length).toBe(0);
+    // выставляем d=200 (равно) + экран=200 (резко)
+    experiment.setObjectDistanceMm(200);
+    experiment.setScreenDistanceMm(200);
+    expect(experiment.isSharp).toBe(true);
+    expect(experiment.isSizesEqual).toBe(true);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.length).toBe(1);
+    const m = experiment.measurements[0]!;
+    expect(m.task).toBe('B-focal2f');
+    expect(m.twoF_mm).toBeCloseTo(200, 0);
+    expect(m.F_mm).toBeCloseTo(100, 0); // F=2F/2
+  });
+
+  it('журнал задачи B изолирован от задачи A (фильтр по task)', () => {
+    build();
+    // запись в A
+    assemble(experiment);
+    experiment.setScreenDistanceMm(200);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.filter((m) => m.task === 'A-power').length).toBe(1);
+    // переключаемся в B, пишем
+    experiment.setActiveTask('B-focal2f');
+    assemble(experiment);
+    experiment.setObjectDistanceMm(200);
+    experiment.setScreenDistanceMm(200);
+    experiment.recordMeasurement();
+    expect(experiment.measurements.filter((m) => m.task === 'B-focal2f').length).toBe(1);
+    // возврат в A не теряет данные A
+    experiment.setActiveTask('A-power');
+    expect(experiment.measurements.filter((m) => m.task === 'A-power').length).toBe(1);
+  });
+
+  it('слайдер предмета виден в task B, скрыт в task A', () => {
+    build();
+    const row = host.querySelector<HTMLElement>('#object-slider-row')!;
+    expect(row.hidden).toBe(true); // task A
+    experiment.setActiveTask('B-focal2f');
+    expect(row.hidden).toBe(false);
+    experiment.setActiveTask('A-power');
+    expect(row.hidden).toBe(true);
+  });
+
+  it('клик по [data-task=B] в #steps переключает задачу', () => {
+    build();
+    const stepB = host.querySelector<HTMLElement>('[data-task="B-focal2f"]')!;
+    stepB.click();
+    expect(experiment.activeTask).toBe('B-focal2f');
+  });
+
+  it('A11y: result-panel task B НЕ палит F в semi-auto, палит в fully-auto', () => {
+    const KEY = 'inter-oge.record-mode.kit-4';
+    globalThis.localStorage.setItem(KEY, 'semi-auto');
+    build();
+    experiment.setActiveTask('B-focal2f');
+    assemble(experiment);
+    experiment.setObjectDistanceMm(200);
+    experiment.setScreenDistanceMm(200);
+    experiment.recordMeasurement();
+    const rp = host.querySelector<HTMLElement>('#result-panel')!;
+    expect(rp.textContent).toContain('2F'); // фраза «F = 2F / 2» допустима
+    expect(rp.innerHTML).not.toContain('<strong>F</strong>'); // но не готовое F
+    expect(rp.textContent).not.toMatch(/2F\s*=\s*\d/); // и не численное 2F (деление /2 тривиально палит F)
+    globalThis.localStorage.removeItem(KEY);
+  });
+});
+
 describe('LensBenchScreen — IScreen lifecycle', () => {
   function mountScreen() {
     const host = document.createElement('div');

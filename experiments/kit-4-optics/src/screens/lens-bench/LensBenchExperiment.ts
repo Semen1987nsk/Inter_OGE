@@ -24,7 +24,7 @@ import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { BenchTopology, OpticalBenchAssembly } from '@controller/OpticalBenchAssembly';
 import { OpticalDragController } from '@controller/OpticalDragController';
-import { focalFromDistances, opticalPower, imageDistance } from '@physics/optics/LensModel';
+import { focalFromDistances, opticalPower, imageDistance, magnification } from '@physics/optics/LensModel';
 
 // §21 — единый журнал v2
 import {
@@ -35,13 +35,16 @@ import {
 } from '@labosfera/shared-spa/lib/record-mode';
 import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
-import { LENS_POWER_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import { LENS_POWER_SPEC, FOCAL_2F_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
 import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
 
 /** ID слотов на оптической скамье */
 export type BenchSlotId = 'object' | 'lens' | 'screen';
+
+/** Активная задача экрана lens-bench. A=4.1 (опт.сила), B=4.2 (фокус по 2F). */
+export type LensTaskId = 'A-power' | 'B-focal2f';
 
 /** ID оборудования комплекта */
 export type OpticsEquipmentId = 'light-object' | 'lens' | 'screen';
@@ -65,15 +68,18 @@ interface BenchState {
   measurements: BenchMeasurement[];
   dragging: OpticsEquipmentId | null;
   rayOverlayOn: boolean;
+  activeTask: LensTaskId;
 }
 
 export interface BenchMeasurement {
   readonly id: string;
   readonly timestamp: number;
+  readonly task: LensTaskId;
   readonly d_mm: number;
   readonly f_mm: number;
   readonly F_mm: number;
   readonly D_dptr: number;
+  readonly twoF_mm?: number;
 }
 
 const DEFAULT_OBJECT_DISTANCE_MM = 200;
@@ -81,6 +87,21 @@ const DEFAULT_SCREEN_DISTANCE_MM = 200;
 const DEFAULT_LENS_F_MM = 100;
 /** Полоса фокуса (мм): |screenDistanceMm − imageDistance| ≤ FOCUS_BAND_MM → изображение «резкое». */
 const FOCUS_BAND_MM = 5;
+
+/** Полоса равенства размеров: ||Γ|−1| ≤ SIZE_EPS → «размеры равны» (опыт 4.2). */
+const SIZE_EPS = 0.03;
+
+/** Дефолтные позиции по задачам. */
+const TASK_DEFAULTS: Record<LensTaskId, { objectMm: number; screenMm: number }> = {
+  'A-power':   { objectMm: 200, screenMm: 200 },
+  'B-focal2f': { objectMm: 150, screenMm: 250 },
+};
+
+/** Журнал-спека по задаче. */
+const SPEC_BY_TASK: Record<LensTaskId, JournalSpec> = {
+  'A-power':   LENS_POWER_SPEC,
+  'B-focal2f': FOCAL_2F_SPEC,
+};
 
 const INITIAL_STATE: BenchState = {
   placed: {},
@@ -90,6 +111,7 @@ const INITIAL_STATE: BenchState = {
   measurements: [],
   dragging: null,
   rayOverlayOn: false,
+  activeTask: 'A-power',
 };
 
 /** Топология опыта 4.1 — три гнезда на скамье */
@@ -175,7 +197,16 @@ class HintEngine {
     const delta = Number.isFinite(imagePlaneMm)
       ? Math.abs(st.screenDistanceMm - imagePlaneMm)
       : Infinity;
-    if (delta < 5) {
+    const sharp = delta < 5;
+    if (st.activeTask === 'B-focal2f') {
+      const g = Math.abs(magnification(F, d));
+      const equal = Number.isFinite(g) && Math.abs(g - 1) <= 0.03;
+      if (sharp && equal) { this.#set('Размеры равны — предмет в двойном фокусе! Запишите 2F и вычислите F = 2F/2.'); return; }
+      if (!sharp) { this.#set('Двигайте экран до резкого изображения.'); return; }
+      this.#set('Изображение резкое. Двигайте предмет, пока изображение не сравняется по размеру с предметом.');
+      return;
+    }
+    if (sharp) {
       this.#set('Изображение резкое! Запишите d и f в журнал, вычислите F и D.');
     } else {
       this.#set('Двигайте экран вдоль скамьи, пока изображение не станет резким.');
@@ -229,6 +260,8 @@ export class LensBenchExperiment {
     });
 
     this.#wireUp();
+    this.#refreshObjectSliderVisibility();
+    this.#refreshTaskStepper();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
@@ -261,6 +294,50 @@ export class LensBenchExperiment {
     return st.objectDistanceMm > st.lensF_mm ? 'inverted' : 'upright';
   }
 
+  get activeTask(): LensTaskId {
+    return this.#store.get().activeTask;
+  }
+
+  /** Размеры предмета и изображения равны (|Γ|≈1) — признак предмета в 2F (опыт 4.2). */
+  get isSizesEqual(): boolean {
+    const st = this.#store.get();
+    const g = Math.abs(magnification(st.lensF_mm, st.objectDistanceMm));
+    return Number.isFinite(g) && Math.abs(g - 1) <= SIZE_EPS;
+  }
+
+  /** Переключить задачу (A-power/B-focal2f). Сброс сборки к дефолтам задачи; измерения сохраняем. */
+  setActiveTask(task: LensTaskId): void {
+    this.#drag.cancel();
+    this.#topology.reset();
+    for (const card of this.#cardByEquipmentId.values()) {
+      card.setAttribute('status', 'available');
+      card.removeAttribute('data-placed');
+    }
+    const keep = [...this.#store.get().measurements];
+    const def = TASK_DEFAULTS[task];
+    this.#store.set({
+      ...INITIAL_STATE,
+      activeTask: task,
+      objectDistanceMm: def.objectMm,
+      screenDistanceMm: def.screenMm,
+      measurements: keep,
+    });
+    this.#lastRecordedSignature = '';
+    this.#lastAnnouncedResult = '';
+    this.#refs.bench.setLensFocalMm(DEFAULT_LENS_F_MM); // ПЕРЕД setObjectDistanceMm: #imageScale читает текущий F
+    this.#refs.bench.setObjectDistanceMm(def.objectMm);
+    this.#refs.bench.setScreenDistanceMm(def.screenMm);
+    this.#refs.bench.setRayOverlay(false);
+    this.#refs.bench.setSizeMatch(false);
+    this.#refs.rayOverlayBtn.setAttribute('aria-pressed', 'false');
+    this.#syncScreenSlider(def.screenMm);
+    this.#syncObjectSlider(def.objectMm);
+    this.#refreshObjectSliderVisibility();
+    this.#refreshTaskStepper();
+    this.#refreshUi();
+    this.#hints.update(this.#store.get());
+  }
+
   /** Программно разместить прибор в слот (для тестов). */
   placeInSlot(slotId: BenchSlotId, equipmentId: OpticsEquipmentId): boolean {
     const kind = this.#kindForEquipment(equipmentId);
@@ -279,6 +356,7 @@ export class LensBenchExperiment {
     if (!Number.isFinite(d) || d <= 0) return;
     this.#store.update(() => ({ objectDistanceMm: d }));
     this.#refs.bench.setObjectDistanceMm(d);
+    this.#syncObjectSlider(d);
     this.#afterBenchChange();
   }
 
@@ -296,32 +374,51 @@ export class LensBenchExperiment {
     const st = this.#store.get();
     if (!this.#topology.validate().ok) return;
 
-    const d = st.objectDistanceMm;
-    const f = st.screenDistanceMm;
-    const F = focalFromDistances(d, f);
-    const D = opticalPower(F / 1000);
-
-    const measurement: BenchMeasurement = {
-      id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      timestamp: Date.now(),
-      d_mm: d,
-      f_mm: f,
-      F_mm: F,
-      D_dptr: D,
-    };
+    let measurement: BenchMeasurement;
+    if (st.activeTask === 'B-focal2f') {
+      // Опыт 4.2: запись только при резко И равных размерах (предмет в 2F).
+      if (!this.isSharp || !this.isSizesEqual) return;
+      const twoF = st.objectDistanceMm;       // d при равенстве = 2F
+      const F = twoF / 2;
+      measurement = {
+        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        task: 'B-focal2f',
+        d_mm: twoF,
+        f_mm: st.screenDistanceMm,
+        F_mm: F,
+        D_dptr: opticalPower(F / 1000),
+        twoF_mm: twoF,
+      };
+    } else {
+      // Опыт 4.1: F = d·f/(d+f); D = 1/F.
+      const d = st.objectDistanceMm;
+      const f = st.screenDistanceMm;
+      const F = focalFromDistances(d, f);
+      measurement = {
+        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        task: 'A-power',
+        d_mm: d,
+        f_mm: f,
+        F_mm: F,
+        D_dptr: opticalPower(F / 1000),
+      };
+    }
 
     this.#store.update((s: Readonly<BenchState>) => ({
       measurements: [...s.measurements, measurement],
     }));
     this.#lastRecordedSignature = this.#pendingSignature();
     this.#refreshUi();
-    // a11y (спека §8 п.6): измеренные d и f озвучиваем всегда (это снято со шкалы),
-    // но вычисленное F — только в fully-auto, иначе SR палит ответ до расчёта.
     const isFullyAuto = this.#recordMode() === 'fully-auto';
-    const fPart = isFullyAuto ? ` F ≈ ${F.toFixed(0)} мм.` : '';
-    this.#hints.announce(
-      `Записано: d = ${d.toFixed(0)} мм, f = ${f.toFixed(0)} мм.${fPart}`,
-    );
+    if (st.activeTask === 'B-focal2f') {
+      const fPart = isFullyAuto ? ` F ≈ ${measurement.F_mm.toFixed(0)} мм.` : '';
+      this.#hints.announce(`Записано: 2F = ${measurement.twoF_mm!.toFixed(0)} мм (предмет в двойном фокусе).${fPart}`);
+    } else {
+      const fPart = isFullyAuto ? ` F ≈ ${measurement.F_mm.toFixed(0)} мм.` : '';
+      this.#hints.announce(`Записано: d = ${measurement.d_mm.toFixed(0)} мм, f = ${measurement.f_mm.toFixed(0)} мм.${fPart}`);
+    }
   }
 
   /** Переключить opt-in оверлей лучей. */
@@ -336,7 +433,9 @@ export class LensBenchExperiment {
   reset(): void {
     this.#drag.cancel();
     this.#topology.reset();
-    this.#store.set({ ...INITIAL_STATE });
+    const keepTask = this.#store.get().activeTask;
+    const def = TASK_DEFAULTS[keepTask];
+    this.#store.set({ ...INITIAL_STATE, activeTask: keepTask, objectDistanceMm: def.objectMm, screenDistanceMm: def.screenMm });
     this.#lastAnnouncedResult = '';
     this.#journalDrafts.clear();
     this.#journalVerdicts.clear();
@@ -345,12 +444,15 @@ export class LensBenchExperiment {
       card.setAttribute('status', 'available');
       card.removeAttribute('data-placed');
     }
-    this.#refs.bench.setObjectDistanceMm(DEFAULT_OBJECT_DISTANCE_MM);
-    this.#refs.bench.setLensFocalMm(DEFAULT_LENS_F_MM);
-    this.#refs.bench.setScreenDistanceMm(DEFAULT_SCREEN_DISTANCE_MM);
+    this.#refs.bench.setLensFocalMm(DEFAULT_LENS_F_MM); // ПЕРЕД setObjectDistanceMm: #imageScale читает текущий F
+    this.#refs.bench.setObjectDistanceMm(def.objectMm);
+    this.#refs.bench.setScreenDistanceMm(def.screenMm);
     this.#refs.bench.setRayOverlay(false);
+    this.#refs.bench.setSizeMatch(false);
     this.#refs.rayOverlayBtn.setAttribute('aria-pressed', 'false');
-    this.#syncScreenSlider(DEFAULT_SCREEN_DISTANCE_MM);
+    this.#syncScreenSlider(def.screenMm);
+    this.#syncObjectSlider(def.objectMm);
+    this.#refreshObjectSliderVisibility();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
     this.#hints.announce('Установка сброшена. Все приборы вернулись в комплект.');
@@ -419,6 +521,28 @@ export class LensBenchExperiment {
     this.#refs.screenSlider.addEventListener('input', () => {
       const f = Number(this.#refs.screenSlider.value);
       if (Number.isFinite(f)) this.setScreenDistanceMm(f);
+    });
+
+    // Слайдер положения предмета (опыт 4.2).
+    this.#refs.objectSlider.addEventListener('input', () => {
+      const d = Number(this.#refs.objectSlider.value);
+      if (Number.isFinite(d)) this.setObjectDistanceMm(d);
+    });
+
+    // Переключатель задач A/B (мирроринг kit-3 connections).
+    this.#refs.steps.addEventListener('click', (ev) => {
+      const t = (ev.target as HTMLElement).closest('[data-task]');
+      if (!t) return;
+      const tid = (t as HTMLElement).dataset['task'] as LensTaskId | undefined;
+      if (tid) this.setActiveTask(tid);
+    });
+    this.#refs.steps.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Enter' && ev.key !== ' ') return;
+      const t = (ev.target as HTMLElement).closest('[data-task]');
+      if (!t) return;
+      ev.preventDefault();
+      const tid = (t as HTMLElement).dataset['task'] as LensTaskId | undefined;
+      if (tid) this.setActiveTask(tid);
     });
 
     // §20.4 — record-mode toggle
@@ -509,17 +633,22 @@ export class LensBenchExperiment {
           : 0;
       this.#refs.bench.setImageSharpness(sharpness);
 
-      // fully-auto: авто-запись ТОЛЬКО когда изображение в фокусе (isSharp).
-      // Без gate-а на резкость перетаскивание слайдера (110..600, шаг 1) добавило бы ~490 строк.
-      // signature-dedup сохраняется — одна резкая позиция = одна строка.
+      // fully-auto авто-запись: A — по резкости; B — по резкости И равенству.
+      const canAutoRecord =
+        st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual) : this.isSharp;
       if (
         this.#recordMode() === 'fully-auto' &&
-        this.isSharp &&
+        canAutoRecord &&
         this.#pendingSignature() !== this.#lastRecordedSignature
       ) {
         this.recordMeasurement();
       }
     }
+
+    // Опыт 4.2: подсветка равенства гаснет, если топология распалась (ok=false).
+    const sizeMatch =
+      st.activeTask === 'B-focal2f' && ok && this.isSharp && this.isSizesEqual;
+    this.#refs.bench.setSizeMatch(sizeMatch);
 
     this.#refreshUi();
     this.#hints.update(st);
@@ -527,8 +656,9 @@ export class LensBenchExperiment {
 
   #handleRecordModeChange(): void {
     const { ok } = this.#topology.validate();
-    // При переключении в fully-auto записываем текущую позицию ТОЛЬКО если она резкая (как в #afterBenchChange).
-    if (this.#recordMode() === 'fully-auto' && ok && this.isSharp) {
+    const st = this.#store.get();
+    const canAuto = st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual) : this.isSharp;
+    if (this.#recordMode() === 'fully-auto' && ok && canAuto) {
       if (this.#pendingSignature() !== this.#lastRecordedSignature) {
         this.recordMeasurement();
       }
@@ -541,7 +671,8 @@ export class LensBenchExperiment {
   #refreshUi(): void {
     const st = this.#store.get();
     const { ok } = this.#topology.validate();
-    const hasMeasurements = st.measurements.length > 0;
+    const taskMeasurements = st.measurements.filter((m) => m.task === st.activeTask);
+    const hasMeasurements = taskMeasurements.length > 0;
 
     // Measurement panel state
     const panel = this.#refs.stage.querySelector<HTMLElement>('#measurement-panel');
@@ -553,7 +684,7 @@ export class LensBenchExperiment {
     const cnt = this.#refs.stage.querySelector<HTMLElement>('#measurement-count');
     if (cnt) {
       cnt.hidden = !hasMeasurements;
-      if (hasMeasurements) cnt.textContent = String(st.measurements.length);
+      if (hasMeasurements) cnt.textContent = String(taskMeasurements.length);
     }
 
     // Journal empty visibility
@@ -561,37 +692,40 @@ export class LensBenchExperiment {
     if (je) je.hidden = hasMeasurements;
 
     // Pending-плашка (semi-auto)
-    const isPending = ok && this.#pendingSignature() !== this.#lastRecordedSignature;
+    const canRecordNow = st.activeTask === 'B-focal2f' ? (ok && this.isSharp && this.isSizesEqual) : (ok && this.isSharp);
+    const isPending = canRecordNow && this.#pendingSignature() !== this.#lastRecordedSignature;
     const mode = this.#recordMode();
     if (this.#refs.recordPendingSlot) {
       this.#refs.recordPendingSlot.hidden = !(isPending && mode === 'semi-auto');
     }
     if (this.#refs.recordPendingSummary && isPending) {
       this.#refs.recordPendingSummary.textContent =
-        `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
+        st.activeTask === 'B-focal2f'
+          ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
+          : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
     }
 
     // Render journal table
     if (hasMeasurements && this.#refs.journalHost) {
       this.#refs.journalHost.hidden = false;
-      const spec: JournalSpec = LENS_POWER_SPEC;
-      const rows = this.#buildJournalRows(st.measurements);
+      const spec: JournalSpec = SPEC_BY_TASK[st.activeTask];
+      const rows = this.#buildJournalRows(taskMeasurements);
       renderJournalTable(this.#refs.journalHost, spec, rows, {
         mode: mode as 'semi-auto' | 'fully-manual' | 'fully-auto',
         onCellInput: (rowIdx, key, value) => {
-          const m = st.measurements[rowIdx - 1];
+          const m = taskMeasurements[rowIdx - 1];
           if (!m) return;
           const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
           if (value !== null) drafts[key] = value; else delete drafts[key];
           this.#journalDrafts.set(m.timestamp, drafts);
         },
         onVerify: (rowIdx) => {
-          const m = st.measurements[rowIdx - 1];
+          const m = taskMeasurements[rowIdx - 1];
           if (!m) return;
           const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
           const journalRow = this.#buildJournalRow(m, rowIdx);
           for (const [k, v] of Object.entries(drafts)) journalRow.values[k] = v;
-          const verdicts = verifyRow(LENS_POWER_SPEC.columns, journalRow);
+          const verdicts = verifyRow(spec.columns, journalRow);
           this.#journalVerdicts.set(m.timestamp, verdicts);
           this.#refreshUi();
         },
@@ -600,28 +734,41 @@ export class LensBenchExperiment {
       this.#refs.journalHost.hidden = true;
     }
 
-    // Result panel: показываем F и D после записи. aria-live="polite" → guard re-announce:
-    // перерисовываем innerHTML ТОЛЬКО при реальной смене контента (урок kit-3 Фаза D/E —
-    // иначе скрин-ридер дублирует объявление на каждый refreshUi).
-    // a11y (спека §8 п.6 «SR не палит ответ»): готовые F и D объявляем ТОЛЬКО в fully-auto.
-    // В остальных режимах панель сообщает нейтральный факт записи (как #buildJournalRow гейтит derived).
+    // Result panel: показываем результат после записи. a11y: F только в fully-auto.
     if (hasMeasurements) {
       const isFullyAuto = this.#recordMode() === 'fully-auto';
       let html: string;
-      if (isFullyAuto) {
-        const last = st.measurements[st.measurements.length - 1]!;
-        const Fstr = last.F_mm.toFixed(0);
-        const Dstr = last.D_dptr.toFixed(1).replace('.', ',');
-        html =
-          `<p class="result-line">` +
-          `<strong>F</strong> = ${Fstr} мм` +
-          `<span class="result-sep">, </span>` +
-          `<strong>D</strong> = ${Dstr} дптр</p>` +
-          `<p class="result-note">Вычислите F и D по формулам, сравните с таблицей.</p>`;
+      if (st.activeTask === 'B-focal2f') {
+        const last = taskMeasurements[taskMeasurements.length - 1]!;
+        const twoFstr = (last.twoF_mm ?? last.d_mm).toFixed(0);
+        if (isFullyAuto) {
+          const Fstr = last.F_mm.toFixed(0);
+          html =
+            `<p class="result-line">Размеры равны (Γ ≈ −1) → предмет в 2F. ` +
+            `2F = ${twoFstr} мм → <strong>F</strong> = ${Fstr} мм</p>` +
+            `<p class="result-note">F = 2F / 2.</p>`;
+        } else {
+          // a11y: НЕ печатать численное 2F — деление /2 тривиально палит F.
+          html =
+            `<p class="result-line">Размеры равны (Γ ≈ −1) → предмет в двойном фокусе.</p>` +
+            `<p class="result-note">Снимите 2F со шкалы и вычислите F = 2F / 2.</p>`;
+        }
       } else {
-        html =
-          `<p class="result-line">Строка записана.</p>` +
-          `<p class="result-note">Вычислите F и D по формулам и проверьте в таблице.</p>`;
+        if (isFullyAuto) {
+          const last = taskMeasurements[taskMeasurements.length - 1]!;
+          const Fstr = last.F_mm.toFixed(0);
+          const Dstr = last.D_dptr.toFixed(1).replace('.', ',');
+          html =
+            `<p class="result-line">` +
+            `<strong>F</strong> = ${Fstr} мм` +
+            `<span class="result-sep">, </span>` +
+            `<strong>D</strong> = ${Dstr} дптр</p>` +
+            `<p class="result-note">Вычислите F и D по формулам, сравните с таблицей.</p>`;
+        } else {
+          html =
+            `<p class="result-line">Строка записана.</p>` +
+            `<p class="result-note">Вычислите F и D по формулам и проверьте в таблице.</p>`;
+        }
       }
       this.#refs.resultPanel.hidden = false;
       if (html !== this.#lastAnnouncedResult) {
@@ -633,6 +780,8 @@ export class LensBenchExperiment {
       this.#refs.resultPanel.innerHTML = '';
       this.#lastAnnouncedResult = '';
     }
+
+    this.#refreshTaskStepper();
   }
 
   #buildJournalRows(list: ReadonlyArray<BenchMeasurement>): JournalRow[] {
@@ -648,6 +797,16 @@ export class LensBenchExperiment {
 
   #buildJournalRow(m: BenchMeasurement, idx: number): JournalRow {
     const isFullyAuto = this.#recordMode() === 'fully-auto';
+    if (m.task === 'B-focal2f') {
+      return {
+        idx,
+        timestamp: m.timestamp,
+        values: {
+          twoF_mm: m.twoF_mm ?? m.d_mm,
+          F_mm: isFullyAuto ? m.F_mm : null,
+        },
+      };
+    }
     return {
       idx,
       timestamp: m.timestamp,
@@ -660,11 +819,37 @@ export class LensBenchExperiment {
     };
   }
 
+  #syncObjectSlider(d: number): void {
+    if (this.#refs.objectSlider.value !== String(Math.round(d))) {
+      this.#refs.objectSlider.value = String(Math.round(d));
+    }
+    if (this.#refs.objectSliderReadout) {
+      this.#refs.objectSliderReadout.textContent = `${Math.round(d)} мм`;
+    }
+  }
+
+  #refreshObjectSliderVisibility(): void {
+    // Слайдер предмета нужен только в задаче B (в A предмет фиксирован в 2F).
+    if (this.#refs.objectSliderRow) {
+      this.#refs.objectSliderRow.hidden = this.#store.get().activeTask !== 'B-focal2f';
+    }
+  }
+
+  #refreshTaskStepper(): void {
+    const active = this.#store.get().activeTask;
+    const items = this.#refs.steps.querySelectorAll<HTMLElement>('[data-task]');
+    items.forEach((item) => {
+      const isActive = item.dataset['task'] === active;
+      item.setAttribute('data-state', isActive ? 'active' : '');
+      item.setAttribute('aria-current', isActive ? 'true' : 'false');
+    });
+  }
+
   #pendingSignature(): string {
     const st = this.#store.get();
     const { ok } = this.#topology.validate();
     if (!ok) return '';
-    return `${st.objectDistanceMm.toFixed(0)}-${st.screenDistanceMm.toFixed(0)}`;
+    return `${st.activeTask}-${st.objectDistanceMm.toFixed(0)}-${st.screenDistanceMm.toFixed(0)}`;
   }
 
   #recordMode(): RecordMode {
