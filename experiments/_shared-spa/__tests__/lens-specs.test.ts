@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LENS_POWER_SPEC, ALL_SPECS, FOCAL_2F_SPEC, getSpecByExperimentId } from '../src/lib/journal/specs';
+import { LENS_POWER_SPEC, ALL_SPECS, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC, getSpecByExperimentId } from '../src/lib/journal/specs';
 import { verifyRow } from '../src/lib/journal/verify';
 
 describe('LENS_POWER_SPEC (4.1)', () => {
@@ -128,5 +128,85 @@ describe('FOCAL_2F_SPEC (опыт 4.2)', () => {
 
   it('зарегистрирован в ALL_SPECS / getSpecByExperimentId', () => {
     expect(getSpecByExperimentId('4.2')).toBe(FOCAL_2F_SPEC);
+  });
+});
+
+describe('IMAGE_PROPERTIES_SPEC (опыт 4.4)', () => {
+  const col = (k: string) => IMAGE_PROPERTIES_SPEC.columns.find((c) => c.key === k)!;
+
+  it('experimentId=4.4, kitId=kit-4', () => {
+    expect(IMAGE_PROPERTIES_SPEC.experimentId).toBe('4.4');
+    expect(IMAGE_PROPERTIES_SPEC.kitId).toBe('kit-4');
+  });
+
+  it('порядок колонок: idx, zone, kind, orientation, size, gamma', () => {
+    expect(IMAGE_PROPERTIES_SPEC.columns.map((c) => c.key))
+      .toEqual(['idx', 'zone', 'kind', 'orientation', 'size', 'gamma']);
+  });
+
+  it('kind/orientation/size — choice с options', () => {
+    for (const k of ['kind', 'orientation', 'size']) {
+      expect(col(k).source).toBe('choice');
+      expect((col(k).options?.length ?? 0)).toBeGreaterThanOrEqual(2);
+    }
+    expect(col('gamma').source).toBe('derived');
+    expect(col('zone').source).toBe('meta');
+  });
+
+  it('expectedChoiceFromRow — 5 зон (F=100)', () => {
+    const cases: Array<[number, string, string, string]> = [
+      // d,     kind,      orientation,   size
+      [300, 'real', 'inverted', 'reduced'],
+      [200, 'real', 'inverted', 'equal'],
+      [150, 'real', 'inverted', 'enlarged'],
+      [100, 'virtual', 'upright', 'enlarged'],  // d=F (контракт)
+      [60,  'virtual', 'upright', 'enlarged'],
+    ];
+    for (const [d, kind, orient, size] of cases) {
+      const ctx = { d_mm: d, F_mm: 100 };
+      expect(col('kind').expectedChoiceFromRow!(ctx)).toBe(kind);
+      expect(col('orientation').expectedChoiceFromRow!(ctx)).toBe(orient);
+      expect(col('size').expectedChoiceFromRow!(ctx)).toBe(size);
+    }
+  });
+
+  it('gamma.expectedFromRow — Γ=−f/d: действит. d=300→−0,5; d=150→−2; мнимое d=60→+2,5 (знак!)', () => {
+    expect(col('gamma').expectedFromRow!({ d_mm: 300, F_mm: 100 })).toBeCloseTo(-0.5, 3);
+    expect(col('gamma').expectedFromRow!({ d_mm: 150, F_mm: 100 })).toBeCloseTo(-2, 3);
+    // d<F (мнимое): Γ=F/(F−d)=100/40=+2,5 ПОЛОЖИТЕЛЬНОЕ (прямое) — ловит знаковую ошибку
+    expect(col('gamma').expectedFromRow!({ d_mm: 60, F_mm: 100 })).toBeCloseTo(2.5, 2);
+  });
+
+  it('verifyRow: верный выбор категорий → ok; неверный → wrong (d=300,F=100)', () => {
+    const okV = verifyRow(IMAGE_PROPERTIES_SPEC.columns, {
+      idx: 1, timestamp: 1,
+      values: { idx: 1, zone: 'd > 2F', d_mm: 300, F_mm: 100, kind: 'real', orientation: 'inverted', size: 'reduced', gamma: -0.5 },
+    });
+    expect(okV['kind']).toBe('ok');
+    expect(okV['orientation']).toBe('ok');
+    expect(okV['size']).toBe('ok');
+    expect(okV['gamma']).toBe('ok');
+    const badV = verifyRow(IMAGE_PROPERTIES_SPEC.columns, {
+      idx: 1, timestamp: 1,
+      values: { idx: 1, zone: 'd > 2F', d_mm: 300, F_mm: 100, kind: 'virtual', orientation: 'inverted', size: 'reduced', gamma: -0.5 },
+    });
+    expect(badV['kind']).toBe('wrong');
+  });
+
+  it('d=F: gamma пустой → empty (∞), любой ввод → wrong; категории по контракту', () => {
+    const base = (gamma: number | null) => ({
+      idx: 1, timestamp: 1,
+      values: { idx: 1, zone: 'd = F', d_mm: 100, F_mm: 100, kind: 'virtual', orientation: 'upright', size: 'enlarged', gamma },
+    });
+    const vEmpty = verifyRow(IMAGE_PROPERTIES_SPEC.columns, base(null));
+    expect(vEmpty['kind']).toBe('ok');
+    expect(vEmpty['gamma']).toBe('empty');
+    // ввод любого числа при d=F (эталон ∞) → wrong (verify.ts: !Number.isFinite(expected))
+    const vNum = verifyRow(IMAGE_PROPERTIES_SPEC.columns, base(999));
+    expect(vNum['gamma']).toBe('wrong');
+  });
+
+  it('зарегистрирован в ALL_SPECS / getSpecByExperimentId', () => {
+    expect(getSpecByExperimentId('4.4')).toBe(IMAGE_PROPERTIES_SPEC);
   });
 });

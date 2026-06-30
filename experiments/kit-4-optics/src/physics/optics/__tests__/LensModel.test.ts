@@ -11,6 +11,7 @@ import {
   objectZone,
   zoneLabelRu,
 } from '../LensModel';
+import { IMAGE_PROPERTIES_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
 
 // ---------------------------------------------------------------------------
 // guard
@@ -466,6 +467,22 @@ describe('objectZone (зона по положению предмета отно
         else if (p.size === 'equal') expect(z).toBe('eq2F');
         else expect(z).toBe('F_2F');
       }
+    }
+  });
+});
+
+describe('IMAGE_PROPERTIES_SPEC инлайн ↔ LensModel.imageProperties (кросс-чек)', () => {
+  const col = (k: string) => IMAGE_PROPERTIES_SPEC.columns.find((c) => c.key === k)!;
+  it('фаззинг 50k: choice-эталоны спеки == imageProperties.{kind,orientation,size}', () => {
+    for (let i = 0; i < 50000; i++) {
+      const F = 30 + (i % 170);          // 30..199
+      const d = 10 + ((i * 7) % 400);    // 10..409
+      if (Math.abs(d - F) < 1e-9) continue;
+      const ctx = { d_mm: d, F_mm: F };
+      const p = imageProperties(F, d);
+      expect(col('kind').expectedChoiceFromRow!(ctx)).toBe(p.kind);
+      expect(col('orientation').expectedChoiceFromRow!(ctx)).toBe(p.orientation);
+      expect(col('size').expectedChoiceFromRow!(ctx)).toBe(p.size);
     }
   });
 });

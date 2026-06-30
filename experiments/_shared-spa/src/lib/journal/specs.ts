@@ -703,6 +703,104 @@ export const FOCAL_2F_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 4.4 «Исследование свойств изображения, полученного с помощью собирающей линзы».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19), сноска (4):
+ * «...исследование свойства изображения, полученного с помощью собирающей линзы...». КОДИФ §1.29.
+ *
+ * Метод: двигать предмет по 5 зонам (>2F, =2F, F<d<2F, =F, <F) → классифицировать
+ *   изображение: вид (действит./мнимое), ориентация (прямое/перев.), размер
+ *   (увелич./уменьш./равное) + числовое Γ = −f/d.
+ *
+ * Грейд категорий — точное совпадение с эталоном; gamma — числовой (tolerance).
+ * Эталон ИНЛАЙНИТСЯ теми же формулами, что LensModel.imageProperties (канон §21.A.4;
+ * кросс-чек-тест в kit-4 подтверждает совпадение). Контекст грейда — числовые d_mm,F_mm
+ * в row.values (НЕ колонки: render их не показывает, verify читает). F скрыт от ученика.
+ *
+ * d=F: изображение в бесконечности → Γ=∞ (ученик оставляет gamma пустым → empty);
+ *   категории по контракту imageProperties: virtual / upright / enlarged.
+ */
+const IMG_EPS = 0.001;
+
+function imgFocalF(d: number, F: number): number {
+  const denom = d - F;
+  return Math.abs(denom) < 1e-9 ? Infinity : (d * F) / denom;
+}
+
+export const IMAGE_PROPERTIES_SPEC: JournalSpec = {
+  experimentId: '4.4',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'zone', label: 'Зона', source: 'meta' },
+    {
+      key: 'kind',
+      label: 'Вид',
+      source: 'choice',
+      options: [
+        { value: 'real', label: 'действительное' },
+        { value: 'virtual', label: 'мнимое' },
+      ],
+      expectedChoiceFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const F = r.F_mm ?? 0;
+        if (Math.abs(d - F) < 1e-9) return 'virtual'; // d=F контракт
+        return imgFocalF(d, F) > 0 ? 'real' : 'virtual';
+      },
+    },
+    {
+      key: 'orientation',
+      label: 'Ориентация',
+      source: 'choice',
+      options: [
+        { value: 'inverted', label: 'перевёрнутое' },
+        { value: 'upright', label: 'прямое' },
+      ],
+      expectedChoiceFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const F = r.F_mm ?? 0;
+        if (Math.abs(d - F) < 1e-9) return 'upright';
+        const f = imgFocalF(d, F);
+        return -f / d < 0 ? 'inverted' : 'upright';
+      },
+    },
+    {
+      key: 'size',
+      label: 'Размер',
+      source: 'choice',
+      options: [
+        { value: 'enlarged', label: 'увеличенное' },
+        { value: 'reduced', label: 'уменьшенное' },
+        { value: 'equal', label: 'равное' },
+      ],
+      expectedChoiceFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const F = r.F_mm ?? 0;
+        if (Math.abs(d - F) < 1e-9) return 'enlarged'; // d=F контракт
+        const g = Math.abs(-imgFocalF(d, F) / d);
+        if (g > 1 + IMG_EPS) return 'enlarged';
+        if (g < 1 - IMG_EPS) return 'reduced';
+        return 'equal';
+      },
+    },
+    {
+      key: 'gamma',
+      label: 'Γ',
+      source: 'derived',
+      format: 'fixed2',
+      tolerance: 0.10,
+      // Γ = −f/d; d=F → ∞ (verify вернёт wrong на ввод, empty на пусто).
+      expectedFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const F = r.F_mm ?? 0;
+        if (d <= 0 || F <= 0) return 0;
+        const f = imgFocalF(d, F);
+        return Number.isFinite(f) ? -f / d : Infinity;
+      },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -725,6 +823,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   PARALLEL_CURRENT_SPEC,
   LENS_POWER_SPEC,
   FOCAL_2F_SPEC,
+  IMAGE_PROPERTIES_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
