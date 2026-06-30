@@ -122,7 +122,9 @@ export class BenchTopology {
 // ─── OpticalBenchAssembly (DOM-glue) ─────────────────────────────────────────
 
 interface BenchBoard {
+  /** slot id может быть сырым ('object') или с префиксом ('bench-slot-object') — нормализуется внутри. */
   getSlotRect(id: string): DOMRect;
+  /** slot id может быть сырым ('object') или с префиксом ('bench-slot-object') — нормализуется внутри. */
   setSlotHover(slotId: string, active: boolean): void;
 }
 

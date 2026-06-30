@@ -259,10 +259,48 @@ describe('LensBenchExperiment — state machine', () => {
     expect(experiment.isSharp).toBe(false);
   });
 
+  // ─── isSharp: граница FOCUS_BAND_MM=5 (контракт полосы фокуса) ─────────────
+  // Закрепляют ширину полосы: смена 5→50 (или любая другая) ОБЯЗАНА уронить эти тесты.
+
+  it('get isSharp: d=F (imageDistance=Infinity) → false', () => {
+    assembleBench(experiment);
+    experiment.setObjectDistanceMm(100); // d=F=100 → imageDistance=Infinity
+    experiment.setScreenDistanceMm(200);
+    expect(experiment.isSharp).toBe(false);
+  });
+
+  it('get isSharp: d<F (plane≤0, мнимое) → false', () => {
+    assembleBench(experiment);
+    experiment.setObjectDistanceMm(50); // d=50 < F=100 → imageDistance(100,50)=-100 ≤ 0
+    experiment.setScreenDistanceMm(100);
+    expect(experiment.isSharp).toBe(false);
+  });
+
+  it('get isSharp: |screen − plane| ровно 5 → true; 5.001 → false (полоса FOCUS_BAND_MM=5)', () => {
+    assembleBench(experiment);
+    experiment.setObjectDistanceMm(300); // imageDistance(100,300)=150
+    experiment.setScreenDistanceMm(155); // delta=5 → на границе → true
+    expect(experiment.isSharp).toBe(true);
+    experiment.setScreenDistanceMm(155.001); // delta=5.001 → за границей → false
+    expect(experiment.isSharp).toBe(false);
+  });
+
   it('get imageOrientation: inverted при d>F (реальное перевёрнутое)', () => {
     assembleBench(experiment);
     experiment.setObjectDistanceMm(300); // d=300 > F=100
     expect(experiment.imageOrientation).toBe('inverted');
+  });
+
+  it('get imageOrientation: upright при d<F (мнимое прямое)', () => {
+    assembleBench(experiment);
+    experiment.setObjectDistanceMm(50); // d=50 < F=100 → мнимое прямое
+    expect(experiment.imageOrientation).toBe('upright');
+  });
+
+  it('get imageOrientation: d===F → upright (граница: d не > F)', () => {
+    assembleBench(experiment);
+    experiment.setObjectDistanceMm(100); // d===F=100 → НЕ > F → ветка upright
+    expect(experiment.imageOrientation).toBe('upright');
   });
 
   it('слайдер #screen-slider (input) двигает экран → setScreenDistanceMm', () => {
@@ -359,6 +397,101 @@ describe('LensBenchExperiment — state machine', () => {
     // d дефолт=200, f=200 → F=100
     expect(m.F_mm).toBeCloseTo(100, 1);
     expect(m.D_dptr).toBeCloseTo(10, 1);
+  });
+});
+
+// ─── Regression: record-mode gating (M2 flood + M3 a11y leak) ────────────────
+
+describe('LensBenchExperiment — record-mode gating (regression M2/M3)', () => {
+  let host: HTMLElement;
+  let experiment: LensBenchExperiment;
+  const KEY = 'inter-oge.record-mode.kit-4';
+
+  function setMode(mode: 'semi-auto' | 'fully-manual' | 'fully-auto'): void {
+    globalThis.localStorage.setItem(KEY, mode);
+  }
+
+  function build(): void {
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    experiment = new LensBenchExperiment(buildRefs(host));
+  }
+
+  function assemble(exp: LensBenchExperiment): void {
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+  }
+
+  afterEach(() => {
+    experiment?.destroy();
+    host?.remove();
+    globalThis.localStorage.removeItem(KEY);
+    globalThis.gc?.();
+  });
+
+  // M2: fully-auto НЕ должен писать строку на каждый сдвиг экрана — только когда резко.
+  it('M2: fully-auto авто-запись только в фокусе — нерезкие сдвиги не флудят журнал', () => {
+    setMode('fully-auto');
+    build();
+    assemble(experiment);
+    // Дефолт d=200, f=200 → плоскость=200 → резко: сборка в fully-auto уже даёт 1 авто-строку.
+    experiment.setObjectDistanceMm(300); // imageDistance(100,300)=150 — экран (200) теперь НЕ в фокусе
+    const baseline = experiment.measurements.length; // 1 (стартовая резкая точка d=200,f=200)
+
+    // Сдвигаем экран по всему диапазону мимо плоскости изображения (110..140 при плоскости 150)
+    // — НИ ОДНОЙ новой строки (раньше без gate-а на isSharp было бы ~30 строк).
+    for (let f = 110; f <= 140; f++) experiment.setScreenDistanceMm(f);
+    expect(experiment.measurements.length).toBe(baseline);
+
+    // Доводим до резкости (плоскость=150) — ровно одна новая авто-запись.
+    experiment.setScreenDistanceMm(150);
+    expect(experiment.isSharp).toBe(true);
+    expect(experiment.measurements.length).toBe(baseline + 1);
+
+    // Микро-дрожание на ту же округлённую сигнатуру (150) не плодит строки.
+    const after = experiment.measurements.length;
+    experiment.setScreenDistanceMm(150);
+    expect(experiment.measurements.length).toBe(after);
+  });
+
+  // M3: result-panel НЕ показывает F/D в не-авто режимах (SR-leak ответа).
+  it('M3: result-panel скрывает F и D в semi-auto/fully-manual, показывает в fully-auto', () => {
+    // semi-auto: записываем вручную, F/D НЕ должны попасть в result-panel.
+    setMode('semi-auto');
+    build();
+    assemble(experiment);
+    experiment.setObjectDistanceMm(300);
+    experiment.setScreenDistanceMm(150);
+    experiment.recordMeasurement();
+    const rp = host.querySelector<HTMLElement>('#result-panel')!;
+    expect(rp.hidden).toBe(false);
+    expect(rp.textContent).toContain('Строка записана');
+    expect(rp.textContent).not.toContain('дптр');
+    expect(rp.innerHTML).not.toContain('<strong>F</strong>');
+  });
+
+  it('M3: fully-auto result-panel показывает F и D (легитимно для авто-режима)', () => {
+    setMode('fully-auto');
+    build();
+    assemble(experiment);
+    experiment.setObjectDistanceMm(300);
+    experiment.setScreenDistanceMm(150);
+    const rp = host.querySelector<HTMLElement>('#result-panel')!;
+    expect(rp.hidden).toBe(false);
+    expect(rp.textContent).toContain('дптр');
+    expect(rp.innerHTML).toContain('<strong>F</strong>');
+  });
+
+  // Should-fix: размещение прибора объявляется в live-region.
+  it('placeInSlot объявляет размещение в #live-region', async () => {
+    setMode('semi-auto');
+    build();
+    const live = host.querySelector<HTMLElement>('#live-region')!;
+    experiment.placeInSlot('lens', 'lens');
+    // announce использует requestAnimationFrame — ждём кадр.
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    expect(live.textContent).toContain('линза');
   });
 });
 

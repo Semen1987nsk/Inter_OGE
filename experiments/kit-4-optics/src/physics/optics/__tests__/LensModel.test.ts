@@ -230,6 +230,17 @@ describe('imageProperties — классификация изображения'
     expect(p.kind).toBe('virtual');
     expect(p.gamma).toBe(Infinity);
   });
+  it('d=F (изображение в бесконечности) — контракт: virtual/upright/enlarged/Γ=∞ (включая size)', () => {
+    // Сознательный выбор поведения при f=∞ (см. JSDoc imageProperties). Любая правка случая d=F
+    // ДОЛЖНА осознанно менять этот тест — он закрепляет ВСЕ четыре поля результата.
+    for (const F of [50, 100, 250]) {
+      const p = imageProperties(F, F);
+      expect(p.kind).toBe('virtual');
+      expect(p.orientation).toBe('upright');
+      expect(p.size).toBe('enlarged');
+      expect(p.gamma).toBe(Infinity);
+    }
+  });
   it('бросает на non-finite', () => {
     expect(() => imageProperties(NaN, 200)).toThrow(RangeError);
   });

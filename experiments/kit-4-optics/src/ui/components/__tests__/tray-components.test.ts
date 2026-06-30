@@ -79,7 +79,7 @@ describe('lab-lens', () => {
   });
 
   it('static observedAttributes содержит focal-mm', () => {
-    // @ts-ignore — доступ к статику через конструктор
+    // доступ к статике через конструктор (as any снимает типизацию)
     expect((customElements.get('lab-lens') as any).observedAttributes).toContain('focal-mm');
   });
 

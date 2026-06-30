@@ -308,8 +308,12 @@ export class LensBenchExperiment {
     }));
     this.#lastRecordedSignature = this.#pendingSignature();
     this.#refreshUi();
+    // a11y (спека §8 п.6): измеренные d и f озвучиваем всегда (это снято со шкалы),
+    // но вычисленное F — только в fully-auto, иначе SR палит ответ до расчёта.
+    const isFullyAuto = this.#recordMode() === 'fully-auto';
+    const fPart = isFullyAuto ? ` F ≈ ${F.toFixed(0)} мм.` : '';
     this.#hints.announce(
-      `Записано: d = ${d.toFixed(0)} мм, f = ${f.toFixed(0)} мм, F ≈ ${F.toFixed(0)} мм.`,
+      `Записано: d = ${d.toFixed(0)} мм, f = ${f.toFixed(0)} мм.${fPart}`,
     );
   }
 
@@ -461,6 +465,13 @@ export class LensBenchExperiment {
       card.setAttribute('status', 'placed');
       card.dataset['placed'] = slotId;
     }
+    // a11y: SR/keyboard-пользователь должен узнать, что прибор сел в гнездо (зеркало announce в recordMeasurement).
+    const slotLabel: Record<BenchSlotId, string> = {
+      object: 'осветитель',
+      lens: 'линза',
+      screen: 'экран',
+    };
+    this.#hints.announce(`Установлено на скамью: ${slotLabel[slotId]}.`);
   }
 
   /** Синхронизировать значение слайдера и mm-readout с текущим положением экрана. */
@@ -491,8 +502,14 @@ export class LensBenchExperiment {
           : 0;
       this.#refs.bench.setImageSharpness(sharpness);
 
-      // fully-auto: авто-запись при движении экрана в плоскость изображения
-      if (this.#recordMode() === 'fully-auto' && this.#pendingSignature() !== this.#lastRecordedSignature) {
+      // fully-auto: авто-запись ТОЛЬКО когда изображение в фокусе (isSharp).
+      // Без gate-а на резкость перетаскивание слайдера (110..600, шаг 1) добавило бы ~490 строк.
+      // signature-dedup сохраняется — одна резкая позиция = одна строка.
+      if (
+        this.#recordMode() === 'fully-auto' &&
+        this.isSharp &&
+        this.#pendingSignature() !== this.#lastRecordedSignature
+      ) {
         this.recordMeasurement();
       }
     }
@@ -503,7 +520,8 @@ export class LensBenchExperiment {
 
   #handleRecordModeChange(): void {
     const { ok } = this.#topology.validate();
-    if (this.#recordMode() === 'fully-auto' && ok) {
+    // При переключении в fully-auto записываем текущую позицию ТОЛЬКО если она резкая (как в #afterBenchChange).
+    if (this.#recordMode() === 'fully-auto' && ok && this.isSharp) {
       if (this.#pendingSignature() !== this.#lastRecordedSignature) {
         this.recordMeasurement();
       }
@@ -578,16 +596,26 @@ export class LensBenchExperiment {
     // Result panel: показываем F и D после записи. aria-live="polite" → guard re-announce:
     // перерисовываем innerHTML ТОЛЬКО при реальной смене контента (урок kit-3 Фаза D/E —
     // иначе скрин-ридер дублирует объявление на каждый refreshUi).
+    // a11y (спека §8 п.6 «SR не палит ответ»): готовые F и D объявляем ТОЛЬКО в fully-auto.
+    // В остальных режимах панель сообщает нейтральный факт записи (как #buildJournalRow гейтит derived).
     if (hasMeasurements) {
-      const last = st.measurements[st.measurements.length - 1]!;
-      const Fstr = last.F_mm.toFixed(0);
-      const Dstr = last.D_dptr.toFixed(1).replace('.', ',');
-      const html =
-        `<p class="result-line">` +
-        `<strong>F</strong> = ${Fstr} мм` +
-        `<span class="result-sep">, </span>` +
-        `<strong>D</strong> = ${Dstr} дптр</p>` +
-        `<p class="result-note">Вычислите F и D по формулам, сравните с таблицей.</p>`;
+      const isFullyAuto = this.#recordMode() === 'fully-auto';
+      let html: string;
+      if (isFullyAuto) {
+        const last = st.measurements[st.measurements.length - 1]!;
+        const Fstr = last.F_mm.toFixed(0);
+        const Dstr = last.D_dptr.toFixed(1).replace('.', ',');
+        html =
+          `<p class="result-line">` +
+          `<strong>F</strong> = ${Fstr} мм` +
+          `<span class="result-sep">, </span>` +
+          `<strong>D</strong> = ${Dstr} дптр</p>` +
+          `<p class="result-note">Вычислите F и D по формулам, сравните с таблицей.</p>`;
+      } else {
+        html =
+          `<p class="result-line">Строка записана.</p>` +
+          `<p class="result-note">Вычислите F и D по формулам и проверьте в таблице.</p>`;
+      }
       this.#refs.resultPanel.hidden = false;
       if (html !== this.#lastAnnouncedResult) {
         this.#refs.resultPanel.innerHTML = html;

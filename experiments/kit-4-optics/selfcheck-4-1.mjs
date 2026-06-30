@@ -386,32 +386,40 @@ async function checkRayOverlay(page) {
   console.log('\n  ── Ray overlay: по умолчанию скрыт, после клика появляется ─────────────');
 
   // По умолчанию overlay скрыт (урок В4 — opt-in).
-  // Элемент .ray-overlay-group в Shadow DOM скамьи имеет атрибут hidden="" изначально.
-  // svg[hidden]{display:none} — SVG-ловушка из REFERENCE.
-  try {
-    const overlayVisible = await page.evaluate(() => {
+  // M6 reality-check: проверяем РЕАЛЬНЫЙ computed display, а не только атрибут hidden.
+  // svg[hidden]{display:none} таргетит <svg>, НЕ внутреннюю группу .ray-overlay-group —
+  // нужен явный [hidden]{display:none}, иначе лучи видны всегда, а кнопка «Лучи» ничего не делает.
+  const readOverlay = () =>
+    page.evaluate(() => {
       const bench = document.querySelector('#optical-bench');
       const sr = bench?.shadowRoot ?? null;
       if (!sr) return null;
       const overlayEl = sr.querySelector('.ray-overlay-group');
       if (!overlayEl) return null;
-      // Элемент с hidden="" считается скрытым если display:none (см. svg[hidden]{display:none}).
-      const hasHidden = overlayEl.hasAttribute('hidden');
-      const display = getComputedStyle(overlayEl).display;
-      return !hasHidden && display !== 'none';
+      return {
+        hasHidden: overlayEl.hasAttribute('hidden'),
+        display: getComputedStyle(overlayEl).display,
+      };
     });
-    if (overlayVisible === null) {
+
+  try {
+    const off = await readOverlay();
+    if (off === null) {
       fail('ray-overlay: элемент .ray-overlay-group не найден', 'shadow DOM скамьи');
-    } else if (overlayVisible === false) {
-      pass('ray-overlay: по умолчанию скрыт (opt-in, урок В4)');
+    } else if (off.hasHidden && off.display === 'none') {
+      pass(`ray-overlay: по умолчанию скрыт — computed display='none' (М6, opt-in урок В4)`);
+    } else if (off.hasHidden && off.display !== 'none') {
+      // именно баг M6: hidden есть, а CSS его не применяет → лучи видны всегда.
+      fail('ray-overlay: M6 — внутренняя группа НЕ скрыта',
+        `hidden="" есть, но computed display='${off.display}' (ожидалось 'none'; нужно [hidden]{display:none})`);
     } else {
-      fail('ray-overlay: должен быть скрыт по умолчанию', 'overlay виден без клика');
+      fail('ray-overlay: должен быть скрыт по умолчанию', `hasHidden=${off.hasHidden}, display='${off.display}'`);
     }
   } catch (err) {
-    fail('ray-overlay: check default', err.message);
+    fail('ray-overlay: check default (computed display)', err.message);
   }
 
-  // Кликнуть КАНОН-кнопку #ray-overlay-btn и проверить появление
+  // Кликнуть КАНОН-кнопку #ray-overlay-btn и проверить, что computed display стал НЕ 'none'.
   try {
     const toggleBtn = page.locator('#ray-overlay-btn');
     const btnVisible = await toggleBtn.isVisible().catch(() => false);
@@ -422,27 +430,26 @@ async function checkRayOverlay(page) {
     await toggleBtn.click();
     await page.waitForTimeout(150);
 
-    const overlayAfter = await page.evaluate(() => {
-      const bench = document.querySelector('#optical-bench');
-      const sr = bench?.shadowRoot ?? null;
-      if (!sr) return null;
-      const overlayEl = sr.querySelector('.ray-overlay-group');
-      if (!overlayEl) return null;
-      const hasHidden = overlayEl.hasAttribute('hidden');
-      const display = getComputedStyle(overlayEl).display;
-      return !hasHidden && display !== 'none';
-    });
-    if (overlayAfter === true) {
-      pass('ray-overlay: появился после клика #ray-overlay-btn');
+    const on = await readOverlay();
+    if (on === null) {
+      fail('ray-overlay: после клика', '.ray-overlay-group не найден');
+    } else if (!on.hasHidden && on.display !== 'none') {
+      pass(`ray-overlay: после клика виден — computed display='${on.display}' (≠ none)`);
     } else {
-      fail('ray-overlay: после клика', `overlayAfter=${overlayAfter}, ожидалось true`);
+      fail('ray-overlay: после клика', `hasHidden=${on.hasHidden}, computed display='${on.display}' (ожидалось hidden снят и display ≠ none)`);
     }
 
-    // Вернуть в исходное состояние
+    // Вернуть в исходное состояние и подтвердить, что снова display='none'.
     await toggleBtn.click();
     await page.waitForTimeout(100);
+    const offAgain = await readOverlay();
+    if (offAgain && offAgain.hasHidden && offAgain.display === 'none') {
+      pass(`ray-overlay: повторный клик снова скрыл — computed display='none'`);
+    } else {
+      fail('ray-overlay: повторное скрытие', `hasHidden=${offAgain?.hasHidden}, display='${offAgain?.display}'`);
+    }
   } catch (err) {
-    fail('ray-overlay: toggle-test', err.message);
+    fail('ray-overlay: toggle-test (computed display)', err.message);
   }
 }
 

@@ -89,6 +89,9 @@ template.innerHTML = `
   }
   svg { display: block; width: 100%; height: auto; overflow: visible; }
   svg[hidden] { display: none; }
+  /* SVG-ловушка (урок kit-3 Фаза E): атрибут hidden на ВНУТРЕННИХ SVG-группах
+     (например .ray-overlay-group) не даёт display:none сам по себе — нужен явный CSS. */
+  [hidden] { display: none; }
 
   /* Скамья (направляющая) */
   .bench-rail {
@@ -335,7 +338,10 @@ export class LabOpticalBench extends HTMLElement {
 
   connectedCallback(): void {
     this.setAttribute('role', 'img');
-    this.setAttribute('aria-label', 'Оптическая скамья с направляющей и гнёздами для приборов');
+    // Не затирать aria-label, переданный вызывающим (template/тесты задают свой).
+    if (!this.hasAttribute('aria-label')) {
+      this.setAttribute('aria-label', 'Оптическая скамья с направляющей и гнёздами для приборов');
+    }
     this.#updateProjectedImage();
   }
 
@@ -502,26 +508,31 @@ export class LabOpticalBench extends HTMLElement {
       ray2.setAttribute('y2', String(axisY));
     }
 
-    // Луч 3: через передний фокус → параллельно оси
+    // Луч 3: из вершины предмета через ПЕРЕДНИЙ фокус F → за линзой параллельно оси.
+    // Наклон считается по пролёту вершина-предмета → передний фокус (fFrontX − objX),
+    // НЕ по постоянному пролёту F→линза (lensX − fFrontX): иначе луч верен лишь при d=2F
+    // и «проваливается» под скамью во всём режиме d>2F (опыт 4.1).
     const fFrontX = mmToPx(this.#lensPosMm - F);
-    const dxObj2Lens = lensX - fFrontX;
-    const slopeRay3 = Math.abs(dxObj2Lens) > 0.001
-      ? (axisY - objTopY) / dxObj2Lens
+    const dxObj2FrontF = fFrontX - objX;
+    const slopeRay3 = Math.abs(dxObj2FrontF) > 0.001
+      ? (axisY - objTopY) / dxObj2FrontF
       : 0;
-    const ray3aY2 = objTopY + slopeRay3 * (lensX - objX);
+    // Высота, на которой луч пересекает плоскость линзы (после прохода фокуса).
+    const ray3LensY = objTopY + slopeRay3 * (lensX - objX);
     const ray3a = this.#rayOverlay.querySelector<SVGLineElement>('#ray-3a');
     const ray3b = this.#rayOverlay.querySelector<SVGLineElement>('#ray-3b');
     if (ray3a) {
       ray3a.setAttribute('x1', String(objX));
       ray3a.setAttribute('y1', String(objTopY));
       ray3a.setAttribute('x2', String(lensX));
-      ray3a.setAttribute('y2', String(ray3aY2));
+      ray3a.setAttribute('y2', String(ray3LensY));
     }
+    // ray3b выходит ГОРИЗОНТАЛЬНО от высоты пересечения с линзой (параллельно оси).
     if (ray3b) {
       ray3b.setAttribute('x1', String(lensX));
-      ray3b.setAttribute('y1', String(ray3aY2));
+      ray3b.setAttribute('y1', String(ray3LensY));
       ray3b.setAttribute('x2', String(imgX));
-      ray3b.setAttribute('y2', String(ray3aY2));
+      ray3b.setAttribute('y2', String(ray3LensY));
     }
 
     // Метки F и 2F

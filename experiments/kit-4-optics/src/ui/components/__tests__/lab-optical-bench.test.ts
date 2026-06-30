@@ -145,6 +145,37 @@ describe('lab-optical-bench smoke', () => {
     el.remove();
   });
 
+  // M6 (regression): внутренние SVG-группы с hidden ДОЛЖНЫ скрываться явным CSS —
+  // svg[hidden] таргетит только <svg>, не .ray-overlay-group. Нужно правило [hidden]{display:none}.
+  it('M6: shadow style содержит правило [hidden]{display:none} для внутренних групп', () => {
+    const el = document.createElement('lab-optical-bench');
+    document.body.appendChild(el);
+    const css = (el.shadowRoot!.querySelector('style')!.textContent ?? '')
+      .replace(/\s+/g, ' ');
+    // Должно быть правило, скрывающее ЛЮБОЙ [hidden] (не только svg[hidden]).
+    expect(css).toMatch(/(^|[^a-z-])\[hidden\]\s*\{\s*display:\s*none/);
+    el.remove();
+  });
+
+  // M5 (regression): connectedCallback НЕ затирает aria-label, переданный вызывающим.
+  it('M5: caller aria-label сохраняется (connectedCallback не клоберит)', () => {
+    const el = document.createElement('lab-optical-bench');
+    el.setAttribute('aria-label', 'Оптическая скамья для сборки опыта с линзой');
+    document.body.appendChild(el);
+    expect(el.getAttribute('aria-label')).toBe('Оптическая скамья для сборки опыта с линзой');
+    expect(el.getAttribute('role')).toBe('img');
+    el.remove();
+  });
+
+  it('M5: дефолтный aria-label ставится когда вызывающий его не задал', () => {
+    const el = document.createElement('lab-optical-bench');
+    document.body.appendChild(el);
+    expect(el.getAttribute('aria-label')).toBe(
+      'Оптическая скамья с направляющей и гнёздами для приборов',
+    );
+    el.remove();
+  });
+
   it('svg имеет role=img и title', () => {
     const el = document.createElement('lab-optical-bench');
     document.body.appendChild(el);
