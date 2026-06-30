@@ -203,3 +203,59 @@ describe('lab-optical-bench smoke', () => {
     el.remove();
   });
 });
+
+describe('lab-optical-bench — стрелка-предмет и масштаб по Γ (опыт 4.2)', () => {
+  let el: any;
+  beforeEach(() => {
+    el = document.createElement('lab-optical-bench');
+    document.body.appendChild(el);
+    el.setLensFocalMm(100);
+  });
+  afterEach(() => el.remove());
+
+  it('рендерит группу стрелки-предмета #object-arrow', () => {
+    const obj = el.shadowRoot.querySelector('#object-arrow');
+    expect(obj).not.toBeNull();
+  });
+
+  it('при d=2F (d=200,F=100) изображение масштаб 1: scale(1,-1)', () => {
+    el.setObjectDistanceMm(200); // |Γ|=imageDistance(100,200)/200 = 200/200 = 1
+    const inner = el.shadowRoot.querySelector('.projected-image');
+    const t = inner.getAttribute('transform');
+    expect(t).toContain('scale(1,-1)');
+  });
+
+  it('при d>2F изображение уменьшено (|gammaAbs|<1)', () => {
+    el.setObjectDistanceMm(300); // imageDistance(100,300)=150 → |Γ|=150/300=0.5
+    const inner = el.shadowRoot.querySelector('.projected-image');
+    const t = inner.getAttribute('transform');
+    // scale(1,-0.50)
+    const m = /scale\(1,\s*-([0-9.]+)\)/.exec(t);
+    expect(m).not.toBeNull();
+    expect(Number(m![1])).toBeCloseTo(0.5, 2);
+  });
+
+  it('при F<d<2F изображение увеличено (|gammaAbs|>1)', () => {
+    el.setObjectDistanceMm(150); // imageDistance(100,150)=300 → |Γ|=300/150=2
+    const inner = el.shadowRoot.querySelector('.projected-image');
+    const m = /scale\(1,\s*-([0-9.]+)\)/.exec(inner.getAttribute('transform'));
+    expect(Number(m![1])).toBeCloseTo(2, 2);
+  });
+
+  it('масштаб клампится в [0.2, 3] (d<F → мнимое, не взрывается)', () => {
+    el.setObjectDistanceMm(50); // d<F → imageDistance отрицателен
+    const inner = el.shadowRoot.querySelector('.projected-image');
+    const m = /scale\(1,\s*-([0-9.]+)\)/.exec(inner.getAttribute('transform'));
+    expect(m).not.toBeNull();
+    const v = Number(m![1]);
+    expect(v).toBeGreaterThanOrEqual(0.2);
+    expect(v).toBeLessThanOrEqual(3);
+  });
+
+  it('setSizeMatch(true) ставит класс size-match, false снимает', () => {
+    el.setSizeMatch(true);
+    expect(el.shadowRoot.querySelector('svg')!.classList.contains('size-match')).toBe(true);
+    el.setSizeMatch(false);
+    expect(el.shadowRoot.querySelector('svg')!.classList.contains('size-match')).toBe(false);
+  });
+});

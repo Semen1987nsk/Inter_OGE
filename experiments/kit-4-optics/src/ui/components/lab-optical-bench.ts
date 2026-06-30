@@ -76,6 +76,15 @@ function computeImageDistance(F_mm: number, d_mm: number): number {
   return (d_mm * F_mm) / denom;
 }
 
+/**
+ * Форматировать Y-компонент scale для transform.
+ * Целое → без дробной части (1 → "-1" для совместимости с тестом 'scale(1,-1)').
+ * Дробное → 2 знака после точки.
+ */
+function fmtScaleY(sy: number): string {
+  return Number.isInteger(sy) ? `-${sy}` : `-${sy.toFixed(2)}`;
+}
+
 // ─── Шаблон ───────────────────────────────────────────────────────────────────
 
 const template = document.createElement('template');
@@ -152,6 +161,14 @@ template.innerHTML = `
   .projected-image {
     transition: opacity 0.2s;
   }
+
+  .object-arrow { transition: opacity 0.2s; }
+  /* size-match: подсветка «размеры равны» (опыт 4.2) */
+  svg.size-match .object-arrow line,
+  svg.size-match .object-arrow polygon { stroke: #ffbe0b; fill: #ffbe0b; }
+  svg.size-match .projected-image line,
+  svg.size-match .projected-image polygon { stroke: #ffbe0b; fill: #ffbe0b; }
+  @media (prefers-reduced-motion: reduce) { .object-arrow { transition: none; } }
 
   /* Оверлей главных лучей */
   .ray-overlay-group { pointer-events: none; }
@@ -272,6 +289,14 @@ template.innerHTML = `
     </g>
   </g>
 
+  <!-- ════ СТРЕЛКА-ПРЕДМЕТ (upright, у гнезда предмета) ════ -->
+  <g id="object-arrow" class="object-arrow"
+     transform="translate(${mmToPx(DEFAULT_OBJECT_MM)}, ${BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2})">
+    <line x1="0" y1="0" x2="0" y2="${-ARROW_H}"
+          stroke="#7ee0d2" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="0,${-ARROW_H - 8} -6,${-ARROW_H + 2} 6,${-ARROW_H + 2}" fill="#7ee0d2"/>
+  </g>
+
   <!-- ════ ОВЕРЛЕЙ ГЛАВНЫХ ЛУЧЕЙ (скрыт по умолчанию) ════ -->
   <g class="ray-overlay-group" id="ray-overlay" hidden="">
     <!-- Луч 1: параллельно оси → через задний фокус F' (жёлтый) -->
@@ -320,6 +345,7 @@ export class LabOpticalBench extends HTMLElement {
   // Ссылки на SVG-элементы
   #feBlur: SVGFEGaussianBlurElement | null = null;
   #projectedImageInner: SVGGElement | null = null;  // .projected-image (inner, has transform)
+  #objectArrow: SVGGElement | null = null;
   #rayOverlay: SVGGElement | null = null;
   #slotObject: SVGGElement | null = null;
   #slotScreen: SVGGElement | null = null;
@@ -331,6 +357,7 @@ export class LabOpticalBench extends HTMLElement {
 
     this.#feBlur = shadow.querySelector<SVGFEGaussianBlurElement>('feGaussianBlur');
     this.#projectedImageInner = shadow.querySelector<SVGGElement>('.projected-image');
+    this.#objectArrow = shadow.querySelector<SVGGElement>('#object-arrow');
     this.#rayOverlay = shadow.querySelector<SVGGElement>('#ray-overlay');
     this.#slotObject = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-object"]');
     this.#slotScreen = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-screen"]');
@@ -343,6 +370,7 @@ export class LabOpticalBench extends HTMLElement {
       this.setAttribute('aria-label', 'Оптическая скамья с направляющей и гнёздами для приборов');
     }
     this.#updateProjectedImage();
+    this.#moveObjectArrow(this.#objectPosMm);
   }
 
   /**
@@ -375,6 +403,8 @@ export class LabOpticalBench extends HTMLElement {
     this.#objectDistanceMm = d;
     this.#objectPosMm = this.#lensPosMm - d;
     this.#moveSlot(this.#slotObject, this.#objectPosMm);
+    this.#moveObjectArrow(this.#objectPosMm);
+    this.#moveProjectedImageToScreen(this.#screenPosMm); // пересчитать масштаб под новый d
     this.#updateProjectedImage();
     this.#updateRayOverlay();
   }
@@ -382,6 +412,7 @@ export class LabOpticalBench extends HTMLElement {
   /** Установить фокусное расстояние линзы (мм). Обновляет изображение и оверлей. */
   setLensFocalMm(F: number): void {
     this.#lensFocalMm = F;
+    this.#moveProjectedImageToScreen(this.#screenPosMm); // масштаб зависит от F
     this.#updateProjectedImage();
     this.#updateRayOverlay();
   }
@@ -424,13 +455,37 @@ export class LabOpticalBench extends HTMLElement {
     slot.setAttribute('transform', `translate(${x}, ${y})`);
   }
 
-  /** Переместить проецируемое изображение на позицию экрана. */
+  /** Переместить проецируемое изображение на позицию экрана. Масштаб по |Γ|. */
   #moveProjectedImageToScreen(screenPosMm: number): void {
     if (!this.#projectedImageInner) return;
     const x = mmToPx(screenPosMm);
     const y = BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2;
-    // Сохраняем scale(1,-1) — инверсия для перевёрнутого изображения
-    this.#projectedImageInner.setAttribute('transform', `translate(${x}, ${y}) scale(1,-1)`);
+    const sy = this.#imageScale();
+    // scale(1, -sy): инверсия (перевёрнутое) + масштаб высоты по увеличению.
+    this.#projectedImageInner.setAttribute('transform', `translate(${x}, ${y}) scale(1,${fmtScaleY(sy)})`);
+  }
+
+  /** Истинное увеличение |Γ| = |imageDistance(F,d)/d|, кламп [0.2,3] для рендера. */
+  #imageScale(): number {
+    const f = computeImageDistance(this.#lensFocalMm, this.#objectDistanceMm);
+    if (!isFinite(f) || this.#objectDistanceMm <= 0) return 1;
+    const g = Math.abs(f / this.#objectDistanceMm);
+    if (!isFinite(g) || g <= 0) return 1;
+    return Math.max(0.2, Math.min(3, g));
+  }
+
+  /** Переместить стрелку-предмет вдоль скамьи в позицию предмета (мм). */
+  #moveObjectArrow(posMm: number): void {
+    if (!this.#objectArrow) return;
+    const x = mmToPx(posMm);
+    const y = BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2;
+    this.#objectArrow.setAttribute('transform', `translate(${x}, ${y})`);
+  }
+
+  /** Подсветить «размеры равны» (опыт 4.2): класс size-match на корневом svg. */
+  setSizeMatch(on: boolean): void {
+    const svg = this.shadowRoot?.querySelector('svg');
+    svg?.classList.toggle('size-match', on);
   }
 
   /**
