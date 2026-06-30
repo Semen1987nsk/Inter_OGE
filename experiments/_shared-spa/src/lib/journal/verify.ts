@@ -55,7 +55,35 @@ export function verifyDerivedValue(
 }
 
 /**
- * Полная проверка строки — возвращает verdicts по всем derived-колонкам.
+ * Грейд категориального (choice) значения: точное совпадение с эталоном.
+ *   - `empty`  — value === null или ''
+ *   - `ok`     — value === expectedChoiceFromRow(context)
+ *   - `wrong`  — иначе, либо expected не определён
+ */
+export function verifyChoiceValue(
+  spec: ColumnSpec,
+  row: JournalRow,
+  value: string | null,
+): JournalVerdict {
+  if (value === null || value === '') return 'empty';
+  if (spec.source !== 'choice') return 'wrong';
+  if (typeof spec.expectedChoiceFromRow !== 'function') return 'wrong';
+
+  const context: Record<string, number> = {};
+  for (const [k, v] of Object.entries(row.values)) {
+    if (typeof v === 'number' && Number.isFinite(v)) context[k] = v;
+  }
+  let expected: string;
+  try {
+    expected = spec.expectedChoiceFromRow(context);
+  } catch {
+    return 'wrong';
+  }
+  return value === expected ? 'ok' : 'wrong';
+}
+
+/**
+ * Полная проверка строки — возвращает verdicts по всем derived/choice-колонкам.
  * Если value не введено — `'empty'`.
  */
 export function verifyRow(
@@ -64,10 +92,15 @@ export function verifyRow(
 ): Record<string, JournalVerdict> {
   const verdicts: Record<string, JournalVerdict> = {};
   for (const col of columns) {
-    if (col.source !== 'derived') continue;
-    const v = row.values[col.key];
-    const num = typeof v === 'number' ? v : null;
-    verdicts[col.key] = verifyDerivedValue(col, row, num);
+    if (col.source === 'derived') {
+      const v = row.values[col.key];
+      const num = typeof v === 'number' ? v : null;
+      verdicts[col.key] = verifyDerivedValue(col, row, num);
+    } else if (col.source === 'choice') {
+      const v = row.values[col.key];
+      const str = typeof v === 'string' ? v : null;
+      verdicts[col.key] = verifyChoiceValue(col, row, str);
+    }
   }
   return verdicts;
 }

@@ -16,6 +16,8 @@ import {
   verifyDerivedValue,
   verifyRow,
 } from '@shared/lib/journal/verify';
+import { verifyChoiceValue } from '@labosfera/shared-spa/lib/journal/verify';
+import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import {
   ALL_SPECS,
   ARCHIMEDES_SPEC,
@@ -28,6 +30,7 @@ import type {
   ColumnSource,
   JournalRow,
 } from '@shared/lib/journal/types';
+import type { ColumnSpec, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ═══════════════════════════════════════════════════════════════════
 // format.ts
@@ -269,5 +272,100 @@ describe('specs — физическая корректность expectedFromRo
       .find((c) => c.key === 'k_N_m')!
       .expectedFromRow!({ m_g: 100, l0_mm: 50, l1_mm: 50 });
     expect(k).toBe(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// verifyChoiceValue (источник choice)
+// ═══════════════════════════════════════════════════════════════════
+
+describe('verifyChoiceValue (источник choice)', () => {
+  const kindCol: ColumnSpec = {
+    key: 'kind', label: 'Вид', source: 'choice',
+    options: [{ value: 'real', label: 'действительное' }, { value: 'virtual', label: 'мнимое' }],
+    expectedChoiceFromRow: (r) => ((r.d_mm ?? 0) > (r.F_mm ?? 0) ? 'real' : 'virtual'),
+  };
+  const row = (vals: Record<string, number | string | null>): JournalRow => ({ idx: 1, timestamp: 1, values: vals });
+
+  it('точное совпадение → ok', () => {
+    expect(verifyChoiceValue(kindCol, row({ d_mm: 300, F_mm: 100 }), 'real')).toBe('ok');
+  });
+  it('неверный выбор → wrong', () => {
+    expect(verifyChoiceValue(kindCol, row({ d_mm: 300, F_mm: 100 }), 'virtual')).toBe('wrong');
+  });
+  it('пусто (null / "") → empty', () => {
+    expect(verifyChoiceValue(kindCol, row({ d_mm: 300, F_mm: 100 }), null)).toBe('empty');
+    expect(verifyChoiceValue(kindCol, row({ d_mm: 300, F_mm: 100 }), '')).toBe('empty');
+  });
+  it('verifyRow грейдит choice-колонку по строковому значению', () => {
+    const v = verifyRow([kindCol], row({ d_mm: 300, F_mm: 100, kind: 'real' }));
+    expect(v['kind']).toBe('ok');
+  });
+  it('verifyRow: derived и choice вместе', () => {
+    const gammaCol: ColumnSpec = {
+      key: 'g', label: 'Γ', source: 'derived', format: 'fixed2', tolerance: 0.1,
+      expectedFromRow: (r) => -(r.d_mm ?? 0) / 100,
+    };
+    const v = verifyRow([kindCol, gammaCol], row({ d_mm: 300, F_mm: 100, kind: 'real', g: -3 }));
+    expect(v['kind']).toBe('ok');
+    expect(v['g']).toBe('ok');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// renderJournalTable — choice-колонка
+// ═══════════════════════════════════════════════════════════════════
+
+describe('renderJournalTable — choice-колонка', () => {
+  const spec: JournalSpec = {
+    experimentId: '4.4', kitId: 'kit-4',
+    columns: [
+      { key: 'idx', label: '№', source: 'meta', format: 'int' },
+      {
+        key: 'kind', label: 'Вид', source: 'choice',
+        options: [{ value: 'real', label: 'действительное' }, { value: 'virtual', label: 'мнимое' }],
+        expectedChoiceFromRow: (r) => ((r.d_mm ?? 0) > (r.F_mm ?? 0) ? 'real' : 'virtual'),
+      },
+    ],
+  };
+  const rows = [{ idx: 1, timestamp: 1, values: { idx: 1, kind: null as string | null, d_mm: 300, F_mm: 100 } }];
+
+  it('semi-auto: choice рендерится как <select> с опциями', () => {
+    const host = document.createElement('div');
+    renderJournalTable(host, spec, rows, { mode: 'semi-auto', onCellInput: () => {}, onVerify: () => {}, onChoiceInput: () => {} });
+    const sel = host.querySelector<HTMLSelectElement>('select[data-key="kind"]');
+    expect(sel).not.toBeNull();
+    const optionValues = Array.from(sel!.options).map((o) => o.value);
+    expect(optionValues).toContain('real');
+    expect(optionValues).toContain('virtual');
+  });
+
+  it('semi-auto: onChoiceInput вызывается при change со значением value', () => {
+    const host = document.createElement('div');
+    let captured: [number, string, string | null] | null = null;
+    renderJournalTable(host, spec, rows, {
+      mode: 'semi-auto', onCellInput: () => {}, onVerify: () => {},
+      onChoiceInput: (rowIdx, key, value) => { captured = [rowIdx, key, value]; },
+    });
+    const sel = host.querySelector<HTMLSelectElement>('select[data-key="kind"]')!;
+    sel.value = 'real';
+    sel.dispatchEvent(new Event('change'));
+    expect(captured).toEqual([1, 'kind', 'real']);
+  });
+
+  it('fully-auto: choice — readonly текст-метка (label), без select', () => {
+    const host = document.createElement('div');
+    const filled = [{ idx: 1, timestamp: 1, values: { idx: 1, kind: 'real', d_mm: 300, F_mm: 100 } }];
+    renderJournalTable(host, spec, filled, { mode: 'fully-auto', onCellInput: () => {}, onVerify: () => {} });
+    expect(host.querySelector('select[data-key="kind"]')).toBeNull();
+    const td = host.querySelector('td[data-key="kind"]')!;
+    expect(td.textContent).toContain('действительное');
+  });
+
+  it('fully-manual: choice — <select> (НЕ <input type=text> через ветку direct)', () => {
+    const host = document.createElement('div');
+    renderJournalTable(host, spec, rows, { mode: 'fully-manual', onCellInput: () => {}, onVerify: () => {}, onChoiceInput: () => {} });
+    expect(host.querySelector('select[data-key="kind"]')).not.toBeNull();
+    expect(host.querySelector('input[data-key="kind"]')).toBeNull();
   });
 });

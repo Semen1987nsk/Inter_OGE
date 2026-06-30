@@ -33,6 +33,8 @@ export interface RenderJournalOptions {
   onEdit?(rowIdx: number): void;
   onCancelEdit?(): void;
   onDelete?(rowIdx: number): void;
+  /** Колбэк выбора категории в choice-колонке. value: option.value | null. */
+  onChoiceInput?(rowIdx: number, key: string, value: string | null): void;
 }
 
 /**
@@ -90,8 +92,8 @@ export function renderJournalTable(
   }
   // Колонка ✓ — ТОЛЬКО в semi-auto (§21.A.1 UX-v2). В fully-manual нет
   // верификации, в fully-auto она бессмысленна.
-  const hasDerived = spec.columns.some((c) => c.source === 'derived');
-  if (hasDerived && opts.mode === 'semi-auto') {
+  const hasGradable = spec.columns.some((c) => c.source === 'derived' || c.source === 'choice');
+  if (hasGradable && opts.mode === 'semi-auto') {
     const thV = document.createElement('th');
     thV.textContent = '✓';
     thV.setAttribute('aria-label', 'Проверить');
@@ -157,8 +159,8 @@ function renderRow(
 
   // ✓-кнопка — ТОЛЬКО в semi-auto. В fully-manual ученик считает сам без
   // подсказок (§21.A.1 UX-v2); в fully-auto программа сама всё считает.
-  const hasDerived = spec.columns.some((c) => c.source === 'derived');
-  if (hasDerived && opts.mode === 'semi-auto') {
+  const hasGradable = spec.columns.some((c) => c.source === 'derived' || c.source === 'choice');
+  if (hasGradable && opts.mode === 'semi-auto') {
     const tdV = document.createElement('td');
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -194,6 +196,38 @@ function renderCell(
 
   const value = row.values[col.key] ?? null;
   const isEditing = opts.editingRowIdx === row.idx;
+
+  if (col.source === 'choice') {
+    const choiceVal = typeof value === 'string' ? value : null;
+    const writableChoice = opts.mode !== 'fully-auto' || isEditing;
+    if (writableChoice) {
+      const select = document.createElement('select');
+      select.className = 'j-input j-input--choice';
+      select.dataset['row'] = String(row.idx);
+      select.dataset['key'] = col.key;
+      if (verdict && opts.mode === 'semi-auto') select.dataset['verdict'] = verdict;
+      select.setAttribute('aria-label', col.ariaLabel ?? col.label);
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = '—';
+      select.appendChild(ph);
+      for (const opt of col.options ?? []) {
+        const o = document.createElement('option');
+        o.value = opt.value;
+        o.textContent = opt.label;
+        select.appendChild(o);
+      }
+      select.value = choiceVal ?? '';
+      select.addEventListener('change', () => {
+        opts.onChoiceInput?.(row.idx, col.key, select.value === '' ? null : select.value);
+      });
+      td.appendChild(select);
+    } else {
+      const label = col.options?.find((o) => o.value === choiceVal)?.label ?? '—';
+      td.textContent = label;
+    }
+    return td;
+  }
 
   // Решаем: input или readonly text?
   let writable = false;

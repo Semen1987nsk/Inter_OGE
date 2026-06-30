@@ -2,7 +2,7 @@
  * Типы единого «Журнала измерений» — §21 REFERENCE.md.
  *
  * Используется во всех опытах Inter_OGE (1.1, 1.2, 2.1, 2.2, и далее).
- * Контракт колонок: каждая имеет тип `source ∈ {meta|direct|derived}`,
+ * Контракт колонок: каждая имеет тип `source ∈ {meta|direct|derived|choice}`,
  * где:
  *   - `meta`    — контекст (№, цилиндр, поверхность); пишет программа.
  *   - `direct`  — показание прибора (m, V₁, P_возд...); пишет программа
@@ -10,11 +10,13 @@
  *   - `derived` — расчётная величина (V, ρ, F_A, k, μ); ученик вводит
  *                 в semi-auto/fully-manual + ✓ проверка с tolerance,
  *                 программа считает в fully-auto.
+ *   - 'choice'  — категориальный выбор (select); ученик выбирает, грейд = точное
+ *                 совпадение с expectedChoiceFromRow.
  *
  * См. §21.A.3 — контракт колонок.
  */
 
-export type ColumnSource = 'meta' | 'direct' | 'derived';
+export type ColumnSource = 'meta' | 'direct' | 'derived' | 'choice';
 
 export type ColumnFormat = 'int' | 'fixed1' | 'fixed2' | 'fixed3' | 'percent';
 
@@ -47,6 +49,16 @@ export interface ColumnSpec {
   readonly tolerance?: number;
   /** Aria-label для cell (если стандартный label не подходит). */
   readonly ariaLabel?: string;
+  /**
+   * Только для `choice`: варианты выпадающего списка (value хранится в row.values
+   * как строка, label показывается ученику).
+   */
+  readonly options?: ReadonlyArray<{ readonly value: string; readonly label: string }>;
+  /**
+   * Только для `choice`: эталонная категория (value одного из options) по числовому
+   * контексту строки. Грейд = точное совпадение выбранного value с этим.
+   */
+  readonly expectedChoiceFromRow?: (row: Readonly<Record<string, number>>) => string;
 }
 
 /** Спецификация журнала одного опыта. */
