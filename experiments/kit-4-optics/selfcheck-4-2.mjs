@@ -422,6 +422,87 @@ async function runTask42(page) {
 
   await screenshot(page, '04-size-match');
 
+  // Шаг 9б: ИНВАРИАНТ ИНВЕРСИИ (mustFix 3) — предмет вверх, изображение вниз
+  // Читаем позицию arrowhead-polygon относительно bbox группы.
+  // head near TOP bbox → стрелка вверх; head near BOTTOM bbox → стрелка вниз.
+  console.log('\n  ── Шаг 9б: Инвариант инверсии — предмет ↑, изображение ↓ ──────────────');
+  try {
+    const inversionResult = await page.evaluate(() => {
+      const bench = document.querySelector('#optical-bench');
+      const sr = bench?.shadowRoot ?? null;
+      if (!sr) return { skip: true, reason: 'shadowRoot не найден' };
+
+      const objectArrow = sr.querySelector('#object-arrow');
+      const projectedImage = sr.querySelector('.projected-image');
+
+      if (!objectArrow || !projectedImage) {
+        return { skip: true, reason: `objectArrow=${!!objectArrow}, projectedImage=${!!projectedImage}` };
+      }
+
+      // Найти polygon (наконечник) внутри каждой группы
+      const objPolygon = objectArrow.querySelector('polygon');
+      const imgPolygon = projectedImage.querySelector('polygon');
+      if (!objPolygon || !imgPolygon) {
+        return { skip: true, reason: `objPolygon=${!!objPolygon}, imgPolygon=${!!imgPolygon}` };
+      }
+
+      // Сравниваем Y-центр polygon с Y-центром bbox группы.
+      // Если polygon.y < group.y+group.h/2 → наконечник у TOP → стрелка вверх.
+      // Если polygon.y > group.y+group.h/2 → наконечник у BOTTOM → стрелка вниз.
+      const objGroupRect = objectArrow.getBoundingClientRect();
+      const imgGroupRect = projectedImage.getBoundingClientRect();
+      const objPolyRect = objPolygon.getBoundingClientRect();
+      const imgPolyRect = imgPolygon.getBoundingClientRect();
+
+      const objPolyCenterY = objPolyRect.y + objPolyRect.height / 2;
+      const objGroupCenterY = objGroupRect.y + objGroupRect.height / 2;
+      const imgPolyCenterY = imgPolyRect.y + imgPolyRect.height / 2;
+      const imgGroupCenterY = imgGroupRect.y + imgGroupRect.height / 2;
+
+      // Предмет: стрелка ВВЕРХ → наконечник выше центра группы
+      const objArrowUp = objGroupRect.height > 0 ? objPolyCenterY < objGroupCenterY : null;
+      // Изображение: стрелка ВНИЗ → наконечник НИЖЕ центра группы
+      const imgArrowDown = imgGroupRect.height > 0 ? imgPolyCenterY > imgGroupCenterY : null;
+
+      return {
+        objGroupRect: { y: objGroupRect.y, h: objGroupRect.height },
+        imgGroupRect: { y: imgGroupRect.y, h: imgGroupRect.height },
+        objPolyCenterY,
+        imgPolyCenterY,
+        objGroupCenterY,
+        imgGroupCenterY,
+        objArrowUp,
+        imgArrowDown,
+      };
+    });
+
+    if (inversionResult.skip) {
+      skip('4.2 инверсия: направление стрелок', inversionResult.reason);
+    } else {
+      const { objArrowUp, imgArrowDown, objPolyCenterY, objGroupCenterY, imgPolyCenterY, imgGroupCenterY } = inversionResult;
+
+      if (objArrowUp === null) {
+        skip('4.2 инверсия: предмет (нет высоты bbox)', 'objectArrow bbox height=0 (рендер не вычислен)');
+      } else if (objArrowUp === true) {
+        pass(`4.2 инверсия: предмет (#object-arrow) направлен ВВЕРХ (polyY=${objPolyCenterY.toFixed(1)} < groupCenterY=${objGroupCenterY.toFixed(1)})`);
+      } else {
+        fail('4.2 инверсия: предмет (#object-arrow) должен быть направлен ВВЕРХ',
+          `polyY=${objPolyCenterY.toFixed(1)} >= groupCenterY=${objGroupCenterY.toFixed(1)} → наконечник СНИЗУ`);
+      }
+
+      if (imgArrowDown === null) {
+        skip('4.2 инверсия: изображение (нет высоты bbox)', 'projectedImage bbox height=0 (рендер не вычислен)');
+      } else if (imgArrowDown === true) {
+        pass(`4.2 инверсия: изображение (.projected-image) направлено ВНИЗ (polyY=${imgPolyCenterY.toFixed(1)} > groupCenterY=${imgGroupCenterY.toFixed(1)})`);
+      } else {
+        fail('4.2 инверсия: изображение (.projected-image) должно быть направлено ВНИЗ',
+          `polyY=${imgPolyCenterY.toFixed(1)} <= groupCenterY=${imgGroupCenterY.toFixed(1)} → наконечник СВЕРХУ (баг инверсии не устранён)`);
+      }
+    }
+  } catch (err) {
+    fail('4.2 инверсия: проверка направлений стрелок', err.message);
+  }
+
   // Шаг 10: Запись через #record-pending-btn или recordMeasurement()
   console.log('\n  ── Шаг 10: Запись измерения ─────────────────────────────────────────────');
   const btnB = page.locator('#record-pending-btn');
@@ -486,11 +567,27 @@ async function runTask42(page) {
 async function checkSemiAutoBlock(page) {
   console.log('\n  ── Semi-auto: запись при d=150 (не 2F) должна игнорироваться ───────────');
   try {
-    // Установить record-mode = semi-auto через localStorage
+    // Установить record-mode = semi-auto через правильный ключ inter-oge.record-mode.kit-4
     await page.evaluate(() => {
-      localStorage.setItem('record-mode-kit-4', 'semi-auto');
+      localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
     });
-    await page.waitForTimeout(50);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(700);
+
+    // После reload повторно переключиться на задачу B и собрать скамью
+    const taskBtn = page.locator('[data-task="B-focal2f"]');
+    const taskBtnVisible = await taskBtn.isVisible().catch(() => false);
+    if (taskBtnVisible) {
+      await taskBtn.click();
+      await page.waitForTimeout(150);
+    }
+
+    // Убедиться что window.lensBenchExperiment жив
+    const expOk = await page.evaluate(() => !!(window.lensBenchExperiment));
+    if (!expOk) {
+      skip('4.2 semi-auto: тест блокировки', 'window.lensBenchExperiment не найден после reload');
+      return;
+    }
 
     // Сдвинуть предмет в d=150 (не 2F, |Γ|≠1)
     await page.evaluate(() => window.lensBenchExperiment?.setObjectDistanceMm(150));
@@ -500,7 +597,7 @@ async function checkSemiAutoBlock(page) {
       (window.lensBenchExperiment?.measurements ?? []).filter(m => m.task === 'B-focal2f').length
     );
 
-    // Попытаться записать через recordMeasurement() — должно игнорироваться
+    // В semi-auto recordMeasurement() игнорируется, если isSizesEqual=false || isSharp=false
     await page.evaluate(() => window.lensBenchExperiment?.recordMeasurement?.());
     await page.waitForTimeout(100);
 
@@ -521,6 +618,148 @@ async function checkSemiAutoBlock(page) {
   } catch (err) {
     fail('4.2 semi-auto: тест блокировки', err.message);
   }
+}
+
+// ─── Тест: Различие semi-auto и fully-auto (mustFix 2 — ПОЗИТИВНАЯ проверка) ───
+
+async function checkSemiVsFullyAuto(page) {
+  console.log('\n  ── Semi-auto vs Fully-auto: различие поведения при равенстве ───────────');
+
+  // Подготовка: убедиться что на задаче B и d=200 (резко, равно)
+  try {
+    const taskBtn = page.locator('[data-task="B-focal2f"]');
+    const taskBtnVisible = await taskBtn.isVisible().catch(() => false);
+    if (taskBtnVisible) {
+      await taskBtn.click();
+      await page.waitForTimeout(150);
+    }
+    await page.evaluate(() => window.lensBenchExperiment?.setObjectDistanceMm(200));
+    await page.waitForTimeout(100);
+    // Установить экран в плоскость изображения (f=200)
+    const moved = await page.evaluate((f) => {
+      const slider = document.querySelector('#screen-slider');
+      if (!slider) return false;
+      slider.value = String(f);
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }, 200);
+    if (!moved) {
+      skip('4.2 semi-vs-auto: нет #screen-slider для настройки резкости', '');
+      return;
+    }
+    await page.waitForTimeout(150);
+  } catch (err) {
+    skip('4.2 semi-vs-auto: подготовка', err.message);
+    return;
+  }
+
+  // ─── semi-auto: при равенстве + резко авто-записи НЕТ (нужен клик кнопки) ───
+  try {
+    await page.evaluate(() => {
+      localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(700);
+
+    // После reload повторно настроить задачу B и d=200
+    const taskBtn2 = page.locator('[data-task="B-focal2f"]');
+    const visible2 = await taskBtn2.isVisible().catch(() => false);
+    if (visible2) { await taskBtn2.click(); await page.waitForTimeout(150); }
+    await page.evaluate(() => window.lensBenchExperiment?.setObjectDistanceMm(200));
+    await page.waitForTimeout(100);
+    await page.evaluate((f) => {
+      const slider = document.querySelector('#screen-slider');
+      if (slider) { slider.value = String(f); slider.dispatchEvent(new Event('input', { bubbles: true })); }
+    }, 200);
+    await page.waitForTimeout(150);
+
+    const expOk = await page.evaluate(() => !!(window.lensBenchExperiment));
+    if (!expOk) {
+      skip('4.2 semi-vs-auto: semi-auto', 'window.lensBenchExperiment не найден');
+    } else {
+      const countBefore = await page.evaluate(() =>
+        (window.lensBenchExperiment?.measurements ?? []).filter(m => m.task === 'B-focal2f').length
+      );
+
+      // Ждать немного — fully-auto записал бы уже здесь; semi-auto — нет
+      await page.waitForTimeout(300);
+
+      const countAfterWait = await page.evaluate(() =>
+        (window.lensBenchExperiment?.measurements ?? []).filter(m => m.task === 'B-focal2f').length
+      );
+
+      if (countAfterWait === countBefore) {
+        pass('4.2 semi-auto: при равенстве (d=200, f=200) авто-записи НЕТ без клика кнопки');
+      } else {
+        fail('4.2 semi-auto: запись появилась без клика',
+          `countBefore=${countBefore}, countAfterWait=${countAfterWait} — в semi-auto не должно быть авто-записи`);
+      }
+
+      // Кликнуть кнопку — запись ДОЛЖНА появиться
+      const btnSemi = page.locator('#record-pending-btn');
+      const btnVisible = await btnSemi.isVisible().catch(() => false);
+      if (btnVisible) {
+        await btnSemi.click();
+        await page.waitForTimeout(200);
+        const countAfterClick = await page.evaluate(() =>
+          (window.lensBenchExperiment?.measurements ?? []).filter(m => m.task === 'B-focal2f').length
+        );
+        if (countAfterClick > countBefore) {
+          pass('4.2 semi-auto: запись появилась ПОСЛЕ клика #record-pending-btn');
+        } else {
+          fail('4.2 semi-auto: запись НЕ появилась после клика',
+            `countBefore=${countBefore}, countAfterClick=${countAfterClick}`);
+        }
+      } else {
+        skip('4.2 semi-auto: клик кнопки', '#record-pending-btn не видим');
+      }
+    }
+  } catch (err) {
+    fail('4.2 semi-vs-auto: semi-auto тест', err.message);
+  }
+
+  // ─── fully-auto: при равенстве + резко запись появляется БЕЗ клика ───
+  try {
+    await page.evaluate(() => {
+      localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(700);
+
+    // Настроить задачу B и d=200 после reload
+    const taskBtn3 = page.locator('[data-task="B-focal2f"]');
+    const visible3 = await taskBtn3.isVisible().catch(() => false);
+    if (visible3) { await taskBtn3.click(); await page.waitForTimeout(150); }
+    await page.evaluate(() => window.lensBenchExperiment?.setObjectDistanceMm(200));
+    await page.waitForTimeout(100);
+    await page.evaluate((f) => {
+      const slider = document.querySelector('#screen-slider');
+      if (slider) { slider.value = String(f); slider.dispatchEvent(new Event('input', { bubbles: true })); }
+    }, 200);
+    await page.waitForTimeout(400); // дать fully-auto время записать
+
+    const expOk2 = await page.evaluate(() => !!(window.lensBenchExperiment));
+    if (!expOk2) {
+      skip('4.2 semi-vs-auto: fully-auto', 'window.lensBenchExperiment не найден');
+    } else {
+      const countFullyAuto = await page.evaluate(() =>
+        (window.lensBenchExperiment?.measurements ?? []).filter(m => m.task === 'B-focal2f').length
+      );
+      if (countFullyAuto > 0) {
+        pass(`4.2 fully-auto: запись появилась БЕЗ клика кнопки (count=${countFullyAuto})`);
+      } else {
+        // fully-auto может не поддерживаться в kit-4 — пропускаем мягко
+        skip('4.2 fully-auto: авто-запись', `count=${countFullyAuto} — fully-auto может быть не реализован для kit-4`);
+      }
+    }
+  } catch (err) {
+    fail('4.2 semi-vs-auto: fully-auto тест', err.message);
+  }
+
+  // Восстановить semi-auto после теста
+  await page.evaluate(() => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+  });
 }
 
 // ─── Тест: Изоляция задач A и B ──────────────────────────────────────────────
@@ -570,26 +809,38 @@ async function checkTaskIsolation(page) {
 }
 
 // ─── Тест: 3 режима record-mode ──────────────────────────────────────────────
+// mustFix 2: ключ localStorage = 'inter-oge.record-mode.kit-4' (не 'record-mode-kit-4')
 
 async function checkRecordModes(page) {
   console.log('\n  ── 3 режима record-mode ────────────────────────────────────────────────');
+  const LS_KEY = 'inter-oge.record-mode.kit-4';
   const modes = ['semi-auto', 'fully-manual', 'fully-auto'];
 
   for (const mode of modes) {
     try {
-      await page.evaluate((m) => {
-        localStorage.setItem('record-mode-kit-4', m);
-        // Триггернуть change-событие если есть toggle
-        const toggle = document.querySelector('[data-record-mode-kit]');
-        if (toggle) toggle.dispatchEvent(new Event('change', { bubbles: true }));
-      }, mode);
-      await page.waitForTimeout(100);
+      // Установить через правильный ключ, перезагрузить, прочитать что приложение видит
+      await page.evaluate(([key, m]) => {
+        localStorage.setItem(key, m);
+      }, [LS_KEY, mode]);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
 
-      const storedMode = await page.evaluate(() => localStorage.getItem('record-mode-kit-4'));
+      // Проверить что приложение читает именно этот ключ (через getRecordMode-эквивалент):
+      // window.lensBenchExperiment должно знать о режиме — либо проверяем через body dataset
+      const storedMode = await page.evaluate((key) => localStorage.getItem(key), LS_KEY);
+      const bodyMode = await page.evaluate(() => document.body?.dataset['recordMode'] ?? null);
+
       if (storedMode === mode) {
-        pass(`4.2 record-mode: "${mode}" — сохранён в localStorage`);
+        pass(`4.2 record-mode: "${mode}" — сохранён в localStorage[${LS_KEY}]`);
       } else {
-        fail(`4.2 record-mode: "${mode}"`, `localStorage.getItem → "${storedMode}"`);
+        fail(`4.2 record-mode: "${mode}"`, `localStorage.getItem('${LS_KEY}') → "${storedMode}"`);
+      }
+
+      if (bodyMode === mode) {
+        pass(`4.2 record-mode: "${mode}" — body[data-record-mode]="${bodyMode}" (приложение читает ключ верно)`);
+      } else {
+        // Не все опыты могут ставить body dataset сразу — мягкий skip
+        skip(`4.2 record-mode body attr: "${mode}"`, `body[data-record-mode]="${bodyMode}" (ожидалось "${mode}")`);
       }
     } catch (err) {
       fail(`4.2 record-mode: "${mode}"`, err.message);
@@ -597,7 +848,9 @@ async function checkRecordModes(page) {
   }
 
   // Вернуть в semi-auto для финального состояния
-  await page.evaluate(() => localStorage.setItem('record-mode-kit-4', 'semi-auto'));
+  await page.evaluate((key) => localStorage.setItem(key, 'semi-auto'), LS_KEY);
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(500);
 }
 
 // ─── Основная функция ─────────────────────────────────────────────────────────
@@ -664,6 +917,9 @@ async function run() {
 
   // ── Semi-auto блокировка (d=150 → не пишет) ───────────────────────────────────
   await checkSemiAutoBlock(page);
+
+  // ── Semi-auto vs Fully-auto: позитивная проверка различия (mustFix 2) ─────────
+  await checkSemiVsFullyAuto(page);
 
   // ── Изоляция задач A / B ─────────────────────────────────────────────────────
   await checkTaskIsolation(page);

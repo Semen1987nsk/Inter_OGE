@@ -88,8 +88,24 @@
 .object-slider-row[hidden] { display: none; }
 
 @media (max-width: 767px) {
+  /* Свитчер A/B (task B = слайдер предмета) — функциональный контрол, не скрывать.
+     На узких экранах переходим на компактную горизонтальную прокрутку. */
   .steps {
-    display: none;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding-bottom: 2px; /* пространство для scrollbar */
+  }
+  .step {
+    font-size: 11px;
+    padding: 3px 8px 3px 3px;
+    flex-shrink: 0;
+  }
+  .step-num {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
   }
 }
 

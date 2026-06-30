@@ -274,17 +274,19 @@ template.innerHTML = `
     Трансформ включает и translate, и scale(1,-1) — тест проверяет наличие 'scale'.
   -->
   <g id="projected-image-group" filter="url(#img-blur)">
-    <!-- scale(1,-1) инвертирует направление стрелки (перевёрнутое изображение) -->
+    <!-- scale(1,-sy) инвертирует направление стрелки (перевёрнутое изображение).
+         Базовая геометрия направлена ВВЕРХ (y отрицателен), чтобы после scale(1,-sy)
+         изображение рендерилось ВНИЗ — перевёрнутым относительно предмета. -->
     <g class="projected-image"
        transform="translate(${mmToPx(DEFAULT_SCREEN_MM)}, ${BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2}) scale(1,-1)">
-      <!-- Тело стрелки -->
-      <line x1="0" y1="0" x2="0" y2="${ARROW_H}"
+      <!-- Тело стрелки (вверх: y2 отрицателен) -->
+      <line x1="0" y1="0" x2="0" y2="${-ARROW_H}"
             stroke="#f2c94c" stroke-width="3" stroke-linecap="round"/>
-      <!-- Наконечник -->
-      <polygon points="0,${ARROW_H + 8} -6,${ARROW_H - 2} 6,${ARROW_H - 2}"
+      <!-- Наконечник (вверх: y отрицателен) -->
+      <polygon points="0,${-(ARROW_H + 8)} -6,${-(ARROW_H - 2)} 6,${-(ARROW_H - 2)}"
                fill="#f2c94c"/>
       <!-- Свечение (halo) -->
-      <ellipse cx="0" cy="${ARROW_H / 2}" rx="10" ry="${ARROW_H / 2 + 4}"
+      <ellipse cx="0" cy="${-ARROW_H / 2}" rx="10" ry="${ARROW_H / 2 + 4}"
                fill="rgba(242,201,76,0.08)"/>
     </g>
   </g>
@@ -345,6 +347,7 @@ export class LabOpticalBench extends HTMLElement {
   // Ссылки на SVG-элементы
   #feBlur: SVGFEGaussianBlurElement | null = null;
   #projectedImageInner: SVGGElement | null = null;  // .projected-image (inner, has transform)
+  #projectedImageGroup: SVGGElement | null = null;  // #projected-image-group (outer, visibility)
   #objectArrow: SVGGElement | null = null;
   #rayOverlay: SVGGElement | null = null;
   #slotObject: SVGGElement | null = null;
@@ -357,6 +360,7 @@ export class LabOpticalBench extends HTMLElement {
 
     this.#feBlur = shadow.querySelector<SVGFEGaussianBlurElement>('feGaussianBlur');
     this.#projectedImageInner = shadow.querySelector<SVGGElement>('.projected-image');
+    this.#projectedImageGroup = shadow.querySelector<SVGGElement>('#projected-image-group');
     this.#objectArrow = shadow.querySelector<SVGGElement>('#object-arrow');
     this.#rayOverlay = shadow.querySelector<SVGGElement>('#ray-overlay');
     this.#slotObject = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-object"]');
@@ -371,6 +375,7 @@ export class LabOpticalBench extends HTMLElement {
     }
     this.#updateProjectedImage();
     this.#moveObjectArrow(this.#objectPosMm);
+    this.#moveProjectedImageToScreen(this.#screenPosMm);
   }
 
   /**
@@ -492,11 +497,23 @@ export class LabOpticalBench extends HTMLElement {
    * Вычислить резкость из текущих параметров и применить blur.
    * imagePlaneMm = d*F/(d-F) (от линзы).
    * sharpness = 1 / (1 + |screenDistanceMm − imagePlaneMm| / BLUR_BAND_MM).
+   * При d<F изображение мнимое (imagePlaneMm ≤ 0) — группа скрывается (shouldFix A).
    */
   #updateProjectedImage(): void {
     const imagePlaneMm = computeImageDistance(this.#lensFocalMm, this.#objectDistanceMm);
+    const isReal = isFinite(imagePlaneMm) && imagePlaneMm > 0;
+
+    // shouldFix A: скрывать проецируемое изображение при мнимом (d<F)
+    if (this.#projectedImageGroup) {
+      if (isReal) {
+        this.#projectedImageGroup.removeAttribute('hidden');
+      } else {
+        this.#projectedImageGroup.setAttribute('hidden', '');
+      }
+    }
+
     let sharpness: number;
-    if (!isFinite(imagePlaneMm) || imagePlaneMm <= 0) {
+    if (!isReal) {
       // Изображение в бесконечности или мнимое → максимальное размытие
       sharpness = 0;
     } else {
