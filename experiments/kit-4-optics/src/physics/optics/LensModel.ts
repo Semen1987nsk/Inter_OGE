@@ -120,3 +120,35 @@ export function imageProperties(
 
   return { kind, orientation, size, gamma };
 }
+
+/** Зона положения предмета относительно фокуса. */
+export type ObjectZone = 'gt2F' | 'eq2F' | 'F_2F' | 'eqF' | 'ltF';
+
+/**
+ * Классифицировать положение предмета по зонам, СОГЛАСОВАННО с imageProperties:
+ *   real+reduced  → gt2F   |  real+equal → eq2F  |  real+enlarged → F_2F
+ *   virtual (∞)   → eqF    |  virtual (конечн.) → ltF
+ * Единый источник классификации — imageProperties (нет второго порога → нет трапа).
+ */
+export function objectZone(F_mm: number, d_mm: number): ObjectZone {
+  guard(F_mm, d_mm);
+  const p = imageProperties(F_mm, d_mm);
+  if (p.kind === 'virtual') {
+    return Number.isFinite(p.gamma) ? 'ltF' : 'eqF';
+  }
+  if (p.size === 'reduced') return 'gt2F';
+  if (p.size === 'equal') return 'eq2F';
+  return 'F_2F';
+}
+
+/** Человекочитаемая подпись зоны (RU). */
+export function zoneLabelRu(zone: ObjectZone): string {
+  const map: Record<ObjectZone, string> = {
+    gt2F: 'd > 2F',
+    eq2F: 'd = 2F',
+    F_2F: 'F < d < 2F',
+    eqF: 'd = F',
+    ltF: 'd < F',
+  };
+  return map[zone];
+}

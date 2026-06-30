@@ -8,6 +8,8 @@ import {
   combinedPower,
   combinedFocal,
   imageProperties,
+  objectZone,
+  zoneLabelRu,
 } from '../LensModel';
 
 // ---------------------------------------------------------------------------
@@ -417,6 +419,53 @@ describe('property fuzzing — 12 инвариантных категорий (~
       if (absG > 1 + 0.001) expect(p.size).toBe('enlarged');
       else if (absG < 1 - 0.001) expect(p.size).toBe('reduced');
       else expect(p.size).toBe('equal');
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// objectZone (зона по положению предмета относительно F и 2F)
+// ---------------------------------------------------------------------------
+describe('objectZone (зона по положению предмета относительно F и 2F)', () => {
+  const F = 100;
+  it('d > 2F → gt2F (уменьшенное действительное)', () => {
+    expect(objectZone(F, 300)).toBe('gt2F');
+  });
+  it('d = 2F → eq2F (равное)', () => {
+    expect(objectZone(F, 200)).toBe('eq2F');
+  });
+  it('F < d < 2F → F_2F (увеличенное действительное)', () => {
+    expect(objectZone(F, 150)).toBe('F_2F');
+  });
+  it('d = F → eqF (изображение в бесконечности)', () => {
+    expect(objectZone(F, 100)).toBe('eqF');
+  });
+  it('d < F → ltF (мнимое прямое увеличенное)', () => {
+    expect(objectZone(F, 60)).toBe('ltF');
+  });
+  it('zoneLabelRu — человекочитаемые подписи', () => {
+    expect(zoneLabelRu('gt2F')).toBe('d > 2F');
+    expect(zoneLabelRu('eq2F')).toBe('d = 2F');
+    expect(zoneLabelRu('F_2F')).toBe('F < d < 2F');
+    expect(zoneLabelRu('eqF')).toBe('d = F');
+    expect(zoneLabelRu('ltF')).toBe('d < F');
+  });
+
+  // Кросс-чек: зона СОГЛАСОВАНА с imageProperties (нулевой трап рассинхрона).
+  it('фаззинг: objectZone бийективен с imageProperties.{kind,size} (50k)', () => {
+    for (let i = 0; i < 50000; i++) {
+      const Ff = 30 + (i % 170);            // 30..199 мм
+      const d = 10 + ((i * 7) % 400);       // 10..409 мм
+      if (d === Ff) continue;               // вырожденную d=F проверяем отдельно
+      const p = imageProperties(Ff, d);
+      const z = objectZone(Ff, d);
+      if (p.kind === 'virtual' && Number.isFinite(p.gamma)) {
+        expect(z).toBe('ltF');
+      } else if (p.kind === 'real') {
+        if (p.size === 'reduced') expect(z).toBe('gt2F');
+        else if (p.size === 'equal') expect(z).toBe('eq2F');
+        else expect(z).toBe('F_2F');
+      }
     }
   });
 });
