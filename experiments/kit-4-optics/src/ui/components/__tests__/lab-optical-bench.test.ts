@@ -259,3 +259,56 @@ describe('lab-optical-bench — стрелка-предмет и масштаб 
     expect(el.shadowRoot.querySelector('svg')!.classList.contains('size-match')).toBe(false);
   });
 });
+
+describe('lab-optical-bench — рендер изображения по зонам (опыт 4.4)', () => {
+  function makeBench(): HTMLElement & {
+    setObjectDistanceMm(d: number): void;
+    setLensFocalMm(F: number): void;
+    setScreenDistanceMm(f: number): void;
+  } {
+    const el = document.createElement('lab-optical-bench') as never;
+    document.body.appendChild(el);
+    return el;
+  }
+  const isVisible = (root: ShadowRoot, sel: string) => {
+    const e = root.querySelector(sel);
+    return !!e && !e.hasAttribute('hidden');
+  };
+
+  it('d > F (действительное): проецируемое видно, virtual/infinity скрыты', () => {
+    const el = makeBench();
+    el.setLensFocalMm(100);
+    el.setObjectDistanceMm(300);
+    el.setScreenDistanceMm(150);
+    const sr = (el as unknown as { shadowRoot: ShadowRoot }).shadowRoot;
+    expect(isVisible(sr, '#projected-image-group')).toBe(true);
+    expect(isVisible(sr, '#virtual-image-group')).toBe(false);
+    expect(isVisible(sr, '#infinity-note-group')).toBe(false);
+    el.remove();
+  });
+
+  it('d < F (мнимое): virtual видно ПРЯМОЕ (не инвертировано), проецируемое скрыто', () => {
+    const el = makeBench();
+    el.setLensFocalMm(100);
+    el.setObjectDistanceMm(60);
+    const sr = (el as unknown as { shadowRoot: ShadowRoot }).shadowRoot;
+    expect(isVisible(sr, '#virtual-image-group')).toBe(true);
+    expect(isVisible(sr, '#projected-image-group')).toBe(false);
+    expect(isVisible(sr, '#infinity-note-group')).toBe(false);
+    // прямое: трансформ НЕ содержит инверсии scale(1,-..)
+    const inner = sr.querySelector('.virtual-image')!;
+    expect(inner.getAttribute('transform') ?? '').not.toMatch(/scale\(1,\s*-/);
+    el.remove();
+  });
+
+  it('d = F (бесконечность): infinity note видно, остальные скрыты', () => {
+    const el = makeBench();
+    el.setLensFocalMm(100);
+    el.setObjectDistanceMm(100);
+    const sr = (el as unknown as { shadowRoot: ShadowRoot }).shadowRoot;
+    expect(isVisible(sr, '#infinity-note-group')).toBe(true);
+    expect(isVisible(sr, '#projected-image-group')).toBe(false);
+    expect(isVisible(sr, '#virtual-image-group')).toBe(false);
+    el.remove();
+  });
+});

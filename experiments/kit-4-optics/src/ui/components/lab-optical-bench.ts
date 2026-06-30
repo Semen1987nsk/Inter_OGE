@@ -3,9 +3,12 @@
  *
  * Горизонтальная оптическая скамья (направляющая ≥700 мм) с сантиметровой шкалой.
  * Гнёзда (drop-targets) для осветителя-предмета, линзы и экрана.
+ * Обслуживает опыты 4.1 / 4.2 / 4.4 (собирающая линза).
  *
- * Рендерит проецируемое перевёрнутое изображение стрелки на гнезде экрана.
- * Резкость: sharpness ∝ 1/(1 + |screenDistanceMm − imagePlaneMm| / BLUR_BAND_MM).
+ * Рендерит изображение стрелки в трёх режимах:
+ *   d > F → действительное перевёрнутое (#projected-image-group), резкость по экрану.
+ *   d < F → мнимое прямое призрачное (#virtual-image-group), у линзы, |Γ|=F/(F−d).
+ *   d = F → note «изображение в бесконечности» + параллельные лучи (#infinity-note-group).
  * Opt-in оверлей: 3 главных луча + метки F / 2F (по умолчанию скрыт).
  *
  * API:
@@ -203,7 +206,7 @@ template.innerHTML = `
 
 <svg viewBox="0 0 ${SVG_W} ${SVG_H}" xmlns="http://www.w3.org/2000/svg"
      role="img" aria-labelledby="bench-title" tabindex="-1">
-  <title id="bench-title">Оптическая скамья — опыт 4.1 «Измерение оптической силы собирающей линзы»</title>
+  <title id="bench-title">Оптическая скамья — опыты 4.1/4.2/4.4 (собирающая линза)</title>
 
   <defs>
     <!-- Blur-фильтр для проецируемого изображения -->
@@ -299,6 +302,32 @@ template.innerHTML = `
     <polygon points="0,${-ARROW_H - 8} -6,${-ARROW_H + 2} 6,${-ARROW_H + 2}" fill="#7ee0d2"/>
   </g>
 
+  <!-- ════ МНИМОЕ ИЗОБРАЖЕНИЕ «через линзу» (d<F): прямое, увеличенное, призрачное ════ -->
+  <g id="virtual-image-group" hidden="">
+    <g class="virtual-image"
+       transform="translate(${mmToPx(DEFAULT_LENS_MM)}, ${BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2})">
+      <!-- прямая стрелка (вверх), БЕЗ инверсии; масштаб задаётся в #updateImageRendering -->
+      <line x1="0" y1="0" x2="0" y2="${-ARROW_H}"
+            stroke="#9d8cff" stroke-width="3" stroke-linecap="round"
+            stroke-dasharray="4 3" opacity="0.85"/>
+      <polygon points="0,${-ARROW_H - 8} -6,${-ARROW_H + 2} 6,${-ARROW_H + 2}"
+               fill="#9d8cff" opacity="0.85"/>
+      <ellipse cx="0" cy="${-ARROW_H / 2}" rx="10" ry="${ARROW_H / 2 + 4}"
+               fill="rgba(157,140,255,0.08)"/>
+    </g>
+  </g>
+
+  <!-- ════ ИЗОБРАЖЕНИЕ В БЕСКОНЕЧНОСТИ (d=F): note + 2 параллельных луча ════ -->
+  <g id="infinity-note-group" hidden="">
+    <line class="ray-line ray-parallel" x1="${mmToPx(DEFAULT_LENS_MM)}" y1="${BENCH_Y - ARROW_H}"
+          x2="${BENCH_RIGHT_X}" y2="${BENCH_Y - ARROW_H}" opacity="0.7"/>
+    <line class="ray-line ray-parallel" x1="${mmToPx(DEFAULT_LENS_MM)}" y1="${BENCH_Y}"
+          x2="${BENCH_RIGHT_X}" y2="${BENCH_Y}" opacity="0.7"/>
+    <text class="focal-marker" x="${mmToPx(DEFAULT_LENS_MM) + 120}" y="${BENCH_Y - ARROW_H - 8}">
+      изображение в бесконечности
+    </text>
+  </g>
+
   <!-- ════ ОВЕРЛЕЙ ГЛАВНЫХ ЛУЧЕЙ (скрыт по умолчанию) ════ -->
   <g class="ray-overlay-group" id="ray-overlay" hidden="">
     <!-- Луч 1: параллельно оси → через задний фокус F' (жёлтый) -->
@@ -348,6 +377,9 @@ export class LabOpticalBench extends HTMLElement {
   #feBlur: SVGFEGaussianBlurElement | null = null;
   #projectedImageInner: SVGGElement | null = null;  // .projected-image (inner, has transform)
   #projectedImageGroup: SVGGElement | null = null;  // #projected-image-group (outer, visibility)
+  #virtualImageGroup: SVGGElement | null = null;    // #virtual-image-group (мнимое, d<F)
+  #virtualImageInner: SVGGElement | null = null;    // .virtual-image (inner, has transform)
+  #infinityNoteGroup: SVGGElement | null = null;    // #infinity-note-group (d=F)
   #objectArrow: SVGGElement | null = null;
   #rayOverlay: SVGGElement | null = null;
   #slotObject: SVGGElement | null = null;
@@ -361,6 +393,9 @@ export class LabOpticalBench extends HTMLElement {
     this.#feBlur = shadow.querySelector<SVGFEGaussianBlurElement>('feGaussianBlur');
     this.#projectedImageInner = shadow.querySelector<SVGGElement>('.projected-image');
     this.#projectedImageGroup = shadow.querySelector<SVGGElement>('#projected-image-group');
+    this.#virtualImageGroup = shadow.querySelector<SVGGElement>('#virtual-image-group');
+    this.#virtualImageInner = shadow.querySelector<SVGGElement>('.virtual-image');
+    this.#infinityNoteGroup = shadow.querySelector<SVGGElement>('#infinity-note-group');
     this.#objectArrow = shadow.querySelector<SVGGElement>('#object-arrow');
     this.#rayOverlay = shadow.querySelector<SVGGElement>('#ray-overlay');
     this.#slotObject = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-object"]');
@@ -494,33 +529,53 @@ export class LabOpticalBench extends HTMLElement {
   }
 
   /**
-   * Вычислить резкость из текущих параметров и применить blur.
-   * imagePlaneMm = d*F/(d-F) (от линзы).
-   * sharpness = 1 / (1 + |screenDistanceMm − imagePlaneMm| / BLUR_BAND_MM).
-   * При d<F изображение мнимое (imagePlaneMm ≤ 0) — группа скрывается (shouldFix A).
+   * Управляет видимостью трёх групп изображения в зависимости от зоны d:
+   *   d > F → действительное (#projected-image-group), резкость по расстоянию до экрана.
+   *   d < F → мнимое прямое (#virtual-image-group), масштаб |Γ|=F/(F−d).
+   *   d = F → note «в бесконечности» (#infinity-note-group).
+   * Ровно одна группа активна в каждый момент.
    */
   #updateProjectedImage(): void {
     const imagePlaneMm = computeImageDistance(this.#lensFocalMm, this.#objectDistanceMm);
     const isReal = isFinite(imagePlaneMm) && imagePlaneMm > 0;
+    const isInfinity = !isFinite(imagePlaneMm); // d ≈ F
+    const isVirtual = isFinite(imagePlaneMm) && imagePlaneMm < 0; // d < F
 
-    // shouldFix A: скрывать проецируемое изображение при мнимом (d<F)
-    if (this.#projectedImageGroup) {
-      if (isReal) {
-        this.#projectedImageGroup.removeAttribute('hidden');
-      } else {
-        this.#projectedImageGroup.setAttribute('hidden', '');
-      }
-    }
+    this.#toggleHidden(this.#projectedImageGroup, !isReal);
+    this.#toggleHidden(this.#virtualImageGroup, !isVirtual);
+    this.#toggleHidden(this.#infinityNoteGroup, !isInfinity);
+
+    if (isVirtual) this.#updateVirtualImage();
 
     let sharpness: number;
     if (!isReal) {
-      // Изображение в бесконечности или мнимое → максимальное размытие
       sharpness = 0;
     } else {
       const delta = Math.abs(this.#screenDistanceMm - imagePlaneMm);
       sharpness = 1 / (1 + delta / BLUR_BAND_MM);
     }
     this.#applyBlur(sharpness);
+  }
+
+  /** Призрачная ПРЯМАЯ увеличенная стрелка у линзы (мнимое, |Γ|=F/(F−d), кламп [1,3]). */
+  #updateVirtualImage(): void {
+    if (!this.#virtualImageInner) return;
+    const F = this.#lensFocalMm;
+    const d = this.#objectDistanceMm;
+    const denom = F - d;
+    const g = denom > 0.001 ? F / denom : 3;
+    const sy = Math.max(1, Math.min(3, g));
+    const x = mmToPx(this.#lensPosMm);
+    const y = BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2;
+    // ПРЯМОЕ: scale(1, sy) БЕЗ минуса (не инвертировано); базовая стрелка направлена вверх.
+    this.#virtualImageInner.setAttribute('transform', `translate(${x}, ${y}) scale(1,${sy.toFixed(2)})`);
+  }
+
+  /** Установить/снять hidden через setAttribute (SVG-ловушка §7: [hidden]{display:none}). */
+  #toggleHidden(el: Element | null, hidden: boolean): void {
+    if (!el) return;
+    if (hidden) el.setAttribute('hidden', '');
+    else el.removeAttribute('hidden');
   }
 
   /** Применить stdDeviation на feGaussianBlur исходя из sharpness (0..1). */
