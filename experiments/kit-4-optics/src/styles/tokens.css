@@ -1,0 +1,14 @@
+/**
+ * ЛАБОСФЕРА — Комплект №4 «Оптика»
+ *
+ * Дизайн-токены живут в @labosfera/shared-spa.
+ * Акцентный цвет пакета: #a855f7 (фиолетовый, оптика).
+ */
+
+@import "@labosfera/shared-spa/styles/tokens.css";
+
+:root {
+  --color-kit-accent: #a855f7;
+  --color-kit-accent-dim: rgba(168, 85, 247, 0.15);
+  --color-kit-accent-border: rgba(168, 85, 247, 0.35);
+}

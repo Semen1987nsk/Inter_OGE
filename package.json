@@ -9,6 +9,7 @@
     "experiments/kit-1-hydrostatics",
     "experiments/kit-2-forces",
     "experiments/kit-3-circuits",
+    "experiments/kit-4-optics",
     "experiments/2-1-spring",
     "experiments/2-2-friction",
     "experiments/home"
@@ -26,7 +27,8 @@
     "dev:kit-1": "npm --workspace=@labosfera/kit-1-hydrostatics run dev",
     "dev:home": "npm --workspace=labosfera-home run dev",
     "dev:spring": "npm --workspace=@labosfera/spring-experiment run dev",
-    "dev:friction": "npm --workspace @labosfera/friction-experiment run dev"
+    "dev:friction": "npm --workspace @labosfera/friction-experiment run dev",
+    "dev:kit-4": "npm --workspace=@labosfera/kit-4-optics run dev"
   },
   "keywords": [
     "physics",

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Комплект №4 — Оптика — ЛАБОСФЕРА</title>
+    <meta
+      name="description"
+      content="Виртуальный комплект экспериментальных задач по физике для подготовки к ОГЭ — оптика, линзы, фокусное расстояние, оптическая сила. ООО ЛАБОСФЕРА"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div class="kit-app" id="kit-app">
+      <lab-kit-header
+        id="kit-header"
+        experiment-kicker="Опыт 4.1"
+        experiment="Оптическая сила линзы"
+      ></lab-kit-header>
+
+      <main id="screen-content" class="screen-content" role="main" aria-live="polite">
+        <!-- Здесь активный screen монтирует свой DOM -->
+      </main>
+
+      <lab-kit-nav id="kit-nav" active="lens-bench"></lab-kit-nav>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

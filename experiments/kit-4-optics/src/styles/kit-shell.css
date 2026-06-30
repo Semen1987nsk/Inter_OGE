@@ -1,0 +1,111 @@
+/* kit-shell.css — стили оболочки комплекта №4 «Оптика».
+   Сцена опыта монтируется в #screen-content; шелл занимает border-area. */
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--color-background, #0d121e);
+  color: var(--color-text-primary, #e8eef9);
+  font-family: var(--font-display, system-ui, -apple-system, 'Segoe UI', sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.kit-app {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.role-badge {
+  position: fixed;
+  top: 14px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 999px;
+  font-family: var(--font-display, system-ui, sans-serif);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-primary, #e8eef9);
+  background: rgba(20, 25, 38, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  text-decoration: none;
+  z-index: 100;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+.role-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  flex-shrink: 0;
+}
+body[data-role='teacher'] .role-badge {
+  color: #ffbe0b;
+  border-color: rgba(255, 190, 11, 0.35);
+}
+body[data-role='student'] .role-badge {
+  color: #14b8a6;
+  border-color: rgba(20, 184, 166, 0.35);
+}
+.role-badge:hover {
+  background: rgba(20, 25, 38, 0.95);
+  transform: translateY(-1px);
+}
+.role-badge-arrow {
+  font-size: 11px;
+  opacity: 0.7;
+}
+@media (max-width: 720px) {
+  .role-badge {
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    padding: 4px 10px 4px 6px;
+  }
+  .role-badge-arrow { display: none; }
+}
+
+.screen-content {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  animation: screen-enter 220ms ease-out;
+}
+
+.screen-content > * {
+  height: 100%;
+  min-height: 0;
+}
+
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen-content {
+    animation: none;
+  }
+}
