@@ -622,6 +622,57 @@ export const PARALLEL_CURRENT_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 4.1 «Измерение оптической силы собирающей линзы».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр. 19), сноска (4):
+ * «измерение оптической силы собирающей линзы, фокусного расстояния собирающей линзы».
+ * КОДИФ §1.29 (раздел оптика).
+ *
+ * Метод: навести резкость → снять d (предмет→линза) и f (линза→экран) в мм →
+ *   F = d·f/(d+f) [мм];  D = 1/F [дптр] = 1000/F_мм.
+ *
+ * Физика инлайнится (не импортируется из kit-4), по канону specs.ts (§21.A.4).
+ */
+export const LENS_POWER_SPEC: JournalSpec = {
+  experimentId: '4.1',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'd_mm', label: 'd', source: 'direct', unit: 'мм', format: 'int' },
+    { key: 'f_mm', label: 'f', source: 'direct', unit: 'мм', format: 'int' },
+    {
+      key: 'F_mm',
+      label: 'F',
+      source: 'derived',
+      unit: 'мм',
+      format: 'int',
+      tolerance: 0.05,
+      // F = d·f / (d+f)  [формула тонкой линзы; считаем ТОЛЬКО из прямых d_mm,f_mm]
+      expectedFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const f = r.f_mm ?? 0;
+        const s = d + f;
+        return s > 0 ? (d * f) / s : 0;
+      },
+    },
+    {
+      key: 'D_dptr',
+      label: 'D',
+      source: 'derived',
+      unit: 'дптр',
+      format: 'fixed1',
+      tolerance: 0.08,
+      // D = 1000 / F_мм  [=1/F_м, дптр]; F вычисляется ИЗ ПРЯМЫХ d_mm,f_mm (НЕ из row['F_mm'])
+      expectedFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const f = r.f_mm ?? 0;
+        const s = d + f;
+        const F = s > 0 ? (d * f) / s : 0;
+        return F > 0 ? 1000 / F : 0;
+      },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -642,6 +693,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   R_RHO_SPEC,
   SERIES_VOLTAGE_SPEC,
   PARALLEL_CURRENT_SPEC,
+  LENS_POWER_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
