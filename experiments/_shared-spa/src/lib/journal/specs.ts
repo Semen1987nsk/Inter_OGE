@@ -637,6 +637,7 @@ export const LENS_POWER_SPEC: JournalSpec = {
   experimentId: '4.1',
   kitId: 'kit-4',
   columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
     { key: 'd_mm', label: 'd', source: 'direct', unit: 'мм', format: 'int' },
     { key: 'f_mm', label: 'f', source: 'direct', unit: 'мм', format: 'int' },
     {
@@ -687,6 +688,7 @@ export const FOCAL_2F_SPEC: JournalSpec = {
   experimentId: '4.2',
   kitId: 'kit-4',
   columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
     { key: 'twoF_mm', label: '2F', source: 'direct', unit: 'мм', format: 'int' },
     {
       key: 'F_mm',

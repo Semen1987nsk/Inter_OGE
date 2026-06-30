@@ -92,9 +92,9 @@ describe('LENS_POWER_SPEC (4.1)', () => {
     expect(v['D_dptr']).toBe('close');
   });
 
-  it('порядок колонок: d_mm, f_mm, F_mm, D_dptr', () => {
+  it('порядок колонок: idx, d_mm, f_mm, F_mm, D_dptr', () => {
     const keys = LENS_POWER_SPEC.columns.map((c) => c.key);
-    expect(keys).toEqual(['d_mm', 'f_mm', 'F_mm', 'D_dptr']);
+    expect(keys).toEqual(['idx', 'd_mm', 'f_mm', 'F_mm', 'D_dptr']);
   });
 });
 
@@ -104,9 +104,9 @@ describe('FOCAL_2F_SPEC (опыт 4.2)', () => {
     expect(FOCAL_2F_SPEC.kitId).toBe('kit-4');
   });
 
-  it('колонки: twoF_mm (direct) + F_mm (derived)', () => {
+  it('колонки: idx (meta) + twoF_mm (direct) + F_mm (derived)', () => {
     const keys = FOCAL_2F_SPEC.columns.map((c) => c.key);
-    expect(keys).toEqual(['twoF_mm', 'F_mm']);
+    expect(keys).toEqual(['idx', 'twoF_mm', 'F_mm']);
     const twoF = FOCAL_2F_SPEC.columns.find((c) => c.key === 'twoF_mm')!;
     const F = FOCAL_2F_SPEC.columns.find((c) => c.key === 'F_mm')!;
     expect(twoF.source).toBe('direct');

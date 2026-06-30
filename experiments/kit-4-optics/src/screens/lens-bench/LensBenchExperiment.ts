@@ -808,6 +808,7 @@ export class LensBenchExperiment {
         idx,
         timestamp: m.timestamp,
         values: {
+          idx,
           twoF_mm: m.twoF_mm ?? m.d_mm,
           F_mm: isFullyAuto ? m.F_mm : null,
         },
@@ -817,6 +818,7 @@ export class LensBenchExperiment {
       idx,
       timestamp: m.timestamp,
       values: {
+        idx,
         d_mm: m.d_mm,
         f_mm: m.f_mm,
         F_mm: isFullyAuto ? m.F_mm : null,
