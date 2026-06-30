@@ -24,7 +24,7 @@ import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { BenchTopology, OpticalBenchAssembly } from '@controller/OpticalBenchAssembly';
 import { OpticalDragController } from '@controller/OpticalDragController';
-import { focalFromDistances, opticalPower, imageDistance, magnification } from '@physics/optics/LensModel';
+import { focalFromDistances, opticalPower, imageDistance, magnification, imageProperties, objectZone, zoneLabelRu } from '@physics/optics/LensModel';
 
 // §21 — единый журнал v2
 import {
@@ -35,7 +35,7 @@ import {
 } from '@labosfera/shared-spa/lib/record-mode';
 import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
-import { LENS_POWER_SPEC, FOCAL_2F_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import { LENS_POWER_SPEC, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
 import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
@@ -43,8 +43,8 @@ import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-
 /** ID слотов на оптической скамье */
 export type BenchSlotId = 'object' | 'lens' | 'screen';
 
-/** Активная задача экрана lens-bench. A=4.1 (опт.сила), B=4.2 (фокус по 2F). */
-export type LensTaskId = 'A-power' | 'B-focal2f';
+/** Активная задача экрана lens-bench. A=4.1 (опт.сила), B=4.2 (фокус по 2F), C=4.4 (свойства изображения). */
+export type LensTaskId = 'A-power' | 'B-focal2f' | 'C-image';
 
 /** ID оборудования комплекта */
 export type OpticsEquipmentId = 'light-object' | 'lens' | 'screen';
@@ -80,6 +80,7 @@ export interface BenchMeasurement {
   readonly F_mm: number;
   readonly D_dptr: number;
   readonly twoF_mm?: number;
+  readonly zoneLabel?: string;
 }
 
 const DEFAULT_OBJECT_DISTANCE_MM = 200;
@@ -95,12 +96,21 @@ const SIZE_EPS = 0.03;
 const TASK_DEFAULTS: Record<LensTaskId, { objectMm: number; screenMm: number }> = {
   'A-power':   { objectMm: 200, screenMm: 200 },
   'B-focal2f': { objectMm: 150, screenMm: 250 },
+  'C-image':   { objectMm: 300, screenMm: 150 },
 };
 
 /** Журнал-спека по задаче. */
 const SPEC_BY_TASK: Record<LensTaskId, JournalSpec> = {
   'A-power':   LENS_POWER_SPEC,
   'B-focal2f': FOCAL_2F_SPEC,
+  'C-image':   IMAGE_PROPERTIES_SPEC,
+};
+
+/** Диапазон слайдера предмета по задаче (мм). C достаёт зоны <F и >2F. */
+const OBJECT_SLIDER_RANGE: Record<LensTaskId, { min: number; max: number }> = {
+  'A-power':   { min: 110, max: 290 },
+  'B-focal2f': { min: 110, max: 290 },
+  'C-image':   { min: 50,  max: 350 },
 };
 
 const INITIAL_STATE: BenchState = {
@@ -151,6 +161,7 @@ export interface ExperimentRefs {
   objectSlider: HTMLInputElement;
   objectSliderRow?: HTMLElement | undefined;
   objectSliderReadout?: HTMLElement | undefined;
+  objectZoneReadout?: HTMLElement | undefined;
   resultPanel: HTMLElement;
   cards: NodeListOf<LabEquipmentCard>;
   // §21 — журнал v2
@@ -189,6 +200,11 @@ class HintEngine {
       };
       const missingLabels = missing.map((id) => labels[id]).join(', ');
       this.#set(`Добавьте на скамью: ${missingLabels}.`);
+      return;
+    }
+    if (st.activeTask === 'C-image') {
+      const zone = objectZone(st.lensF_mm, st.objectDistanceMm);
+      this.#set(`Двигайте предмет по зонам. Сейчас: ${zoneLabelRu(zone)}. Запишите наблюдение и классифицируйте изображение.`);
       return;
     }
     const d = st.objectDistanceMm;
@@ -240,7 +256,7 @@ export class LensBenchExperiment {
   #assembly: OpticalBenchAssembly;
   #cardByEquipmentId = new Map<OpticsEquipmentId, LabEquipmentCard>();
 
-  #journalDrafts = new Map<number, Record<string, number>>();
+  #journalDrafts = new Map<number, Record<string, number | string>>();
   #journalVerdicts = new Map<number, Record<string, JournalVerdict>>();
   #detachRecordModeToggle: (() => void) | null = null;
   #lastRecordedSignature = '';
@@ -260,8 +276,10 @@ export class LensBenchExperiment {
     });
 
     this.#wireUp();
+    this.#applyObjectSliderRange(this.#store.get().activeTask);
     this.#refreshObjectSliderVisibility();
     this.#refreshTaskStepper();
+    this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
@@ -330,10 +348,12 @@ export class LensBenchExperiment {
     this.#refs.bench.setRayOverlay(false);
     this.#refs.bench.setSizeMatch(false);
     this.#refs.rayOverlayBtn.setAttribute('aria-pressed', 'false');
+    this.#applyObjectSliderRange(task);
     this.#syncScreenSlider(def.screenMm);
     this.#syncObjectSlider(def.objectMm);
     this.#refreshObjectSliderVisibility();
     this.#refreshTaskStepper();
+    this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
@@ -357,6 +377,7 @@ export class LensBenchExperiment {
     this.#store.update(() => ({ objectDistanceMm: d }));
     this.#refs.bench.setObjectDistanceMm(d);
     this.#syncObjectSlider(d);
+    this.#updateZoneReadout();
     this.#afterBenchChange();
   }
 
@@ -373,6 +394,33 @@ export class LensBenchExperiment {
   recordMeasurement(): void {
     const st = this.#store.get();
     if (!this.#topology.validate().ok) return;
+
+    if (st.activeTask === 'C-image') {
+      const d = st.objectDistanceMm;
+      const F = st.lensF_mm;
+      const g = magnification(F, d);
+      const zone = zoneLabelRu(objectZone(F, d));
+      const measurement: BenchMeasurement = {
+        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        task: 'C-image',
+        d_mm: d,
+        f_mm: st.screenDistanceMm,
+        F_mm: F,
+        D_dptr: 0,
+        zoneLabel: zone,
+      };
+      this.#store.update((s) => ({ measurements: [...s.measurements, measurement] }));
+      this.#lastRecordedSignature = this.#pendingSignature();
+      this.#refreshUi();
+      this.#hints.announce(
+        this.#recordMode() === 'fully-auto'
+          ? `Записана зона ${zone}.`
+          : `Записана зона ${zone}. Классифицируйте изображение в журнале и проверьте.`,
+      );
+      void g;
+      return;
+    }
 
     let measurement: BenchMeasurement;
     if (st.activeTask === 'B-focal2f') {
@@ -459,6 +507,7 @@ export class LensBenchExperiment {
     this.#syncScreenSlider(def.screenMm);
     this.#syncObjectSlider(def.objectMm);
     this.#refreshObjectSliderVisibility();
+    this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
     this.#hints.announce('Установка сброшена. Все приборы вернулись в комплект.');
@@ -639,9 +688,13 @@ export class LensBenchExperiment {
           : 0;
       this.#refs.bench.setImageSharpness(sharpness);
 
-      // fully-auto авто-запись: A — по резкости; B — по резкости И равенству.
+      // fully-auto авто-запись: A — по резкости; B — по резкости И равенству; C — никогда (anti-flood).
       const canAutoRecord =
-        st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual) : this.isSharp;
+        st.activeTask === 'C-image'
+          ? false
+          : st.activeTask === 'B-focal2f'
+            ? (this.isSharp && this.isSizesEqual)
+            : this.isSharp;
       if (
         this.#recordMode() === 'fully-auto' &&
         canAutoRecord &&
@@ -656,6 +709,7 @@ export class LensBenchExperiment {
       st.activeTask === 'B-focal2f' && ok && this.isSharp && this.isSizesEqual;
     this.#refs.bench.setSizeMatch(sizeMatch);
 
+    this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(st);
   }
@@ -663,7 +717,12 @@ export class LensBenchExperiment {
   #handleRecordModeChange(): void {
     const { ok } = this.#topology.validate();
     const st = this.#store.get();
-    const canAuto = st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual) : this.isSharp;
+    const canAuto =
+      st.activeTask === 'C-image'
+        ? false
+        : st.activeTask === 'B-focal2f'
+          ? (this.isSharp && this.isSizesEqual)
+          : this.isSharp;
     if (this.#recordMode() === 'fully-auto' && ok && canAuto) {
       if (this.#pendingSignature() !== this.#lastRecordedSignature) {
         this.recordMeasurement();
@@ -697,18 +756,26 @@ export class LensBenchExperiment {
     const je = this.#refs.stage.querySelector<HTMLElement>('#journal-empty');
     if (je) je.hidden = hasMeasurements;
 
-    // Pending-плашка (semi-auto)
-    const canRecordNow = st.activeTask === 'B-focal2f' ? (ok && this.isSharp && this.isSizesEqual) : (ok && this.isSharp);
+    // Pending-плашка
+    const canRecordNow =
+      st.activeTask === 'C-image' ? ok
+      : st.activeTask === 'B-focal2f' ? (ok && this.isSharp && this.isSizesEqual)
+      : (ok && this.isSharp);
     const isPending = canRecordNow && this.#pendingSignature() !== this.#lastRecordedSignature;
     const mode = this.#recordMode();
     if (this.#refs.recordPendingSlot) {
-      this.#refs.recordPendingSlot.hidden = !(isPending && mode === 'semi-auto');
+      const showPending = st.activeTask === 'C-image'
+        ? isPending
+        : (isPending && mode === 'semi-auto');
+      this.#refs.recordPendingSlot.hidden = !showPending;
     }
     if (this.#refs.recordPendingSummary && isPending) {
       this.#refs.recordPendingSummary.textContent =
-        st.activeTask === 'B-focal2f'
-          ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
-          : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
+        st.activeTask === 'C-image'
+          ? `Зона ${zoneLabelRu(objectZone(st.lensF_mm, st.objectDistanceMm))}`
+          : st.activeTask === 'B-focal2f'
+            ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
+            : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
     }
 
     // Render journal table
@@ -719,6 +786,13 @@ export class LensBenchExperiment {
       renderJournalTable(this.#refs.journalHost, spec, rows, {
         mode: mode as 'semi-auto' | 'fully-manual' | 'fully-auto',
         onCellInput: (rowIdx, key, value) => {
+          const m = taskMeasurements[rowIdx - 1];
+          if (!m) return;
+          const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
+          if (value !== null) drafts[key] = value; else delete drafts[key];
+          this.#journalDrafts.set(m.timestamp, drafts);
+        },
+        onChoiceInput: (rowIdx, key, value) => {
           const m = taskMeasurements[rowIdx - 1];
           if (!m) return;
           const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
@@ -744,7 +818,23 @@ export class LensBenchExperiment {
     if (hasMeasurements) {
       const isFullyAuto = this.#recordMode() === 'fully-auto';
       let html: string;
-      if (st.activeTask === 'B-focal2f') {
+      if (st.activeTask === 'C-image') {
+        const last = taskMeasurements[taskMeasurements.length - 1]!;
+        const zLabel = last.zoneLabel ?? zoneLabelRu(objectZone(last.F_mm, last.d_mm));
+        const isEqF = objectZone(last.F_mm, last.d_mm) === 'eqF';
+        const gammaNote = isEqF ? ' При d = F изображение в бесконечности — Γ не определено, оставьте поле Γ пустым.' : '';
+        if (isFullyAuto) {
+          const p = imageProperties(last.F_mm, last.d_mm);
+          const ru = { real: 'действительное', virtual: 'мнимое', inverted: 'перевёрнутое', upright: 'прямое', enlarged: 'увеличенное', reduced: 'уменьшенное', equal: 'равное' } as const;
+          html =
+            `<p class="result-line">Зона ${zLabel}: <strong>${ru[p.kind]}, ${ru[p.orientation]}, ${ru[p.size]}</strong></p>` +
+            `<p class="result-note">Сравните с вашей классификацией в журнале.${gammaNote}</p>`;
+        } else {
+          html =
+            `<p class="result-line">Зона ${zLabel} записана.</p>` +
+            `<p class="result-note">Выберите вид, ориентацию и размер изображения в журнале и проверьте (✓).${gammaNote}</p>`;
+        }
+      } else if (st.activeTask === 'B-focal2f') {
         const last = taskMeasurements[taskMeasurements.length - 1]!;
         const twoFstr = (last.twoF_mm ?? last.d_mm).toFixed(0);
         if (isFullyAuto) {
@@ -803,6 +893,25 @@ export class LensBenchExperiment {
 
   #buildJournalRow(m: BenchMeasurement, idx: number): JournalRow {
     const isFullyAuto = this.#recordMode() === 'fully-auto';
+    if (m.task === 'C-image') {
+      const props = imageProperties(m.F_mm, m.d_mm);
+      const auto = isFullyAuto;
+      return {
+        idx,
+        timestamp: m.timestamp,
+        values: {
+          idx,
+          zone: m.zoneLabel ?? '',
+          // скрытый числовой контекст для грейда (render не покажет — нет колонок d_mm/F_mm)
+          d_mm: m.d_mm,
+          F_mm: m.F_mm,
+          kind: auto ? props.kind : null,
+          orientation: auto ? props.orientation : null,
+          size: auto ? props.size : null,
+          gamma: auto ? (Number.isFinite(props.gamma) ? props.gamma : null) : null,
+        },
+      };
+    }
     if (m.task === 'B-focal2f') {
       return {
         idx,
@@ -836,11 +945,25 @@ export class LensBenchExperiment {
     }
   }
 
+  #applyObjectSliderRange(task: LensTaskId): void {
+    const r = OBJECT_SLIDER_RANGE[task];
+    this.#refs.objectSlider.min = String(r.min);
+    this.#refs.objectSlider.max = String(r.max);
+  }
+
   #refreshObjectSliderVisibility(): void {
-    // Слайдер предмета нужен только в задаче B (в A предмет фиксирован в 2F).
+    // Слайдер предмета нужен в задачах B и C (в A предмет фиксирован).
     if (this.#refs.objectSliderRow) {
-      this.#refs.objectSliderRow.hidden = this.#store.get().activeTask !== 'B-focal2f';
+      this.#refs.objectSliderRow.hidden = this.#store.get().activeTask === 'A-power';
     }
+  }
+
+  #updateZoneReadout(): void {
+    if (!this.#refs.objectZoneReadout) return;
+    const st = this.#store.get();
+    if (st.activeTask !== 'C-image') { this.#refs.objectZoneReadout.textContent = ''; return; }
+    const zone = objectZone(st.lensF_mm, st.objectDistanceMm);
+    this.#refs.objectZoneReadout.textContent = `Зона: ${zoneLabelRu(zone)}`;
   }
 
   #refreshTaskStepper(): void {

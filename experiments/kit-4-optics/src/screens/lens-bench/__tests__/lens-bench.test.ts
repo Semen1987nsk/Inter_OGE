@@ -39,12 +39,14 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
       <ol id="steps" aria-label="Опыт">
         <li data-task="A-power" data-state="active" tabindex="0" role="button" aria-current="true">A</li>
         <li data-task="B-focal2f" tabindex="0" role="button" aria-current="false">B</li>
+        <li data-task="C-image" tabindex="0" role="button" aria-current="false">C</li>
       </ol>
       <div id="object-slider-row" hidden>
         <input type="range" id="object-slider" min="110" max="290" step="1" value="200"
           aria-label="Положение предмета, мм" />
         <output id="object-slider-readout" for="object-slider">200 мм</output>
       </div>
+      <output id="object-zone-readout"></output>
       <div id="record-mode-slot"></div>
       <div id="journal-host" hidden></div>
       <div id="record-pending-slot" hidden>
@@ -94,6 +96,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
     objectSlider: host.querySelector('#object-slider') as HTMLInputElement,
     objectSliderRow: host.querySelector<HTMLElement>('#object-slider-row') ?? undefined,
     objectSliderReadout: host.querySelector<HTMLElement>('#object-slider-readout') ?? undefined,
+    objectZoneReadout: host.querySelector<HTMLElement>('#object-zone-readout') ?? undefined,
     resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
     cards: host.querySelectorAll<any>('lab-equipment-card'),
     recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
@@ -102,6 +105,14 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
     recordPendingBtn: (host.querySelector('#record-pending-btn') as HTMLButtonElement | null) ?? undefined,
     recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
   };
+}
+
+function makeExperiment(): { exp: LensBenchExperiment; refs: ExperimentRefs; host: HTMLElement } {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const refs = buildRefs(host);
+  const exp = new LensBenchExperiment(refs);
+  return { exp, refs, host };
 }
 
 // ─── Тесты ───────────────────────────────────────────────────────────────────
@@ -699,5 +710,121 @@ describe('LensBenchScreen — IScreen lifecycle', () => {
     expect(host.querySelector('#object-slider-row')).not.toBeNull();
     screen.unmount();
     host.remove();
+  });
+});
+
+describe('LensBenchExperiment — задача C (опыт 4.4 свойства изображения)', () => {
+  const created: Array<{ exp: LensBenchExperiment; host: HTMLElement }> = [];
+
+  function make(): { exp: LensBenchExperiment; refs: ExperimentRefs; host: HTMLElement } {
+    const result = makeExperiment();
+    created.push({ exp: result.exp, host: result.host });
+    return result;
+  }
+
+  afterEach(() => {
+    while (created.length > 0) {
+      const item = created.pop()!;
+      item.exp.destroy();
+      item.host.remove();
+    }
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+    globalThis.gc?.();
+  });
+
+  it('setActiveTask("C-image") активирует задачу C и показывает слайдер предмета', () => {
+    const { exp, refs } = make();
+    exp.setActiveTask('C-image');
+    expect(exp.activeTask).toBe('C-image');
+    expect(refs.objectSliderRow!.hidden).toBe(false);
+  });
+
+  it('диапазон слайдера предмета в C достаёт зоны <F и >2F (min≤60, max≥300)', () => {
+    const { exp, refs } = make();
+    exp.setActiveTask('C-image');
+    expect(Number(refs.objectSlider.min)).toBeLessThanOrEqual(60);
+    expect(Number(refs.objectSlider.max)).toBeGreaterThanOrEqual(300);
+  });
+
+  it('зона-ридаут обновляется из imageProperties при движении предмета (F=100)', () => {
+    const { exp, refs } = make();
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    expect(refs.objectZoneReadout!.textContent).toContain('d > 2F');
+    exp.setObjectDistanceMm(60);
+    expect(refs.objectZoneReadout!.textContent).toContain('d < F');
+  });
+
+  it('запись строки C: журнал-строка несёт zone(label) + скрытые d_mm,F_mm; gamma/kind пустые в semi-auto', () => {
+    const { exp, refs } = make();
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    exp.recordMeasurement();
+    const sel = refs.journalHost!.querySelector('select[data-key="kind"]');
+    expect(sel).not.toBeNull();
+    expect(exp.measurements.filter((m) => m.task === 'C-image').length).toBe(1);
+  });
+
+  it('fully-auto: запись авто-заполняет категории (kind=действительное при d>2F)', () => {
+    const { exp, refs } = make();
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    exp.recordMeasurement();
+    const td = refs.journalHost!.querySelector('td[data-key="kind"]')!;
+    expect(td.textContent).toContain('действительное');
+  });
+
+  it('a11y: в semi-auto live-region и result-panel НЕ содержат правильную категорию', () => {
+    const { exp, refs } = make();
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    exp.recordMeasurement();
+    for (const node of [refs.liveRegion, refs.resultPanel]) {
+      const t = node.textContent ?? '';
+      expect(t).not.toContain('уменьшенное');
+      expect(t).not.toContain('перевёрнутое');
+      expect(t).not.toContain('действительное');
+    }
+  });
+
+  it('изоляция задач: измерения C не видны в журнале A', () => {
+    const { exp } = make();
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    exp.recordMeasurement();
+    exp.setActiveTask('A-power');
+    expect(exp.measurements.filter((m) => m.task === 'A-power').length).toBe(0);
+  });
+
+  it('fully-auto: смена режима при задаче C НЕ авто-записывает (антифлуд)', () => {
+    const { exp, host } = make();
+    exp.setActiveTask('C-image');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    exp.setObjectDistanceMm(300);
+    // Кликаем кнопку «Авто» в record-mode-slot, которую renderRecordModeToggle отрендерил.
+    const autoBtn = host.querySelector<HTMLButtonElement>('.lab-record-mode-toggle__segment[data-mode="fully-auto"]');
+    autoBtn?.click();
+    expect(exp.measurements.filter((m) => m.task === 'C-image').length).toBe(0);
   });
 });
