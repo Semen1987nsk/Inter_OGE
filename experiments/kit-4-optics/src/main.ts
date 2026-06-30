@@ -28,6 +28,13 @@ import './ui/components/lab-kit-header';
 import './ui/components/lab-equipment-card';
 import './ui/components/lab-graph';
 
+// Опыт 4.1 — приборные компоненты и стили экрана
+import './ui/components/lab-optical-bench';
+import './ui/components/lab-light-object';
+import './ui/components/lab-lens';
+import './ui/components/lab-screen';
+import './styles/lens-bench-experiment.css';
+
 import { KitShell } from '@shell/KitShell';
 import type { IScreen, ScreenId } from '@shell/IScreen';
 import type { LabKitNav } from './ui/components/lab-kit-nav';

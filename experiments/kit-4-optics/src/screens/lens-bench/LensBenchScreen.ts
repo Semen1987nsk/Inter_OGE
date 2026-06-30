@@ -1,12 +1,18 @@
 /**
- * LensBenchScreen — реализует IScreen для экрана «Оптическая скамья» (опыт 4.1).
+ * LensBenchScreen — экран «Оптическая сила линзы» (опыт 4.1).
  *
- * meta.id = 'lens-bench' (URL: ?screen=lens-bench, экран по умолчанию).
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19):
+ * Метод наведения резкости (d, f → F, D).
  *
- * Task 1: тривиальный placeholder (mount рендерит «в разработке»). Реальный шаблон+логику
- * (lab-optical-bench, лоток, слайдер экрана, оверлей лучей, журнал) добавляет Task 7.
+ * Фасад IScreen по образцу MeasurementsScreen (kit-3):
+ *   mount → inject template.html → создать LensBenchExperiment
+ *   unmount → destroy + reset + replaceChildren
+ *   reset → experiment.reset()
  */
 
+import templateHtml from './template.html?raw';
+import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
+import { LensBenchExperiment, type ExperimentRefs } from './LensBenchExperiment';
 import type { IScreen, ScreenMeta } from '@shell/IScreen';
 
 export class LensBenchScreen implements IScreen {
@@ -15,23 +21,68 @@ export class LensBenchScreen implements IScreen {
     label: 'Оптическая сила линзы',
     kicker: 'Опыт 4.1 · Линзы',
     icon: 'lens',
-    tooltip:
-      'Оптическая сила и фокусное расстояние собирающей линзы; свойства изображения; сложенные линзы.',
+    tooltip: 'Измерение оптической силы и фокусного расстояния собирающей линзы (F = d·f/(d+f), D = 1/F)',
   };
 
+  #experiment: LensBenchExperiment | null = null;
   #host: HTMLElement | null = null;
 
   mount(host: HTMLElement): void {
+    if (this.#experiment) return;
     this.#host = host;
-    host.innerHTML = '<p>Опыт 4.1 — в разработке</p>';
+    host.innerHTML = templateHtml;
+
+    const bench = host.querySelector<HTMLElement & {
+      getSlotRect(id: string): DOMRect;
+      setSlotHover(slotId: string, active: boolean): void;
+      setObjectDistanceMm(d: number): void;
+      setLensFocalMm(F: number): void;
+      setScreenDistanceMm(f: number): void;
+      setRayOverlay(on: boolean): void;
+      setImageSharpness(s: number): void;
+    }>('#optical-bench')!;
+
+    const refs: ExperimentRefs = {
+      stage: host.querySelector<HTMLElement>('#stage')!,
+      bench,
+      dragOverlay: host.querySelector<HTMLElement>('#drag-overlay')!,
+      hintBar: host.querySelector<HTMLElement>('#hint-bar')!,
+      liveRegion: host.querySelector<HTMLElement>('#live-region')!,
+      resetBtn: host.querySelector('#reset-btn') as HTMLButtonElement,
+      rayOverlayBtn: host.querySelector('#ray-overlay-btn') as HTMLButtonElement,
+      screenSlider: host.querySelector('#screen-slider') as HTMLInputElement,
+      screenSliderReadout: host.querySelector<HTMLElement>('#screen-slider-readout') ?? undefined,
+      resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
+      cards: host.querySelectorAll<LabEquipmentCard>('lab-equipment-card'),
+      // §21 — журнал v2 slots
+      recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
+      journalHost: host.querySelector<HTMLElement>('#journal-host') ?? undefined,
+      recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
+      recordPendingBtn: (host.querySelector('#record-pending-btn') as HTMLButtonElement | null) ?? undefined,
+      recordPendingSummary: host.querySelector<HTMLElement>('#record-pending-summary') ?? undefined,
+    };
+
+    this.#experiment = new LensBenchExperiment(refs);
+    // Дебаг-доступ для Playwright selfcheck и инспекции в DevTools
+    (window as unknown as { lensBenchExperiment?: LensBenchExperiment }).lensBenchExperiment =
+      this.#experiment;
   }
 
   unmount(): void {
+    if (!this.#experiment) return;
+    this.#experiment.reset();
+    this.#experiment.destroy();
+    delete (window as unknown as { lensBenchExperiment?: LensBenchExperiment }).lensBenchExperiment;
+    this.#experiment = null;
     if (this.#host) this.#host.replaceChildren();
     this.#host = null;
   }
 
   reset(): void {
-    /* placeholder — нет состояния до Task 7 */
+    this.#experiment?.reset();
+  }
+
+  saveState(): Record<string, unknown> {
+    return {};
   }
 }
