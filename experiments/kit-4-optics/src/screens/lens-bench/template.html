@@ -1,6 +1,16 @@
 <main class="app-main-v3">
   <section class="workbench" aria-label="Рабочая зона">
     <header class="workbench-header">
+      <ol class="steps" id="steps" aria-label="Опыт (что измеряем)">
+        <li class="step" data-task="A-power" data-state="active" tabindex="0" role="button" aria-current="true">
+          <span class="step-num">A</span>
+          <span class="step-label">Оптическая сила <small>(4.1)</small></span>
+        </li>
+        <li class="step" data-task="B-focal2f" tabindex="0" role="button" aria-current="false">
+          <span class="step-num">B</span>
+          <span class="step-label">Фокус по 2F <small>(4.2)</small></span>
+        </li>
+      </ol>
       <div class="workbench-hint" id="hint-bar">
         Перетащите приборы с правой панели на оптическую скамью.
       </div>
@@ -25,6 +35,22 @@
           id="optical-bench"
           aria-label="Оптическая скамья для сборки опыта с линзой"
         ></lab-optical-bench>
+
+        <!-- Слайдер положения предмета: «двигать предмет к 2F» (опыт 4.2) -->
+        <div class="screen-slider-row object-slider-row" id="object-slider-row" hidden>
+          <label class="screen-slider-label" for="object-slider">Положение предмета</label>
+          <input
+            type="range"
+            id="object-slider"
+            class="screen-slider"
+            min="110"
+            max="290"
+            step="1"
+            value="200"
+            aria-label="Положение предмета вдоль скамьи, мм"
+          />
+          <output id="object-slider-readout" class="screen-slider-readout" for="object-slider">200 мм</output>
+        </div>
 
         <!-- Слайдер положения экрана: «двигать экран до резкости» -->
         <div class="screen-slider-row">

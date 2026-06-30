@@ -1,5 +1,104 @@
 /* Стили экрана «Оптическая сила линзы» (опыт 4.1) */
 
+/* ─── Steps stepper (зеркало kit-3 circuit-experiment.css) ────────────── */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.step-label {
+  white-space: nowrap;
+}
+
+.step[data-state='active'] {
+  background: rgb(245 158 11 / 0.15);
+  border-color: rgb(245 158 11 / 0.6);
+  color: #f59e0b;
+  font-weight: 700;
+  transform: scale(1.04);
+  box-shadow: 0 0 0 4px rgb(245 158 11 / 0.08);
+}
+
+.step[data-state='active'] .step-num {
+  background: #f59e0b;
+  color: #06151c;
+}
+
+.step[data-state='done'] {
+  background: rgb(16 185 129 / 0.08);
+  border-color: rgb(16 185 129 / 0.3);
+  color: var(--color-success);
+}
+
+.step[data-state='done'] .step-num {
+  background: var(--color-success);
+  color: #06151c;
+}
+
+.step + .step::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: rgb(255 255 255 / 0.15);
+  flex-shrink: 0;
+  margin-left: -8px;
+  margin-right: 4px;
+}
+
+/* Слайдер предмета скрыт в task A; task B покажет через JS */
+.object-slider-row[hidden] { display: none; }
+
+@media (max-width: 767px) {
+  .steps {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    transition: none;
+  }
+}
+
 .bench-stage-content {
   display: flex;
   flex-direction: column;

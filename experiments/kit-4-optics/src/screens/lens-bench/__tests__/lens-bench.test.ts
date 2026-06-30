@@ -36,6 +36,15 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
       <input type="range" id="screen-slider" min="110" max="600" step="1" value="200"
         aria-label="Положение экрана, мм" />
       <output id="screen-slider-readout" for="screen-slider">200 мм</output>
+      <ol id="steps" aria-label="Опыт">
+        <li data-task="A-power" data-state="active" tabindex="0" role="button" aria-current="true">A</li>
+        <li data-task="B-focal2f" tabindex="0" role="button" aria-current="false">B</li>
+      </ol>
+      <div id="object-slider-row" hidden>
+        <input type="range" id="object-slider" min="110" max="290" step="1" value="200"
+          aria-label="Положение предмета, мм" />
+        <output id="object-slider-readout" for="object-slider">200 мм</output>
+      </div>
       <div id="record-mode-slot"></div>
       <div id="journal-host" hidden></div>
       <div id="record-pending-slot" hidden>
@@ -68,6 +77,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
     setScreenDistanceMm(f: number): void;
     setRayOverlay(on: boolean): void;
     setImageSharpness(s: number): void;
+    setSizeMatch(on: boolean): void;
   };
 
   return {
@@ -80,6 +90,10 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
     rayOverlayBtn: host.querySelector('#ray-overlay-btn') as HTMLButtonElement,
     screenSlider: host.querySelector('#screen-slider') as HTMLInputElement,
     screenSliderReadout: host.querySelector<HTMLElement>('#screen-slider-readout') ?? undefined,
+    steps: host.querySelector<HTMLElement>('#steps')!,
+    objectSlider: host.querySelector('#object-slider') as HTMLInputElement,
+    objectSliderRow: host.querySelector<HTMLElement>('#object-slider-row') ?? undefined,
+    objectSliderReadout: host.querySelector<HTMLElement>('#object-slider-readout') ?? undefined,
     resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
     cards: host.querySelectorAll<any>('lab-equipment-card'),
     recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
@@ -543,6 +557,26 @@ describe('LensBenchScreen — IScreen lifecycle', () => {
   it('reset() не падает после mount', () => {
     const { host, screen } = mountScreen();
     expect(() => screen.reset()).not.toThrow();
+    screen.unmount();
+    host.remove();
+  });
+
+  it('template содержит task-switcher #steps с задачами A/B (4.1/4.2)', () => {
+    const { host, screen } = mountScreen();
+    const steps = host.querySelector('#steps');
+    expect(steps).not.toBeNull();
+    const tasks = host.querySelectorAll('#steps [data-task]');
+    expect(tasks.length).toBe(2);
+    const ids = Array.from(tasks).map((t) => (t as HTMLElement).dataset['task']);
+    expect(ids).toEqual(['A-power', 'B-focal2f']);
+    screen.unmount();
+    host.remove();
+  });
+
+  it('template содержит #object-slider (положение предмета)', () => {
+    const { host, screen } = mountScreen();
+    expect(host.querySelector('#object-slider')).not.toBeNull();
+    expect(host.querySelector('#object-slider-row')).not.toBeNull();
     screen.unmount();
     host.remove();
   });

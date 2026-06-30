@@ -113,6 +113,7 @@ export interface ExperimentRefs {
     setScreenDistanceMm(f: number): void;
     setRayOverlay(on: boolean): void;
     setImageSharpness(s: number): void;
+    setSizeMatch(on: boolean): void;
   };
   dragOverlay: HTMLElement;
   hintBar: HTMLElement;
@@ -122,6 +123,12 @@ export interface ExperimentRefs {
   /** Слайдер положения экрана «двигать до резкости» (#screen-slider). */
   screenSlider: HTMLInputElement;
   screenSliderReadout?: HTMLElement | undefined;
+  /** Task-switcher A/B (<ol id="steps">). */
+  steps: HTMLElement;
+  /** Слайдер положения предмета (#object-slider) — опыт 4.2. */
+  objectSlider: HTMLInputElement;
+  objectSliderRow?: HTMLElement | undefined;
+  objectSliderReadout?: HTMLElement | undefined;
   resultPanel: HTMLElement;
   cards: NodeListOf<LabEquipmentCard>;
   // §21 — журнал v2

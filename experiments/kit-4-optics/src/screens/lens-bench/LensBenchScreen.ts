@@ -40,6 +40,7 @@ export class LensBenchScreen implements IScreen {
       setScreenDistanceMm(f: number): void;
       setRayOverlay(on: boolean): void;
       setImageSharpness(s: number): void;
+      setSizeMatch(on: boolean): void;
     }>('#optical-bench')!;
 
     const refs: ExperimentRefs = {
@@ -52,6 +53,10 @@ export class LensBenchScreen implements IScreen {
       rayOverlayBtn: host.querySelector('#ray-overlay-btn') as HTMLButtonElement,
       screenSlider: host.querySelector('#screen-slider') as HTMLInputElement,
       screenSliderReadout: host.querySelector<HTMLElement>('#screen-slider-readout') ?? undefined,
+      steps: host.querySelector<HTMLElement>('#steps')!,
+      objectSlider: host.querySelector('#object-slider') as HTMLInputElement,
+      objectSliderRow: host.querySelector<HTMLElement>('#object-slider-row') ?? undefined,
+      objectSliderReadout: host.querySelector<HTMLElement>('#object-slider-readout') ?? undefined,
       resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
       cards: host.querySelectorAll<LabEquipmentCard>('lab-equipment-card'),
       // §21 — журнал v2 slots
