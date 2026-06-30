@@ -67,6 +67,11 @@ export interface RecorderRefs {
   onEdit?(rowIdx: number): void;
   /** Опционально: удалить строку. */
   onDelete?(rowIdx: number): void;
+  /**
+   * S5: Выбор категории в choice-колонке.
+   * Без этого поля категориальные киты (4.4 и будущие) молча не получают выбор через recorder.
+   */
+  onChoiceInput?(rowIdx: number, key: string, value: string | null): void;
   /** Текущая редактируемая строка (для editing-mode). */
   editingRowIdx?(): number | null;
 }
@@ -103,6 +108,8 @@ export function createRecorder(refs: RecorderRefs): Recorder {
       onVerify: refs.onVerify,
       ...(refs.onEdit ? { onEdit: refs.onEdit } : {}),
       ...(refs.onDelete ? { onDelete: refs.onDelete } : {}),
+      // S5: пробрасываем onChoiceInput если передан — иначе choice-колонки молча немы.
+      ...(refs.onChoiceInput ? { onChoiceInput: refs.onChoiceInput } : {}),
     };
     renderJournalTable(refs.journalHost, refs.spec, rows, opts);
 

@@ -582,7 +582,7 @@ export class LensBenchExperiment {
       if (Number.isFinite(d)) this.setObjectDistanceMm(d);
     });
 
-    // Переключатель задач A/B (мирроринг kit-3 connections).
+    // Переключатель задач A/B/C (WAI-ARIA Tabs Pattern: click + keyboard roving tabindex).
     this.#refs.steps.addEventListener('click', (ev) => {
       const t = (ev.target as HTMLElement).closest('[data-task]');
       if (!t) return;
@@ -590,12 +590,41 @@ export class LensBenchExperiment {
       if (tid) this.setActiveTask(tid);
     });
     this.#refs.steps.addEventListener('keydown', (ev) => {
-      if (ev.key !== 'Enter' && ev.key !== ' ') return;
-      const t = (ev.target as HTMLElement).closest('[data-task]');
-      if (!t) return;
-      ev.preventDefault();
-      const tid = (t as HTMLElement).dataset['task'] as LensTaskId | undefined;
-      if (tid) this.setActiveTask(tid);
+      // M1: ArrowRight/ArrowLeft/Home/End — roving tabindex навигация (WAI-ARIA Tabs).
+      const items = [...this.#refs.steps.querySelectorAll<HTMLElement>('[data-task]')];
+      if (items.length === 0) return;
+      const currentIdx = items.findIndex((el) => el === document.activeElement || el.tabIndex === 0);
+      let nextIdx = currentIdx;
+      if (ev.key === 'ArrowRight') {
+        ev.preventDefault();
+        nextIdx = (currentIdx + 1) % items.length;
+      } else if (ev.key === 'ArrowLeft') {
+        ev.preventDefault();
+        nextIdx = (currentIdx - 1 + items.length) % items.length;
+      } else if (ev.key === 'Home') {
+        ev.preventDefault();
+        nextIdx = 0;
+      } else if (ev.key === 'End') {
+        ev.preventDefault();
+        nextIdx = items.length - 1;
+      } else if (ev.key === 'Enter' || ev.key === ' ') {
+        const t = (ev.target as HTMLElement).closest('[data-task]');
+        if (!t) return;
+        ev.preventDefault();
+        const tid = (t as HTMLElement).dataset['task'] as LensTaskId | undefined;
+        if (tid) this.setActiveTask(tid);
+        return;
+      } else {
+        return;
+      }
+      const nextItem = items[nextIdx];
+      if (nextItem) {
+        const tid = nextItem.dataset['task'] as LensTaskId | undefined;
+        if (tid) {
+          this.setActiveTask(tid);   // обновляет aria-selected + tabIndex через #refreshTaskStepper
+          nextItem.focus();
+        }
+      }
     });
 
     // §20.4 — record-mode toggle

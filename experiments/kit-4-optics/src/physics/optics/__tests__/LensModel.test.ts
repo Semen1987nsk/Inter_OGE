@@ -485,4 +485,23 @@ describe('IMAGE_PROPERTIES_SPEC инлайн ↔ LensModel.imageProperties (кр
       expect(col('size').expectedChoiceFromRow!(ctx)).toBe(p.size);
     }
   });
+
+  // M2: кросс-чек зоны d=F — ранее skip'ировался (continue), теперь явный it-блок.
+  // Контракт imageProperties при d=F: virtual / upright / enlarged / Γ=∞.
+  // IMAGE_PROPERTIES_SPEC.expectedChoiceFromRow ОБЯЗАН возвращать то же самое.
+  it('M2: зона eqF (d=F) — спека согласована с imageProperties: virtual/upright/enlarged', () => {
+    for (const F of [50, 100, 150, 250]) {
+      const ctx = { d_mm: F, F_mm: F };
+      const p = imageProperties(F, F);
+      // imageProperties-контракт для d=F
+      expect(p.kind).toBe('virtual');
+      expect(p.orientation).toBe('upright');
+      expect(p.size).toBe('enlarged');
+      expect(p.gamma).toBe(Infinity);
+      // Спека-эталоны
+      expect(col('kind').expectedChoiceFromRow!(ctx)).toBe('virtual');
+      expect(col('orientation').expectedChoiceFromRow!(ctx)).toBe('upright');
+      expect(col('size').expectedChoiceFromRow!(ctx)).toBe('enlarged');
+    }
+  });
 });

@@ -167,6 +167,8 @@
   align-items: center;
   gap: var(--space-2, 0.5rem);
   padding: var(--space-2, 0.5rem) 0;
+  /* R8: flex-wrap позволяет zone-row перенестись на следующую строку */
+  flex-wrap: wrap;
 }
 
 .screen-slider-label {
@@ -178,6 +180,8 @@
 .screen-slider {
   flex: 1;
   accent-color: var(--color-kit-accent, #a855f7);
+  /* R8: ширина трека не ограничена — занимает всю доступную строку */
+  min-width: 60px;
 }
 
 .screen-slider-readout {
@@ -189,20 +193,32 @@
   color: var(--color-text, #111);
 }
 
+/* R8: строка под трекером — зона + легенда 5 меток space-between */
+.object-zone-row {
+  /* занимает полную ширину ряда (flex-wrap переносит на отдельную строку) */
+  width: 100%;
+  /* Смещаем left-padding чтобы align с треком (label ≈ 10rem max; точно выровняем flex) */
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2, 0.5rem);
+  margin-top: 2px;
+}
+
 .object-zone-readout {
   font-family: var(--font-mono, monospace);
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--color-brand-amber, #ffbe0b);
-  margin-left: 0.5rem;
-  min-width: 8ch;
+  white-space: nowrap;
+  /* Ридаут фиксированной ширины → легенда не скачет */
+  min-width: 8.5ch;
 }
 
 .zone-legend {
   display: flex;
   justify-content: space-between;
-  width: 100%;
-  margin-top: 2px;
+  /* легенда занимает оставшееся место = ширина трека + немного */
+  flex: 1;
   font-size: 0.62rem;
   color: rgb(255 255 255 / 0.68);
   font-family: var(--font-mono, monospace);

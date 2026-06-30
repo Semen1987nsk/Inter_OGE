@@ -206,7 +206,12 @@ function renderCell(
       select.dataset['row'] = String(row.idx);
       select.dataset['key'] = col.key;
       if (verdict && opts.mode === 'semi-auto') select.dataset['verdict'] = verdict;
-      select.setAttribute('aria-label', col.ariaLabel ?? col.label);
+      // S4: уникальный aria-label = col.label + ", строка N" чтобы скринридер
+      // не озвучивал одинаковое «Вид» / «Вид» / «Вид» в трёх строках (WCAG 2.4.6).
+      select.setAttribute(
+        'aria-label',
+        col.ariaLabel != null ? col.ariaLabel : `${col.label}, строка ${row.idx}`,
+      );
       const ph = document.createElement('option');
       ph.value = '';
       ph.textContent = '—';
@@ -240,6 +245,30 @@ function renderCell(
   } else {
     // direct: только в fully-manual (или editing любого режима).
     writable = opts.mode === 'fully-manual' || isEditing;
+  }
+
+  // S3: derived с writable=true, но expectedFromRow возвращает ∞ (например Γ при d=F).
+  // Рендерим readonly-ячейку «∞» вместо input — ученик не может ввести бесконечность,
+  // а 'wrong' за пустое не нужен. Generic-правило: безопасно для всех китов (у них ∞ не бывает).
+  if (writable && col.source === 'derived' && typeof col.expectedFromRow === 'function') {
+    let expectedVal: number | null = null;
+    try {
+      const numCtx: Record<string, number> = {};
+      for (const [k, v] of Object.entries(row.values)) {
+        if (typeof v === 'number' && Number.isFinite(v)) numCtx[k] = v;
+      }
+      const raw = col.expectedFromRow(numCtx);
+      if (typeof raw === 'number') expectedVal = raw;
+    } catch {
+      /* игнорируем — продолжаем как обычно */
+    }
+    if (expectedVal !== null && !Number.isFinite(expectedVal)) {
+      // Показываем readonly «∞»; input скрываем во избежание ложного 'wrong'.
+      td.textContent = '∞';
+      td.setAttribute('aria-label', col.ariaLabel ?? col.label);
+      td.dataset['infinity'] = 'true';
+      return td;
+    }
   }
 
   if (writable) {

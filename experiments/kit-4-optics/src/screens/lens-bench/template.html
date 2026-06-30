@@ -41,7 +41,8 @@
           aria-label="Оптическая скамья для сборки опыта с линзой"
         ></lab-optical-bench>
 
-        <!-- Слайдер положения предмета: «двигать предмет к 2F» (опыт 4.2) -->
+        <!-- Слайдер положения предмета: «двигать предмет к 2F» (опыт 4.2/4.4) -->
+        <!-- R8: слайдер занимает полную ширину (как screen-slider); легенда и ридаут — отдельная строка под трекером -->
         <div class="screen-slider-row object-slider-row" id="object-slider-row" hidden>
           <label class="screen-slider-label" for="object-slider">Положение предмета</label>
           <input
@@ -55,9 +56,12 @@
             aria-label="Положение предмета вдоль скамьи, мм"
           />
           <output id="object-slider-readout" class="screen-slider-readout" for="object-slider">200 мм</output>
-          <output id="object-zone-readout" class="object-zone-readout" for="object-slider" aria-live="polite"></output>
-          <div class="zone-legend" aria-hidden="true">
-            <span>&lt;F</span><span>=F</span><span>F&lt;d&lt;2F</span><span>=2F</span><span>&gt;2F</span>
+          <!-- R8: zone-readout и zone-legend на отдельной строке под слайдером -->
+          <div class="object-zone-row">
+            <output id="object-zone-readout" class="object-zone-readout" for="object-slider" aria-live="polite"></output>
+            <div class="zone-legend" aria-hidden="true">
+              <span>&lt;F</span><span>=F</span><span>F&lt;d&lt;2F</span><span>=2F</span><span>&gt;2F</span>
+            </div>
           </div>
         </div>
 

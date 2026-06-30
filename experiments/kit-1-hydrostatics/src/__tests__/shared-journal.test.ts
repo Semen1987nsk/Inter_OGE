@@ -368,4 +368,41 @@ describe('renderJournalTable — choice-колонка', () => {
     expect(host.querySelector('select[data-key="kind"]')).not.toBeNull();
     expect(host.querySelector('input[data-key="kind"]')).toBeNull();
   });
+
+  // S3: derived-колонка с expectedFromRow→∞ показывает readonly '∞' вместо <input>.
+  // Предотвращает UX-ловушку: ученик вводит число и получает 'wrong' при d=F.
+  it('S3: semi-auto, derived с expectedFromRow→Infinity → td показывает "∞", <input> отсутствует', () => {
+    const specInf: JournalSpec = {
+      // Используем существующий опытный ID (4.4) — тест не вызывает getSpecByExperimentId.
+      experimentId: '4.4', kitId: 'kit-4',
+      columns: [
+        { key: 'idx', label: '№', source: 'meta', format: 'int' },
+        {
+          key: 'gamma', label: 'Γ', source: 'derived', format: 'fixed2', tolerance: 0.1,
+          expectedFromRow: () => Infinity,
+        },
+      ],
+    };
+    const rowInf = [{ idx: 1, timestamp: 1, values: { idx: 1 } }];
+    const host = document.createElement('div');
+    renderJournalTable(host, specInf, rowInf, { mode: 'semi-auto', onCellInput: () => {}, onVerify: () => {} });
+    const td = host.querySelector<HTMLTableCellElement>('td[data-key="gamma"]')!;
+    expect(td).not.toBeNull();
+    expect(td.textContent).toBe('∞');
+    expect(host.querySelector('input[data-key="gamma"]')).toBeNull();
+  });
+
+  // S6: пустой <select> (value='') → onChoiceInput получает null, а не пустую строку.
+  it('S6: select.value="" → onChoiceInput(rowIdx, key, null) (НЕ пустую строку)', () => {
+    const host = document.createElement('div');
+    let captured: [number, string, string | null] | null = null;
+    renderJournalTable(host, spec, rows, {
+      mode: 'semi-auto', onCellInput: () => {}, onVerify: () => {},
+      onChoiceInput: (rowIdx, key, value) => { captured = [rowIdx, key, value]; },
+    });
+    const sel = host.querySelector<HTMLSelectElement>('select[data-key="kind"]')!;
+    sel.value = '';
+    sel.dispatchEvent(new Event('change'));
+    expect(captured).toEqual([1, 'kind', null]);
+  });
 });

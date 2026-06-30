@@ -831,6 +831,73 @@ async function checkRecordModes(page) {
   await page.waitForTimeout(700);
 }
 
+// ─── S7: fully-manual журнал показывает <select> (не readonly-текст) ──────────
+
+async function checkFullyManualJournal(page) {
+  console.log('\n  ── S7: fully-manual — select присутствует (не только fully-auto) ─────────');
+  try {
+    await page.evaluate(() => {
+      localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-manual');
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(700);
+
+    // Переключить на задачу C
+    const taskBtnC = page.locator('[data-task="C-image"]');
+    const cVisible = await taskBtnC.isVisible().catch(() => false);
+    if (cVisible) { await taskBtnC.click(); await page.waitForTimeout(150); }
+
+    const expOk = await page.evaluate(() => !!(window.lensBenchExperiment));
+    if (!expOk) {
+      skip('S7 fully-manual', 'window.lensBenchExperiment не найден после reload');
+      return;
+    }
+
+    // Собрать скамью
+    await assembleBench(page, 'S7 fully-manual: сборка скамьи');
+
+    // Установить d=300 и записать строку
+    await page.evaluate(() => window.lensBenchExperiment?.setObjectDistanceMm(300));
+    await page.waitForTimeout(80);
+    const btn = page.locator('#record-pending-btn');
+    const btnVisible = await btn.isVisible().catch(() => false);
+    if (btnVisible) {
+      await btn.click();
+      await page.waitForTimeout(300);
+    } else {
+      await page.evaluate(() => window.lensBenchExperiment?.recordMeasurement?.());
+      await page.waitForTimeout(300);
+    }
+
+    // В fully-manual: select[data-key="kind"] ОБЯЗАН присутствовать (в отличие от readonly в fully-auto)
+    const selectCount = await page.locator('select[data-key="kind"]').count();
+    if (selectCount > 0) {
+      pass('S7 fully-manual: select[data-key="kind"] присутствует (ученик вводит сам)');
+    } else {
+      // Проверим: может быть readonly-текст (как в fully-auto) — это и есть баг S7
+      const tdText = await page.evaluate(() => {
+        const td = document.querySelector('td[data-key="kind"]');
+        return td ? td.textContent?.trim() : null;
+      });
+      if (tdText !== null) {
+        fail('S7 fully-manual: select[data-key="kind"] не найден',
+          `вместо select — readonly текст «${tdText}» (поведение fully-auto пробралось в fully-manual)`);
+      } else {
+        fail('S7 fully-manual: select[data-key="kind"] не найден', 'ни select, ни td не найдены — журнал не рендерится');
+      }
+    }
+  } catch (err) {
+    fail('S7 fully-manual', err.message);
+  }
+
+  // Восстановить semi-auto
+  await page.evaluate(() => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(700);
+}
+
 // ─── Пункт 10: Изоляция задач C → A ─────────────────────────────────────────
 
 async function checkTaskIsolation(page) {
@@ -1050,6 +1117,9 @@ async function run() {
 
   // ── Пункт 8: fully-auto ──────────────────────────────────────────────────────
   await checkFullyAutoJournal(page);
+
+  // ── S7: fully-manual ─────────────────────────────────────────────────────────
+  await checkFullyManualJournal(page);
 
   // После fully-auto reload — снова переключить C и пересобрать скамью
   {

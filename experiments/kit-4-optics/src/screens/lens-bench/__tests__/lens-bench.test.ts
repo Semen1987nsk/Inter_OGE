@@ -619,6 +619,41 @@ describe('LensBenchExperiment — задача B (опыт 4.2, равенств
     expect(experiment.activeTask).toBe('B-focal2f');
   });
 
+  // M1: WAI-ARIA Tabs Pattern — стрелочная навигация (ArrowRight/ArrowLeft).
+  it('M1: ArrowRight на активном табе A → активным становится B (aria-selected, tabIndex, activeTask)', () => {
+    build();
+    // Начальный таб A
+    expect(experiment.activeTask).toBe('A-power');
+    const steps = host.querySelector<HTMLElement>('#steps')!;
+    const itemA = host.querySelector<HTMLElement>('[data-task="A-power"]')!;
+    const itemB = host.querySelector<HTMLElement>('[data-task="B-focal2f"]')!;
+    // Имитируем фокус на A (tabIndex=0 уже стоит после #refreshTaskStepper)
+    itemA.focus?.();
+    // Диспатч ArrowRight
+    steps.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    // activeTask переключился на B
+    expect(experiment.activeTask).toBe('B-focal2f');
+    // aria-selected обновился (через #refreshTaskStepper)
+    expect(itemB.getAttribute('aria-selected')).toBe('true');
+    expect(itemA.getAttribute('aria-selected')).toBe('false');
+    // roving tabindex: B получил 0, A ушёл в -1
+    expect(itemB.tabIndex).toBe(0);
+    expect(itemA.tabIndex).toBe(-1);
+  });
+
+  it('M1: ArrowLeft на активном табе A → wrap-around к последнему (C-image)', () => {
+    build();
+    expect(experiment.activeTask).toBe('A-power');
+    const steps = host.querySelector<HTMLElement>('#steps')!;
+    const itemA = host.querySelector<HTMLElement>('[data-task="A-power"]')!;
+    const itemC = host.querySelector<HTMLElement>('[data-task="C-image"]')!;
+    itemA.focus?.();
+    steps.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    expect(experiment.activeTask).toBe('C-image');
+    expect(itemC.getAttribute('aria-selected')).toBe('true');
+    expect(itemA.getAttribute('aria-selected')).toBe('false');
+  });
+
   it('A11y: result-panel task B НЕ палит F в semi-auto, палит в fully-auto', async () => {
     const KEY = 'inter-oge.record-mode.kit-4';
     globalThis.localStorage.setItem(KEY, 'semi-auto');

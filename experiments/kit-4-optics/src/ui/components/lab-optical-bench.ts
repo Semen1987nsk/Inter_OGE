@@ -318,12 +318,14 @@ template.innerHTML = `
   </g>
 
   <!-- ════ ИЗОБРАЖЕНИЕ В БЕСКОНЕЧНОСТИ (d=F): note + 2 параллельных луча ════ -->
+  <!-- R9: текст «изображение в бесконечности» сдвинут ближе к линзе и выше,
+       чтобы не пересекался с подписью «Экран» у правого гнезда. -->
   <g id="infinity-note-group" hidden="">
     <line class="ray-line ray-parallel" x1="${mmToPx(DEFAULT_LENS_MM)}" y1="${BENCH_Y - ARROW_H}"
           x2="${BENCH_RIGHT_X}" y2="${BENCH_Y - ARROW_H}" opacity="0.7"/>
     <line class="ray-line ray-parallel" x1="${mmToPx(DEFAULT_LENS_MM)}" y1="${BENCH_Y}"
           x2="${BENCH_RIGHT_X}" y2="${BENCH_Y}" opacity="0.7"/>
-    <text class="focal-marker" x="${mmToPx(DEFAULT_LENS_MM) + 120}" y="${BENCH_Y - ARROW_H - 8}">
+    <text class="focal-marker" x="${mmToPx(DEFAULT_LENS_MM) + 60}" y="${BENCH_Y - ARROW_H - 18}">
       изображение в бесконечности
     </text>
   </g>
