@@ -608,7 +608,7 @@ describe('LensBenchExperiment — задача B (опыт 4.2, равенств
     expect(experiment.activeTask).toBe('B-focal2f');
   });
 
-  it('A11y: result-panel task B НЕ палит F в semi-auto, палит в fully-auto', () => {
+  it('A11y: result-panel task B НЕ палит F в semi-auto, палит в fully-auto', async () => {
     const KEY = 'inter-oge.record-mode.kit-4';
     globalThis.localStorage.setItem(KEY, 'semi-auto');
     build();
@@ -621,6 +621,10 @@ describe('LensBenchExperiment — задача B (опыт 4.2, равенств
     expect(rp.textContent).toContain('2F'); // фраза «F = 2F / 2» допустима
     expect(rp.innerHTML).not.toContain('<strong>F</strong>'); // но не готовое F
     expect(rp.textContent).not.toMatch(/2F\s*=\s*\d/); // и не численное 2F (деление /2 тривиально палит F)
+    // F1 fix: live-region тоже не должен палить численное 2F в semi-auto
+    const lr = host.querySelector<HTMLElement>('#live-region')!;
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    expect(lr.textContent).not.toMatch(/2F\s*=\s*\d/);
     globalThis.localStorage.removeItem(KEY);
   });
 });

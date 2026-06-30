@@ -413,8 +413,14 @@ export class LensBenchExperiment {
     this.#refreshUi();
     const isFullyAuto = this.#recordMode() === 'fully-auto';
     if (st.activeTask === 'B-focal2f') {
-      const fPart = isFullyAuto ? ` F ≈ ${measurement.F_mm.toFixed(0)} мм.` : '';
-      this.#hints.announce(`Записано: 2F = ${measurement.twoF_mm!.toFixed(0)} мм (предмет в двойном фокусе).${fPart}`);
+      if (isFullyAuto) {
+        this.#hints.announce(
+          `Записано: 2F = ${measurement.twoF_mm!.toFixed(0)} мм. F ≈ ${measurement.F_mm.toFixed(0)} мм.`,
+        );
+      } else {
+        // a11y (как M3 Фазы A): НЕ озвучивать численное 2F — деление /2 тривиально палит F.
+        this.#hints.announce('Записано: предмет в двойном фокусе. Снимите 2F со шкалы и вычислите F = 2F / 2.');
+      }
     } else {
       const fPart = isFullyAuto ? ` F ≈ ${measurement.F_mm.toFixed(0)} мм.` : '';
       this.#hints.announce(`Записано: d = ${measurement.d_mm.toFixed(0)} мм, f = ${measurement.f_mm.toFixed(0)} мм.${fPart}`);
