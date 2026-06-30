@@ -235,7 +235,7 @@ async function checkSwitchToTaskC(page) {
     return false;
   }
 
-  // aria-current=true
+  // aria-current=true (legacy compat)
   try {
     const ariaCurrent = await page.evaluate(() => {
       const btn = document.querySelector('[data-task="C-image"]');
@@ -248,6 +248,38 @@ async function checkSwitchToTaskC(page) {
     }
   } catch (err) {
     fail('4.4: проверка aria-current', err.message);
+  }
+
+  // aria-selected: role="tab" требует aria-selected="true" на активном, "false" на остальных
+  // (оркестратор #refreshTaskStepper ставит ОБА атрибута — проверяем что a11y-фикс работает)
+  try {
+    const ariaSelectedResult = await page.evaluate(() => {
+      const allTasks = Array.from(document.querySelectorAll('[data-task]'));
+      if (allTasks.length === 0) return { ok: false, reason: 'нет элементов [data-task]' };
+      const activeBtn = document.querySelector('[data-task="C-image"]');
+      const activeSelected = activeBtn?.getAttribute('aria-selected') ?? null;
+      const inactiveWrong = allTasks
+        .filter(el => el.dataset['task'] !== 'C-image')
+        .filter(el => el.getAttribute('aria-selected') !== 'false' && el.getAttribute('aria-selected') !== null)
+        .map(el => `${el.dataset['task']}:${el.getAttribute('aria-selected')}`);
+      return { activeSelected, inactiveWrong, count: allTasks.length };
+    });
+    if (ariaSelectedResult.ok === false) {
+      fail('4.4: aria-selected (role=tab)', ariaSelectedResult.reason);
+    } else if (ariaSelectedResult.activeSelected === 'true') {
+      pass(`4.4: [data-task="C-image"] aria-selected="true" (role=tab a11y-фикс подтверждён)`);
+      if (ariaSelectedResult.inactiveWrong.length === 0) {
+        pass(`4.4: неактивные табы aria-selected="false" (count=${ariaSelectedResult.count - 1})`);
+      } else {
+        fail('4.4: неактивные табы должны иметь aria-selected="false"',
+          `нарушения: ${ariaSelectedResult.inactiveWrong.join(', ')}`);
+      }
+    } else {
+      fail('4.4: aria-selected активного таба',
+        `aria-selected="${ariaSelectedResult.activeSelected}", ожидалось "true"`);
+    }
+  } catch (err) {
+    fail('4.4: проверка aria-selected', err.message);
   }
 
   // #object-slider-row виден
@@ -530,7 +562,14 @@ async function checkSemiAutoJournal(page) {
     await page.waitForTimeout(50);
     await page.locator('select[data-key="size"]').first().selectOption('reduced');
     await page.waitForTimeout(50);
-    // Γ: найти input[data-key="gamma"] и ввести -0.50
+    // Категории выставлены успешно (selectOption не выбросил)
+    pass('4.4 semi-auto: ВЕРНЫЙ выбор real/inverted/reduced выставлен');
+  } catch (err) {
+    fail('4.4 semi-auto: выбор значений', err.message);
+  }
+
+  // Γ проверяется отдельно: в semi-auto поле ОБЯЗАНО присутствовать
+  try {
     const gammaInput = page.locator('input[data-key="gamma"]').first();
     const gammaExists = await gammaInput.count() > 0;
     if (gammaExists) {
@@ -538,11 +577,12 @@ async function checkSemiAutoJournal(page) {
       await page.waitForTimeout(50);
       pass('4.4 semi-auto: заполнен Γ=−0.50 в input[data-key="gamma"]');
     } else {
-      skip('4.4 semi-auto: input[data-key="gamma"]', 'поле не найдено — возможно, derived-only рендер');
+      // В semi-auto gamma-поле обязано присутствовать (иначе ученик не может ввести коэффициент)
+      fail('4.4 semi-auto: input[data-key="gamma"] отсутствует',
+        'в полуавто-режиме поле gamma обязательно; derived-only рендер недопустим');
     }
-    pass('4.4 semi-auto: ВЕРНЫЙ выбор real/inverted/reduced выставлен');
   } catch (err) {
-    fail('4.4 semi-auto: выбор значений', err.message);
+    fail('4.4 semi-auto: проверка input[data-key="gamma"]', err.message);
   }
 
   // Нажать ✓ (кнопка проверки строки)
@@ -796,8 +836,9 @@ async function checkRecordModes(page) {
 async function checkTaskIsolation(page) {
   console.log('\n  ── Шаг 11: Изоляция задач C → A ─────────────────────────────────────────');
   try {
-    const allMeasurements = await page.evaluate(() => window.lensBenchExperiment?.measurements ?? []);
-    const countC = allMeasurements.filter(m => m.task === 'C-image').length;
+    // Снять snapshot ДО переключения: сколько C-записей накоплено
+    const allBeforeSwitch = await page.evaluate(() => window.lensBenchExperiment?.measurements ?? []);
+    const countC = allBeforeSwitch.filter(m => m.task === 'C-image').length;
 
     // Переключить на задачу A
     await page.click('[data-task="A-power"]').catch(() => {});
@@ -810,13 +851,15 @@ async function checkTaskIsolation(page) {
       fail('4.4 isolation: activeTask после переключения на A', `activeTask="${activeAfter}"`);
     }
 
-    // Журнал задачи A должен быть пустым или без C-строк
+    // Перечитать measurements ПОСЛЕ переключения, чтобы получить актуальное состояние журнала
+    const allAfterSwitch = await page.evaluate(() => window.lensBenchExperiment?.measurements ?? []);
+    const countA = allAfterSwitch.filter(m => m.task === 'A-power').length;
+
+    // Состояние панели (пустая/заполненная) ПОСЛЕ переключения на задачу A
     const panelState = await page.evaluate(() => {
       const panel = document.querySelector('#measurement-panel');
       return panel?.dataset['state'] ?? null;
     });
-
-    const countA = allMeasurements.filter(m => m.task === 'A-power').length;
 
     if (countA === 0 && panelState === 'empty') {
       pass(`4.4 isolation: журнал задачи A пустой (state=empty) — записи C не просачиваются`);
@@ -827,7 +870,17 @@ async function checkTaskIsolation(page) {
         `panelState="${panelState}", countA=${countA}, countC=${countC}`);
     }
 
-    pass(`4.4 isolation: в store — countC=${countC}, countA=${countA} (по задачам независимо)`);
+    // Верификация независимости: C-записи НЕ должны попасть в A-счётчик
+    if (countC > 0 && countA === 0) {
+      pass(`4.4 isolation: C-записи (${countC}) не просачиваются в журнал задачи A (countA=0)`);
+    } else if (countC === 0) {
+      // Нет C-записей — тест изоляции не репрезентативен, предупредить
+      fail('4.4 isolation: нет C-записей для теста', `countC=${countC} — записи не были добавлены перед переключением; изоляция не проверена`);
+    } else if (countA > 0) {
+      fail('4.4 isolation: C-записи просочились в журнал A', `countA=${countA}, countC=${countC}`);
+    } else {
+      pass(`4.4 isolation: store по задачам независимо — countC=${countC}, countA=${countA}`);
+    }
 
     // Вернуть в C
     await page.click('[data-task="C-image"]').catch(() => {});

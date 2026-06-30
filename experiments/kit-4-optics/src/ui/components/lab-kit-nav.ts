@@ -287,7 +287,6 @@ export class LabKitNav extends HTMLElement {
     this.#screens.replaceChildren();
     this.#buttons = screens.map((meta) => {
       const li = document.createElement('li');
-      li.setAttribute('role', 'listitem');
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset['screenId'] = meta.id;

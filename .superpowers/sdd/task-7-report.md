@@ -93,3 +93,64 @@ npm run build      -> OK (все workspaces)
 - axe 0 нарушений
 - монорепо все гейты зелёные
 - commit 8cf85ae на feat/fipi-full-coverage
+
+---
+
+## FIX — task-reviewer Task 7: исправление лгущих тестов (после 8cf85ae)
+
+**Исполнитель:** fix-субагент. HEAD до правок: `abd4621`.
+
+### Правка 1 — Important: тавтологический pass в checkTaskIsolation (C→A)
+
+**Баг:** `pass('4.4 isolation: в store...')` вызывался безусловно на строке 830 вне if/else.
+Даже если isolation была сломана (countC=0, запись не создавалась), тест давал PASS.
+Также `countA` вычислялся из снапшота `allMeasurements`, взятого ДО переключения — не отражал фактическое состояние журнала задачи A после switch.
+
+**Фикс:**
+- Переименован snapshot до переключения: `allBeforeSwitch` (для countC).
+- После `page.click('[data-task="A-power"]')` — новый `evaluate` → `allAfterSwitch` → `countA` из свежего состояния.
+- Безусловный pass заменён на честный ассерт: `if (countC > 0 && countA === 0) → pass` / `countC === 0 → fail` (изоляция не репрезентативна) / `countA > 0 → fail` (C-записи просочились).
+
+**Доказательство честности:** при countC=0 (запись не была добавлена) — тест даёт FAIL «нет C-записей для теста», а не ложный PASS. При countA>0 — тест даёт FAIL «C-записи просочились в журнал A».
+
+### Правка 2 — Important: добавлен ассерт aria-selected в checkSwitchToTaskC
+
+**Баг:** selfcheck проверял только `aria-current`, тогда как оркестратор `#refreshTaskStepper` ставит ОБА атрибута (`aria-selected` + `aria-current`) — а именно `aria-selected` является стандартным для `role="tab"` (ARIA 1.1/1.2). Оригинальный selfcheck не верифицировал заявленный a11y-фикс из task-7.
+
+**Фикс:** добавлен отдельный try-блок после aria-current проверки:
+- `[data-task="C-image"]` должен иметь `aria-selected="true"`.
+- Все остальные `[data-task]`-элементы должны иметь `aria-selected="false"` (или не иметь атрибута).
+- Итого: +2 ассерта (активный таб + неактивные).
+
+**Доказательство честности:** если убрать `aria-selected` из `#refreshTaskStepper` в LensBenchExperiment.ts — новый ассерт `aria-selected активного таба → FAIL`. Атрибут присутствует в template.html и выставляется динамически — оба пути покрыты.
+
+### Правка 3 — Minor: gamma unconditional pass в checkSemiAutoJournal
+
+**Баг:** `pass('4.4 semi-auto: ВЕРНЫЙ выбор...')` на строке 543 вызывался после if/else для gammaInput, т.е. всегда — даже когда gamma-поле отсутствовало (путь → `skip`/`fail`).
+
+**Фикс:**
+- pass выбора категорий (`real/inverted/reduced`) перемещён сразу после трёх `selectOption` — до проверки gamma. Он честен: если `selectOption` выбрасывает, catch перехватит.
+- Проверка gamma выделена в отдельный try-блок: при `gammaExists=false` — `fail` (не skip), т.к. в semi-auto поле обязательно.
+- Итого: убран 1 тавтологический pass (тот что был вне условия), добавлен 1 честный fail-путь.
+
+### Правка 4 — Minor/косметика: убран li.setAttribute('role','listitem') из lab-kit-nav.ts
+
+`<li>` внутри `<ul>/<ol>` имеет implicit role=listitem — явная установка избыточна. Строка `li.setAttribute('role', 'listitem')` удалена из `setScreens()`. Родительский элемент (`#screens`) — `<ul>`, implicit role=list. Ничего не ломает.
+
+### Результат selfcheck после фиксов
+
+```
+selfcheck-4-4: PASS=64  FAIL=0  SKIP=0
+STATUS: PASS 64/0/0
+```
+
+Изменение счётчика: было 62, стало 64 (+2 за новые ассерты aria-selected; тавтологический isolation-pass заменён 2 честными, итого +0 по isolation).
+
+axe: 0 нарушений (не менялось).
+
+### Файлы изменены
+
+| Путь | Изменение |
+|---|---|
+| `experiments/kit-4-optics/selfcheck-4-4.mjs` | Правки 1, 2, 3 — честные ассерты |
+| `experiments/kit-4-optics/src/ui/components/lab-kit-nav.ts` | Правка 4 — убран implicit role |
