@@ -10,6 +10,10 @@
           <span class="step-num">B</span>
           <span class="step-label">Фокус по 2F <small>(4.2)</small></span>
         </li>
+        <li class="step" data-task="C-image" tabindex="0" role="button" aria-current="false">
+          <span class="step-num">C</span>
+          <span class="step-label">Свойства изображения <small>(4.4)</small></span>
+        </li>
       </ol>
       <div class="workbench-hint" id="hint-bar">
         Перетащите приборы с правой панели на оптическую скамью.
@@ -50,6 +54,10 @@
             aria-label="Положение предмета вдоль скамьи, мм"
           />
           <output id="object-slider-readout" class="screen-slider-readout" for="object-slider">200 мм</output>
+          <output id="object-zone-readout" class="object-zone-readout" for="object-slider" aria-live="polite"></output>
+          <div class="zone-legend" aria-hidden="true">
+            <span>&lt;F</span><span>=F</span><span>F&lt;d&lt;2F</span><span>=2F</span><span>&gt;2F</span>
+          </div>
         </div>
 
         <!-- Слайдер положения экрана: «двигать экран до резкости» -->

@@ -692,14 +692,14 @@ describe('LensBenchScreen — IScreen lifecycle', () => {
     host.remove();
   });
 
-  it('template содержит task-switcher #steps с задачами A/B (4.1/4.2)', () => {
+  it('template содержит task-switcher #steps с задачами A/B/C (4.1/4.2/4.4)', () => {
     const { host, screen } = mountScreen();
     const steps = host.querySelector('#steps');
     expect(steps).not.toBeNull();
     const tasks = host.querySelectorAll('#steps [data-task]');
-    expect(tasks.length).toBe(2);
+    expect(tasks.length).toBe(3);
     const ids = Array.from(tasks).map((t) => (t as HTMLElement).dataset['task']);
-    expect(ids).toEqual(['A-power', 'B-focal2f']);
+    expect(ids).toEqual(['A-power', 'B-focal2f', 'C-image']);
     screen.unmount();
     host.remove();
   });

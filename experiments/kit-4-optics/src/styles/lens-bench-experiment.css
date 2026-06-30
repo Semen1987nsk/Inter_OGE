@@ -185,3 +185,24 @@
   text-align: right;
   color: var(--color-text, #111);
 }
+
+.object-zone-readout {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-brand-amber, #ffbe0b);
+  margin-left: 0.5rem;
+  min-width: 8ch;
+}
+
+.zone-legend {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 2px;
+  font-size: 0.62rem;
+  color: rgb(255 255 255 / 0.4);
+  font-family: var(--font-mono, monospace);
+}
+
+.object-zone-readout:empty { display: none; }

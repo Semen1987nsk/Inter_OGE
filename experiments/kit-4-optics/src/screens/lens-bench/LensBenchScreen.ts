@@ -57,6 +57,7 @@ export class LensBenchScreen implements IScreen {
       objectSlider: host.querySelector('#object-slider') as HTMLInputElement,
       objectSliderRow: host.querySelector<HTMLElement>('#object-slider-row') ?? undefined,
       objectSliderReadout: host.querySelector<HTMLElement>('#object-slider-readout') ?? undefined,
+      objectZoneReadout: host.querySelector<HTMLElement>('#object-zone-readout') ?? undefined,
       resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
       cards: host.querySelectorAll<LabEquipmentCard>('lab-equipment-card'),
       // §21 — журнал v2 slots
