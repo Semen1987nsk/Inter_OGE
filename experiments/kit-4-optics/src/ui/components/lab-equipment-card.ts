@@ -25,7 +25,7 @@ template.innerHTML = `
     --card-bg-hover: #14263f;
     --card-border: rgb(255 255 255 / 0.08);
     --card-border-active: rgb(56 189 175 / 0.5);
-    --card-accent: #38bdaf;
+    --card-accent: #7de5dd;
 
     display: block;
     background: var(--card-bg);
@@ -107,7 +107,13 @@ template.innerHTML = `
       opacity var(--dur-fast, 150ms) var(--ease-out);
     min-height: 22px;
     line-height: 1.1;
-    opacity: 0.6;
+    /* opacity < 1 смешивает текст с bg и роняет color-contrast (WCAG 1.4.3).
+       Используем полную непрозрачность; визуальная «тихость» — через border-opacity. */
+  }
+
+  :host(:not(:hover)) .action:not(:focus-visible) {
+    border-color: rgb(125 229 221 / 0.25);
+    background: rgb(56 189 175 / 0.06);
   }
 
   :host(:hover) .action,

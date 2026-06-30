@@ -248,8 +248,8 @@ template.innerHTML = `
   }
 </style>
 
-<nav class="nav" role="tablist" aria-label="Опыты комплекта">
-  <div class="screens" role="presentation"></div>
+<nav class="nav" aria-label="Навигация по опытам комплекта">
+  <div class="screens" role="list"></div>
   <button class="home-btn" type="button" data-action="home" aria-label="К списку комплектов" title="К списку комплектов">
     <span class="icon-wrap">${ICONS.home}</span>
     <span class="label">К комплектам</span>
@@ -286,18 +286,19 @@ export class LabKitNav extends HTMLElement {
   setScreens(screens: ReadonlyArray<ScreenMeta>): void {
     this.#screens.replaceChildren();
     this.#buttons = screens.map((meta) => {
+      const li = document.createElement('li');
+      li.setAttribute('role', 'listitem');
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset['screenId'] = meta.id;
-      btn.setAttribute('role', 'tab');
-      btn.setAttribute('aria-controls', 'screen-content');
       btn.title = meta.tooltip;
       btn.innerHTML = `
         <span class="kicker">${meta.kicker}</span>
         <span class="icon-wrap">${ICONS[meta.icon]}</span>
         <span class="label">${meta.label}</span>
       `;
-      this.#screens.appendChild(btn);
+      li.appendChild(btn);
+      this.#screens.appendChild(li);
       return { id: meta.id, meta, el: btn };
     });
     this.#applyActive();

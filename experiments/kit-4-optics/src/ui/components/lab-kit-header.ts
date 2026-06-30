@@ -19,6 +19,17 @@ template.innerHTML = `
     background: var(--color-surface-elevated, #1a1f2e);
     border-bottom: 1px solid var(--color-border, rgb(255 255 255 / 0.08));
   }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
   .row {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
@@ -71,16 +82,17 @@ template.innerHTML = `
     .row { grid-template-columns: 1fr; padding: 8px 16px; }
   }
 </style>
-<div class="row">
-  <div class="left">
+<h1 class="sr-only">Комплект №4 — Оптика — ЛАБОСФЕРА</h1>
+<div class="row" role="presentation">
+  <div class="left" role="presentation">
     <div class="brand">ЛАБОСФЕРА</div>
     <div class="kit-label">Комплект №4 · Оптика</div>
   </div>
-  <div class="center">
+  <div class="center" role="presentation">
     <div class="exp-kicker" id="kicker"></div>
     <div class="exp-title" id="title"></div>
   </div>
-  <div class="right">
+  <div class="right" role="presentation">
     <div class="spec">ФИПИ ОГЭ-2026</div>
   </div>
 </div>

@@ -969,7 +969,10 @@ export class LensBenchExperiment {
     items.forEach((item) => {
       const isActive = item.dataset['task'] === active;
       item.setAttribute('data-state', isActive ? 'active' : '');
+      // role="tab" требует aria-selected (не aria-current); оба ставим для совместимости.
+      item.setAttribute('aria-selected', isActive ? 'true' : 'false');
       item.setAttribute('aria-current', isActive ? 'true' : 'false');
+      item.tabIndex = isActive ? 0 : -1;
     });
   }
 

@@ -1,20 +1,21 @@
-<main class="app-main-v3">
+<div class="app-main-v3">
+  <h2 class="sr-only">Рабочий стенд — оптическая скамья</h2>
   <section class="workbench" aria-label="Рабочая зона">
     <header class="workbench-header">
-      <ol class="steps" id="steps" aria-label="Опыт (что измеряем)">
-        <li class="step" data-task="A-power" data-state="active" tabindex="0" role="button" aria-current="true">
+      <div class="steps" id="steps" role="tablist" aria-label="Опыт (что измеряем)">
+        <button class="step" data-task="A-power" data-state="active" tabindex="0" role="tab" aria-selected="true" type="button">
           <span class="step-num">A</span>
           <span class="step-label">Оптическая сила <small>(4.1)</small></span>
-        </li>
-        <li class="step" data-task="B-focal2f" tabindex="0" role="button" aria-current="false">
+        </button>
+        <button class="step" data-task="B-focal2f" tabindex="-1" role="tab" aria-selected="false" type="button">
           <span class="step-num">B</span>
           <span class="step-label">Фокус по 2F <small>(4.2)</small></span>
-        </li>
-        <li class="step" data-task="C-image" tabindex="0" role="button" aria-current="false">
+        </button>
+        <button class="step" data-task="C-image" tabindex="-1" role="tab" aria-selected="false" type="button">
           <span class="step-num">C</span>
           <span class="step-label">Свойства изображения <small>(4.4)</small></span>
-        </li>
-      </ol>
+        </button>
+      </div>
       <div class="workbench-hint" id="hint-bar">
         Перетащите приборы с правой панели на оптическую скамью.
       </div>
@@ -77,11 +78,12 @@
         </div>
 
         <!-- Плавающая панель: журнал + результаты -->
-        <aside
+        <div
           id="measurement-panel"
           class="measurement-panel"
           data-state="empty"
           aria-label="Панель измерений"
+          role="region"
         >
           <header class="measurement-panel-header">
             <button
@@ -122,10 +124,9 @@
             </div>
 
             <!-- Результаты: F и D — обновляется после записи -->
-            <aside id="result-panel" class="result-panel" aria-live="polite" hidden>
-            </aside>
+            <div id="result-panel" class="result-panel" aria-live="polite" hidden></div>
           </div>
-        </aside>
+        </div>
 
         <!-- Opt-in: кнопка оверлея лучей -->
         <button
@@ -151,7 +152,7 @@
   </section>
 
   <!-- Правая панель оборудования -->
-  <aside class="equipment-panel" aria-label="Оборудование комплекта №4 ФИПИ">
+  <section class="equipment-panel" aria-label="Оборудование комплекта №4 ФИПИ">
     <section class="equipment-group">
       <h3 class="equipment-group-title">Осветитель</h3>
       <div class="equipment-grid equipment-grid-1">
@@ -199,6 +200,6 @@
         </lab-equipment-card>
       </div>
     </section>
-  </aside>
-</main>
+  </section>
+</div>
 <div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -127,6 +127,43 @@
   color: var(--color-text-primary, #fff);
 }
 
+/* ─── Choice-колонка (select для категориальных данных 4.4) ─────────────
+   Браузер рендерит <select> с белым bg по умолчанию — нужно явно задать
+   цвет и фон чтобы не нарушить WCAG 1.4.3 (color-contrast ≥ 4.5:1). */
+
+.lab-journal-table select.j-input--choice {
+  padding: 3px 4px;
+  background: rgb(255 255 255 / 0.08);
+  border: 1px solid rgba(56, 189, 175, 0.35);
+  border-radius: 6px;
+  color: var(--color-text-primary, #e8eef9);
+  font-family: var(--font-display, sans-serif);
+  font-size: var(--text-sm, 13px);
+  cursor: pointer;
+  outline: none;
+  /* Явный colorscheme: dark — иначе браузер форсирует white bg */
+  color-scheme: dark;
+}
+
+.lab-journal-table select.j-input--choice:focus {
+  border-color: #38bdaf;
+  box-shadow: 0 0 0 3px rgb(56 189 175 / 0.15);
+}
+
+/* Verdict-цвета для select (semi-auto) */
+.lab-journal-table[data-mode='semi-auto'] td select.j-input--choice[data-verdict='ok'] {
+  border-color: var(--color-success, #10b981);
+  background: rgb(16 185 129 / 0.12);
+  color: var(--color-success, #10b981);
+  color-scheme: dark;
+}
+.lab-journal-table[data-mode='semi-auto'] td select.j-input--choice[data-verdict='wrong'] {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.10);
+  color: #ff9b9b;
+  color-scheme: dark;
+}
+
 /* ─── Кнопка ✓ ─────────────────────────────────────────────────── */
 
 .lab-journal-table button.j-check {
