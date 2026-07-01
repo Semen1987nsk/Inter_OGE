@@ -80,6 +80,7 @@ function buildRefs(host: HTMLElement): ExperimentRefs {
     setRayOverlay(on: boolean): void;
     setImageSharpness(s: number): void;
     setSizeMatch(on: boolean): void;
+    setLensStack(focals: number[]): void;
   };
 
   return {
@@ -192,9 +193,9 @@ describe('LensBenchExperiment — state machine', () => {
     expect(experiment.placeInSlot('object', 'screen')).toBe(false);
   });
 
-  it('placeInSlot: повторное размещение в занятый слот → false', () => {
-    experiment.placeInSlot('lens', 'lens');
-    expect(experiment.placeInSlot('lens', 'lens')).toBe(false);
+  it('placeInSlot: повторное размещение в занятый слот capacity=1 → false', () => {
+    experiment.placeInSlot('object', 'light-object');
+    expect(experiment.placeInSlot('object', 'light-object')).toBe(false);
   });
 
   // ─── Полная сборка + запись измерения ─────────────────────────────────────
@@ -871,5 +872,112 @@ describe('LensBenchExperiment — задача C (опыт 4.4 свойства 
     expect(autoBtn).not.toBeNull();
     autoBtn!.click();
     expect(exp.measurements.filter((m) => m.task === 'C-image').length).toBe(0);
+  });
+});
+
+// ─── Вспомогательная функция для Task 4 ──────────────────────────────────────
+/** Резкая позиция экрана (f) для линзы F=F_mm и расстояния предмета d=d_mm. */
+const imageForF = (F: number, d: number): number => (d * F) / (d - F);
+
+describe('Задача D (4.5) — две сложенные линзы', () => {
+  const created: Array<{ exp: LensBenchExperiment; host: HTMLElement }> = [];
+
+  function make(): { exp: LensBenchExperiment; refs: ExperimentRefs; host: HTMLElement } {
+    const result = makeExperiment();
+    created.push({ exp: result.exp, host: result.host });
+    return result;
+  }
+
+  afterEach(() => {
+    while (created.length > 0) {
+      const item = created.pop()!;
+      item.exp.destroy();
+      item.host.remove();
+    }
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+    globalThis.gc?.();
+  });
+
+  it('стопка двух линз → combinedFocalMm = F_комб', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens');    // соб1 100
+    expect(exp.combinedFocalMm).toBeCloseTo(100, 0);
+    exp.placeInSlot('lens', 'lens-2');  // + соб2 50 → 33.3
+    expect(exp.combinedFocalMm).toBeCloseTo(33.33, 1);
+  });
+
+  it('combo2 соб2+рассеив3 → F_комб=150 (converging)', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens-2');
+    exp.placeInSlot('lens', 'lens-3');
+    expect(exp.combinedFocalMm).toBeCloseTo(150, 0);
+    expect(exp.isDiverging).toBe(false);
+  });
+
+  it('диверг. соб1+рассеив3 → isDiverging, запись блокируется', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('lens', 'lens-3');
+    expect(exp.isDiverging).toBe(true);
+    const before = exp.measurements.length;
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(before); // не записалось
+  });
+
+  it('запись combo2 при резкости: строка d/f + F_комб', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens-2');
+    exp.placeInSlot('lens', 'lens-3');    // F=150, d=300 → image at 300
+    exp.setScreenDistanceMm(300);          // резко
+    expect(exp.isSharp).toBe(true);
+    exp.recordMeasurement();
+    const m = exp.measurements.at(-1)!;
+    expect(m.task).toBe('D-combo');
+    expect(m.F_mm).toBeCloseTo(150, 0);    // F_комб = d·f/(d+f) = 300·300/600
+    expect(m.d1_dptr).toBeCloseTo(20, 1);
+    expect(m.d2_dptr).toBeCloseTo(-13.3, 1);
+  });
+
+  it('без 2-й линзы запись невозможна', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens');       // одна линза
+    exp.setScreenDistanceMm(imageForF(100, 300)); // «резко» для одной линзы
+    const before = exp.measurements.length;
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(before);
+  });
+
+  it('переключение D→A восстанавливает задачу 4.1 (стопка очищена)', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens'); exp.placeInSlot('lens', 'lens-2');
+    exp.setActiveTask('A-power');
+    expect(exp.activeTask).toBe('A-power');
+    // после D→A линз нет (стек очищен) → combinedFocalMm=NaN
+    expect(exp.combinedFocalMm).toBeNaN();
+  });
+
+  it('стопка capacity-2: третья линза в гнездо lens отклоняется', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    expect(exp.placeInSlot('lens', 'lens')).toBe(true);
+    expect(exp.placeInSlot('lens', 'lens-2')).toBe(true);
+    expect(exp.placeInSlot('lens', 'lens-3')).toBe(false); // capacity=2 исчерпана
   });
 });

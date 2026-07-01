@@ -24,7 +24,7 @@ import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { BenchTopology, OpticalBenchAssembly } from '@controller/OpticalBenchAssembly';
 import { OpticalDragController } from '@controller/OpticalDragController';
-import { focalFromDistances, opticalPower, imageDistance, magnification, imageProperties, objectZone, zoneLabelRu } from '@physics/optics/LensModel';
+import { focalFromDistances, opticalPower, imageDistance, magnification, imageProperties, objectZone, zoneLabelRu, combinedFocal } from '@physics/optics/LensModel';
 
 // §21 — единый журнал v2
 import {
@@ -35,7 +35,7 @@ import {
 } from '@labosfera/shared-spa/lib/record-mode';
 import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
 import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
-import { LENS_POWER_SPEC, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import { LENS_POWER_SPEC, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC, TWO_LENS_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
 import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
@@ -43,11 +43,11 @@ import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-
 /** ID слотов на оптической скамье */
 export type BenchSlotId = 'object' | 'lens' | 'screen';
 
-/** Активная задача экрана lens-bench. A=4.1 (опт.сила), B=4.2 (фокус по 2F), C=4.4 (свойства изображения). */
-export type LensTaskId = 'A-power' | 'B-focal2f' | 'C-image';
+/** Активная задача экрана lens-bench. A=4.1 (опт.сила), B=4.2 (фокус по 2F), C=4.4 (свойства изображения), D=4.5 (две линзы). */
+export type LensTaskId = 'A-power' | 'B-focal2f' | 'C-image' | 'D-combo';
 
 /** ID оборудования комплекта */
-export type OpticsEquipmentId = 'light-object' | 'lens' | 'screen';
+export type OpticsEquipmentId = 'light-object' | 'lens' | 'lens-2' | 'lens-3' | 'screen';
 
 /** Тип прибора для drag-kind */
 export type OpticsKind = 'light-object' | 'lens' | 'screen';
@@ -69,6 +69,8 @@ interface BenchState {
   dragging: OpticsEquipmentId | null;
   rayOverlayOn: boolean;
   activeTask: LensTaskId;
+  /** Стопка линз в гнезде (задача D). */
+  stackedLenses: OpticsEquipmentId[];
 }
 
 export interface BenchMeasurement {
@@ -81,7 +83,15 @@ export interface BenchMeasurement {
   readonly D_dptr: number;
   readonly twoF_mm?: number;
   readonly zoneLabel?: string;
+  readonly d1_dptr?: number;
+  readonly d2_dptr?: number;
+  readonly comboLabel?: string;
 }
+
+/** Фокусные комплекта №4 (мм); 0 для не-линз. */
+const LENS_CATALOG: Record<OpticsEquipmentId, number> = {
+  'light-object': 0, 'screen': 0, 'lens': 100, 'lens-2': 50, 'lens-3': -75,
+};
 
 const DEFAULT_OBJECT_DISTANCE_MM = 200;
 const DEFAULT_SCREEN_DISTANCE_MM = 200;
@@ -97,6 +107,7 @@ const TASK_DEFAULTS: Record<LensTaskId, { objectMm: number; screenMm: number }> 
   'A-power':   { objectMm: 200, screenMm: 200 },
   'B-focal2f': { objectMm: 150, screenMm: 250 },
   'C-image':   { objectMm: 300, screenMm: 150 },
+  'D-combo':   { objectMm: 300, screenMm: 200 },
 };
 
 /** Журнал-спека по задаче. */
@@ -104,6 +115,7 @@ const SPEC_BY_TASK: Record<LensTaskId, JournalSpec> = {
   'A-power':   LENS_POWER_SPEC,
   'B-focal2f': FOCAL_2F_SPEC,
   'C-image':   IMAGE_PROPERTIES_SPEC,
+  'D-combo':   TWO_LENS_SPEC,
 };
 
 /** Диапазон слайдера предмета по задаче (мм). C достаёт зоны <F и >2F. */
@@ -111,6 +123,15 @@ const OBJECT_SLIDER_RANGE: Record<LensTaskId, { min: number; max: number }> = {
   'A-power':   { min: 110, max: 290 },
   'B-focal2f': { min: 110, max: 290 },
   'C-image':   { min: 50,  max: 350 },
+  'D-combo':   { min: 300, max: 300 },
+};
+
+/** Диапазон слайдера экрана по задаче. D: combo1 F=33 → f≈38 (нужен малый min). */
+const SCREEN_SLIDER_RANGE: Record<LensTaskId, { min: number; max: number }> = {
+  'A-power':   { min: 110, max: 600 },
+  'B-focal2f': { min: 110, max: 600 },
+  'C-image':   { min: 110, max: 600 },
+  'D-combo':   { min: 20, max: 400 },
 };
 
 const INITIAL_STATE: BenchState = {
@@ -122,12 +143,13 @@ const INITIAL_STATE: BenchState = {
   dragging: null,
   rayOverlayOn: false,
   activeTask: 'A-power',
+  stackedLenses: [],
 };
 
 /** Топология опыта 4.1 — три гнезда на скамье */
 const SLOTS_4_1 = [
   { id: 'object', role: 'object' as const, accepts: ['light-object'] },
-  { id: 'lens',   role: 'lens'   as const, accepts: ['lens'] },
+  { id: 'lens',   role: 'lens'   as const, accepts: ['lens'], capacity: 2 },
   { id: 'screen', role: 'screen' as const, accepts: ['screen'] },
 ] as const;
 
@@ -146,6 +168,7 @@ export interface ExperimentRefs {
     setRayOverlay(on: boolean): void;
     setImageSharpness(s: number): void;
     setSizeMatch(on: boolean): void;
+    setLensStack(focals: number[]): void;
   };
   dragOverlay: HTMLElement;
   hintBar: HTMLElement;
@@ -277,6 +300,7 @@ export class LensBenchExperiment {
 
     this.#wireUp();
     this.#applyObjectSliderRange(this.#store.get().activeTask);
+    this.#applyScreenSliderRange(this.#store.get().activeTask);
     this.#refreshObjectSliderVisibility();
     this.#refreshTaskStepper();
     this.#updateZoneReadout();
@@ -323,7 +347,22 @@ export class LensBenchExperiment {
     return Number.isFinite(g) && Math.abs(g - 1) <= SIZE_EPS;
   }
 
-  /** Переключить задачу (A-power/B-focal2f). Сброс сборки к дефолтам задачи; измерения сохраняем. */
+  /** Фокусное текущей системы линз (одна или стопка). NaN если линз нет. */
+  get combinedFocalMm(): number {
+    const focals = this.#store.get().stackedLenses.map((id) => LENS_CATALOG[id]);
+    if (focals.length === 0) return Number.NaN;
+    return focals.length === 1 ? focals[0]! : combinedFocal(...focals);
+  }
+
+  /** Задача D: две линзы и система рассеивающая (F_комб ≤ 0) — действит. изображения нет. */
+  get isDiverging(): boolean {
+    const st = this.#store.get();
+    if (st.activeTask !== 'D-combo' || st.stackedLenses.length < 2) return false;
+    const F = this.combinedFocalMm;
+    return !(Number.isFinite(F) && F > 0);
+  }
+
+  /** Переключить задачу (A-power/B-focal2f/C-image/D-combo). Сброс сборки к дефолтам задачи; измерения сохраняем. */
   setActiveTask(task: LensTaskId): void {
     this.#drag.cancel();
     this.#topology.reset();
@@ -339,6 +378,7 @@ export class LensBenchExperiment {
       objectDistanceMm: def.objectMm,
       screenDistanceMm: def.screenMm,
       measurements: keep,
+      stackedLenses: [],
     });
     this.#lastRecordedSignature = '';
     this.#lastAnnouncedResult = '';
@@ -349,6 +389,8 @@ export class LensBenchExperiment {
     this.#refs.bench.setSizeMatch(false);
     this.#refs.rayOverlayBtn.setAttribute('aria-pressed', 'false');
     this.#applyObjectSliderRange(task);
+    this.#applyScreenSliderRange(task);
+    this.#syncLensSystem();
     this.#syncScreenSlider(def.screenMm);
     this.#syncObjectSlider(def.objectMm);
     this.#refreshObjectSliderVisibility();
@@ -394,6 +436,31 @@ export class LensBenchExperiment {
   recordMeasurement(): void {
     const st = this.#store.get();
     if (!this.#topology.validate().ok) return;
+
+    if (st.activeTask === 'D-combo') {
+      if (st.stackedLenses.length !== 2) return;
+      if (this.isDiverging) return;
+      if (!this.isSharp) return;
+      const [id1, id2] = st.stackedLenses;
+      const f1 = LENS_CATALOG[id1!]; const f2 = LENS_CATALOG[id2!];
+      const d = st.objectDistanceMm; const f = st.screenDistanceMm;
+      const F = focalFromDistances(d, f);
+      const measurement: BenchMeasurement = {
+        id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(), task: 'D-combo',
+        d_mm: d, f_mm: f, F_mm: F, D_dptr: opticalPower(F / 1000),
+        d1_dptr: opticalPower(f1 / 1000), d2_dptr: opticalPower(f2 / 1000),
+        comboLabel: `${f1} + ${f2} мм`,
+      };
+      this.#store.update((s) => ({ measurements: [...s.measurements, measurement] }));
+      this.#lastRecordedSignature = this.#pendingSignature();
+      this.#refreshUi();
+      const isFullyAuto = this.#recordMode() === 'fully-auto';
+      this.#hints.announce(isFullyAuto
+        ? `Записано: F_комб ≈ ${F.toFixed(0)} мм.`
+        : 'Записано. Сложите оптические силы D_комб = D₁ + D₂ и вычислите F_комб.');
+      return;
+    }
 
     if (st.activeTask === 'C-image') {
       const d = st.objectDistanceMm;
@@ -487,7 +554,7 @@ export class LensBenchExperiment {
     this.#topology.reset();
     const keepTask = this.#store.get().activeTask;
     const def = TASK_DEFAULTS[keepTask];
-    this.#store.set({ ...INITIAL_STATE, activeTask: keepTask, objectDistanceMm: def.objectMm, screenDistanceMm: def.screenMm });
+    this.#store.set({ ...INITIAL_STATE, activeTask: keepTask, objectDistanceMm: def.objectMm, screenDistanceMm: def.screenMm, stackedLenses: [] });
     this.#lastAnnouncedResult = '';
     this.#journalDrafts.clear();
     this.#journalVerdicts.clear();
@@ -496,7 +563,8 @@ export class LensBenchExperiment {
       card.setAttribute('status', 'available');
       card.removeAttribute('data-placed');
     }
-    this.#refs.bench.setLensFocalMm(DEFAULT_LENS_F_MM); // ПЕРЕД setObjectDistanceMm: #imageScale читает текущий F
+    this.#applyScreenSliderRange(keepTask);
+    this.#syncLensSystem(); // устанавливает setLensStack([]) + setLensFocalMm(DEFAULT) при пустом стеке
     this.#refs.bench.setObjectDistanceMm(def.objectMm);
     this.#refs.bench.setScreenDistanceMm(def.screenMm);
     this.#refs.bench.setRayOverlay(false);
@@ -538,6 +606,10 @@ export class LensBenchExperiment {
       this.#drag.attach(draggable, {
         equipmentId,
         kind,
+        canDrag: () => {
+          const c = this.#cardByEquipmentId.get(equipmentId);
+          return !!c && !c.hidden && c.getAttribute('status') !== 'placed';
+        },
         onDragStart: () => {
           this.#store.update(() => ({ dragging: equipmentId }));
           // REST-state: подсветки гнёзд скамьи проявляются только в drag-режиме.
@@ -667,12 +739,20 @@ export class LensBenchExperiment {
 
   /** Записать размещение в стейт (частичный update) и пометить карточку как placed. */
   #recordPlacement(slotId: BenchSlotId, equipmentId: OpticsEquipmentId, kind: OpticsKind): void {
-    this.#store.update((st: Readonly<BenchState>) => ({
-      placed: {
-        ...st.placed,
-        [slotId]: { equipmentId, kind },
-      } as Partial<Record<BenchSlotId, PlacedInstrument>>,
-    }));
+    this.#store.update((st: Readonly<BenchState>) => {
+      let stackedLenses = st.stackedLenses;
+      if (slotId === 'lens' && !stackedLenses.includes(equipmentId)) {
+        stackedLenses = [...stackedLenses, equipmentId];
+      }
+      return {
+        placed: {
+          ...st.placed,
+          [slotId]: { equipmentId, kind },
+        } as Partial<Record<BenchSlotId, PlacedInstrument>>,
+        stackedLenses,
+      };
+    });
+    this.#syncLensSystem();
     const card = this.#cardByEquipmentId.get(equipmentId);
     if (card) {
       card.setAttribute('status', 'placed');
@@ -685,6 +765,17 @@ export class LensBenchExperiment {
       screen: 'экран',
     };
     this.#hints.announce(`Установлено на скамью: ${slotLabel[slotId]}.`);
+  }
+
+  /** Пересчитать F системы линз и передать на скамью (глифы + фокус). */
+  #syncLensSystem(): void {
+    const focals = this.#store.get().stackedLenses.map((id) => LENS_CATALOG[id]);
+    const F = focals.length === 0 ? DEFAULT_LENS_F_MM
+      : focals.length === 1 ? focals[0]!
+      : combinedFocal(...focals);
+    this.#store.update(() => ({ lensF_mm: F }));
+    this.#refs.bench.setLensStack(focals);
+    this.#refs.bench.setLensFocalMm(F);
   }
 
   /** Синхронизировать значение слайдера и mm-readout с текущим положением экрана. */
@@ -715,13 +806,12 @@ export class LensBenchExperiment {
           : 0;
       this.#refs.bench.setImageSharpness(sharpness);
 
-      // fully-auto авто-запись: A — по резкости; B — по резкости И равенству; C — никогда (anti-flood).
+      // fully-auto авто-запись: A — по резкости; B — по резкости И равенству; C — никогда; D — 2 линзы+converging+резко.
       const canAutoRecord =
-        st.activeTask === 'C-image'
-          ? false
-          : st.activeTask === 'B-focal2f'
-            ? (this.isSharp && this.isSizesEqual)
-            : this.isSharp;
+        st.activeTask === 'C-image' ? false
+        : st.activeTask === 'D-combo' ? (st.stackedLenses.length === 2 && !this.isDiverging && this.isSharp)
+        : st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual)
+        : this.isSharp;
       if (
         this.#recordMode() === 'fully-auto' &&
         canAutoRecord &&
@@ -745,11 +835,10 @@ export class LensBenchExperiment {
     const { ok } = this.#topology.validate();
     const st = this.#store.get();
     const canAuto =
-      st.activeTask === 'C-image'
-        ? false
-        : st.activeTask === 'B-focal2f'
-          ? (this.isSharp && this.isSizesEqual)
-          : this.isSharp;
+      st.activeTask === 'C-image' ? false
+      : st.activeTask === 'D-combo' ? (st.stackedLenses.length === 2 && !this.isDiverging && this.isSharp)
+      : st.activeTask === 'B-focal2f' ? (this.isSharp && this.isSizesEqual)
+      : this.isSharp;
     if (this.#recordMode() === 'fully-auto' && ok && canAuto) {
       if (this.#pendingSignature() !== this.#lastRecordedSignature) {
         this.recordMeasurement();
@@ -786,6 +875,7 @@ export class LensBenchExperiment {
     // Pending-плашка
     const canRecordNow =
       st.activeTask === 'C-image' ? ok
+      : st.activeTask === 'D-combo' ? (ok && st.stackedLenses.length === 2 && !this.isDiverging && this.isSharp)
       : st.activeTask === 'B-focal2f' ? (ok && this.isSharp && this.isSizesEqual)
       : (ok && this.isSharp);
     const isPending = canRecordNow && this.#pendingSignature() !== this.#lastRecordedSignature;
@@ -800,9 +890,11 @@ export class LensBenchExperiment {
       this.#refs.recordPendingSummary.textContent =
         st.activeTask === 'C-image'
           ? `Зона ${zoneLabelRu(objectZone(st.lensF_mm, st.objectDistanceMm))}`
-          : st.activeTask === 'B-focal2f'
-            ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
-            : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
+          : st.activeTask === 'D-combo'
+            ? `${st.stackedLenses.length} линз, f=${st.screenDistanceMm.toFixed(0)} мм`
+            : st.activeTask === 'B-focal2f'
+              ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
+              : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
     }
 
     // Render journal table
@@ -861,6 +953,12 @@ export class LensBenchExperiment {
             `<p class="result-line">Зона ${zLabel} записана.</p>` +
             `<p class="result-note">Выберите вид, ориентацию и размер изображения в журнале и проверьте (✓).${gammaNote}</p>`;
         }
+      } else if (st.activeTask === 'D-combo') {
+        // Task 5 добавит полную ветку. Task 4: результат скрыт.
+        this.#refs.resultPanel.hidden = true;
+        this.#refs.resultPanel.innerHTML = '';
+        this.#lastAnnouncedResult = '';
+        html = ''; // значение не используется, но переменная должна быть инициализирована
       } else if (st.activeTask === 'B-focal2f') {
         const last = taskMeasurements[taskMeasurements.length - 1]!;
         const twoFstr = (last.twoF_mm ?? last.d_mm).toFixed(0);
@@ -893,10 +991,12 @@ export class LensBenchExperiment {
             `<p class="result-note">Вычислите F и D по формулам и проверьте в таблице.</p>`;
         }
       }
-      this.#refs.resultPanel.hidden = false;
-      if (html !== this.#lastAnnouncedResult) {
-        this.#refs.resultPanel.innerHTML = html;
-        this.#lastAnnouncedResult = html;
+      if (st.activeTask !== 'D-combo') {
+        this.#refs.resultPanel.hidden = false;
+        if (html !== this.#lastAnnouncedResult) {
+          this.#refs.resultPanel.innerHTML = html;
+          this.#lastAnnouncedResult = html;
+        }
       }
     } else {
       this.#refs.resultPanel.hidden = true;
@@ -920,6 +1020,14 @@ export class LensBenchExperiment {
 
   #buildJournalRow(m: BenchMeasurement, idx: number): JournalRow {
     const isFullyAuto = this.#recordMode() === 'fully-auto';
+    if (m.task === 'D-combo') {
+      // TODO Task 5: derived только в fully-auto
+      return { idx, timestamp: m.timestamp, values: {
+        idx, combo: m.comboLabel ?? '',
+        d1_dptr: m.d1_dptr ?? 0, d2_dptr: m.d2_dptr ?? 0, dComb_dptr: null,
+        d_mm: m.d_mm, f_mm: m.f_mm, fComb_mm: null,
+      } };
+    }
     if (m.task === 'C-image') {
       const props = imageProperties(m.F_mm, m.d_mm);
       return {
@@ -977,10 +1085,17 @@ export class LensBenchExperiment {
     this.#refs.objectSlider.max = String(r.max);
   }
 
+  #applyScreenSliderRange(task: LensTaskId): void {
+    const r = SCREEN_SLIDER_RANGE[task];
+    this.#refs.screenSlider.min = String(r.min);
+    this.#refs.screenSlider.max = String(r.max);
+  }
+
   #refreshObjectSliderVisibility(): void {
-    // Слайдер предмета нужен в задачах B и C (в A предмет фиксирован).
+    // Слайдер предмета нужен в задачах B и C (в A и D предмет фиксирован).
     if (this.#refs.objectSliderRow) {
-      this.#refs.objectSliderRow.hidden = this.#store.get().activeTask === 'A-power';
+      const task = this.#store.get().activeTask;
+      this.#refs.objectSliderRow.hidden = task === 'A-power' || task === 'D-combo';
     }
   }
 
@@ -1009,7 +1124,8 @@ export class LensBenchExperiment {
     const st = this.#store.get();
     const { ok } = this.#topology.validate();
     if (!ok) return '';
-    return `${st.activeTask}-${st.objectDistanceMm.toFixed(0)}-${st.screenDistanceMm.toFixed(0)}`;
+    const stack = [...st.stackedLenses].sort().join(',');
+    return `${st.activeTask}-${stack}-${st.objectDistanceMm.toFixed(0)}-${st.screenDistanceMm.toFixed(0)}`;
   }
 
   #recordMode(): RecordMode {
@@ -1019,9 +1135,11 @@ export class LensBenchExperiment {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   #kindForEquipment(id: OpticsEquipmentId): OpticsKind | null {
-    const map: Record<OpticsEquipmentId, OpticsKind> = {
+    const map: Record<OpticsEquipmentId, OpticsKind | null> = {
       'light-object': 'light-object',
       'lens': 'lens',
+      'lens-2': 'lens',
+      'lens-3': 'lens',
       'screen': 'screen',
     };
     return map[id] ?? null;

@@ -41,6 +41,7 @@ export class LensBenchScreen implements IScreen {
       setRayOverlay(on: boolean): void;
       setImageSharpness(s: number): void;
       setSizeMatch(on: boolean): void;
+      setLensStack(focals: number[]): void;
     }>('#optical-bench')!;
 
     const refs: ExperimentRefs = {
