@@ -91,15 +91,15 @@ const INITIAL_STATE: RefractionState = {
 
 // Текст подсказок — вынесен в константы чтобы избежать повторений
 const HINTS = {
-  noEquipA: 'Task A: place semicylinder and emitter, then read i and r.',
-  noEquipB: 'Task B: place semicylinder and emitter, then record r(i).',
-  needCyl: 'Place the semicylinder in the center of the protractor.',
-  needEmit: 'Place the emitter next to the protractor.',
-  taskA: 'Aim the ray at the semicylinder, read i and r, calculate n = sin i / sin r.',
-  taskB: 'Change the angle of incidence and record r — build the graph r(i).',
-  reset: 'Setup reset. All instruments returned to the kit.',
-  placedCyl: 'Semicylinder placed on the protractor.',
-  placedEmit: 'Emitter placed.',
+  noEquipA: 'Опыт 4.3: поставьте полуцилиндр и осветитель на транспортир, затем снимите i и r.',
+  noEquipB: 'Опыт 4.6: поставьте полуцилиндр и осветитель на транспортир, затем записывайте r(i).',
+  needCyl: 'Поставьте полуцилиндр в центр транспортира.',
+  needEmit: 'Поставьте осветитель рядом с транспортиром.',
+  taskA: 'Наведите луч на полуцилиндр, снимите i и r, посчитайте n = sin i / sin r.',
+  taskB: 'Меняйте угол падения и записывайте r — постройте график r(i).',
+  reset: 'Установка сброшена. Все приборы возвращены в комплект.',
+  placedCyl: 'Полуцилиндр установлен на транспортире.',
+  placedEmit: 'Осветитель установлен.',
 } as const;
 
 // ─── HintEngine (локальная копия — НЕ импортировать из lens-bench) ───────────
