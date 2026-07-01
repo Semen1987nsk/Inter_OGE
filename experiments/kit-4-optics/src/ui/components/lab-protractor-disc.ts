@@ -15,9 +15,11 @@
  *   setDragging(on): void      — класс dragging-active на host (раскрывает slot-rect)
  *   refractiveIndex: number    — показатель преломления (default 1.5, использ. в T4)
  *
- * A11y: host role="group" (НЕ role="img" — внутри в T4 будет role="slider"-хэндл),
+ * A11y: host role="group" (НЕ role="img" — внутри role="slider"-хэндл угла),
  *        <title> на SVG. svg[hidden]{display:none} + [hidden]{display:none} для групп.
  */
+
+import { refractionAngle } from '../../physics/optics/RefractionModel';
 
 // ─── Геометрия (SVG-единицы) ──────────────────────────────────────────────────
 
@@ -53,6 +55,18 @@ const TICK_MINOR_LEN = 6;
 const TICK_MAJOR_LEN = 12;
 const TICK_LABEL_R = R - 22; // радиус подписей (внутри обода)
 
+// Угол падения: домен UI-хэндла (клампится). Скользящее падение i>85° даёт
+// r близко к предельному — держим верх на 85° (как ФИПИ-транспортир на практике).
+const I_MIN = 0;
+const I_MAX = 85;
+const I_DEFAULT = 45; // 45°→r≈28° — эталонная контрольная точка Снелла (n=1,5)
+
+// Радиусы дуг-индикаторов угла (внутри диска, между лучом и нормалью)
+const ARC_I_R = 46; // дуга i (верх)
+const ARC_R_R = 46; // дуга r (низ)
+const READOUT_R = 68; // радиус текстовых ридаутов «i = N°» / «r = N°»
+const HANDLE_R = 9; // радиус кружка-хэндла
+
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -66,6 +80,40 @@ function svgEl<T extends SVGElement>(tag: string): T {
 function polar(r: number, angleDeg: number): { x: number; y: number } {
   const rad = (angleDeg * Math.PI) / 180;
   return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+}
+
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(hi, Math.max(lo, v));
+}
+
+const DEG = Math.PI / 180;
+
+/**
+ * Точка на верхнем ободе для падающего луча (сторона хэндла = слева).
+ * i отсчитывается от ВЕРХНЕЙ нормали (0=top); i↑ уводит точку влево.
+ *   i=0  → (CX, CY-R)  верх
+ *   i=90 → (CX-R, CY)  левый край
+ */
+function incidentRimPoint(iDeg: number, r: number): { x: number; y: number } {
+  return { x: CX - r * Math.sin(iDeg * DEG), y: CY - r * Math.cos(iDeg * DEG) };
+}
+
+/**
+ * Точка на нижнем ободе для преломлённого луча (стеклянная половина, вправо-вниз).
+ *   r=0  → (CX, CY+R)  низ
+ *   r=90 → (CX+R, CY)  правый край
+ */
+function refractedRimPoint(rDeg: number, r: number): { x: number; y: number } {
+  return { x: CX + r * Math.sin(rDeg * DEG), y: CY + r * Math.cos(rDeg * DEG) };
+}
+
+/**
+ * Точка на верхнем ободе для отражённого луча (зеркало падающего, вправо-вверх).
+ *   i=0  → (CX, CY-R)  верх
+ *   i=90 → (CX+R, CY)  правый край
+ */
+function reflectedRimPoint(iDeg: number, r: number): { x: number; y: number } {
+  return { x: CX + r * Math.sin(iDeg * DEG), y: CY - r * Math.cos(iDeg * DEG) };
 }
 
 // ─── Шаблон (статический HTML/CSS) ──────────────────────────────────────────
@@ -193,6 +241,71 @@ template.innerHTML = `
     pointer-events: none;
   }
 
+  /* ── Лучи (Task 4) ─────────────────────────────────────────────────────── */
+  .ray-incident {
+    stroke: #ffd44d;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+  .ray-refracted {
+    stroke: #ff9838;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+  .ray-reflected {
+    stroke: #ffd44d;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-dasharray: 5 4;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* Дуги-индикаторы угла i / r */
+  .angle-arc {
+    fill: none;
+    stroke: #7ecef0;
+    stroke-width: 1;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .angle-arc--i { stroke: #ffd44d; }
+  .angle-arc--r { stroke: #ff9838; }
+
+  /* Текстовые ридауты угла */
+  .angle-readout {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 12px;
+    font-weight: 700;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+  .angle-readout--i { fill: #ffe38a; }
+  .angle-readout--r { fill: #ffb877; }
+
+  /* Хэндл угла падения — перетаскиваемый кружок на верхнем ободе */
+  .angle-handle {
+    cursor: grab;
+    touch-action: none;
+  }
+  .angle-handle:active { cursor: grabbing; }
+  .angle-handle .handle-dot {
+    fill: #ffd44d;
+    stroke: #1a2535;
+    stroke-width: 2;
+  }
+  .angle-handle:focus-visible {
+    outline: none;
+  }
+  .angle-handle:focus-visible .handle-dot {
+    stroke: var(--color-brand-orange, #ffbe0b);
+    stroke-width: 3;
+    filter: drop-shadow(0 0 5px #ffbe0bcc);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .slot-rect { transition: none; }
   }
@@ -214,12 +327,26 @@ template.innerHTML = `
 
 export class LabProtractorDisc extends HTMLElement {
   #refractiveIndex = 1.5;
+  #i = I_DEFAULT; // угол падения (целые градусы), default 45°
 
   // Ссылки на SVG-элементы (кешируются после render)
   #glassBody: SVGPathElement | null = null;
   #emitterGroup: SVGGElement | null = null;
   #nLabel: SVGTextElement | null = null;
   #rendered = false;
+
+  // Лучи / дуги / ридауты / хэндл (Task 4)
+  #raysGroup: SVGGElement | null = null;
+  #rayIncident: SVGLineElement | null = null;
+  #rayRefracted: SVGLineElement | null = null;
+  #rayReflected: SVGLineElement | null = null;
+  #arcI: SVGPathElement | null = null;
+  #arcR: SVGPathElement | null = null;
+  #readoutI: SVGTextElement | null = null;
+  #readoutR: SVGTextElement | null = null;
+  #handle: SVGGElement | null = null;
+  #handleDot: SVGCircleElement | null = null;
+  #dragging = false;
 
   constructor() {
     super();
@@ -242,6 +369,9 @@ export class LabProtractorDisc extends HTMLElement {
     // По умолчанию оба прибора не размещены (находятся в лотке)
     this.setPlaced('semicylinder', false);
     this.setPlaced('emitter', false);
+    // Отрисовать лучи под текущий угол (по умолчанию 45°); группа лучей скрыта,
+    // пока полуцилиндр не размещён (setPlaced('semicylinder',true)).
+    this.#redraw();
   }
 
   // ─── Публичный API ────────────────────────────────────────────────────────
@@ -252,6 +382,36 @@ export class LabProtractorDisc extends HTMLElement {
 
   set refractiveIndex(val: number) {
     this.#refractiveIndex = val;
+    this.#redraw();
+  }
+
+  /** Угол падения i [°], как читает ученик (целое). */
+  get incidenceAngleDeg(): number {
+    return this.#i;
+  }
+
+  /** Угол преломления r [°] по Снеллу для текущего i и n (целое). */
+  get refractionAngleDeg(): number {
+    return Math.round(refractionAngle(this.#i, 1, this.#refractiveIndex));
+  }
+
+  /**
+   * Задать угол падения (клампится в [0,85], округляется до целого).
+   * Пересчитывает r по Снеллу, перерисовывает лучи/дуги/ридауты,
+   * синхронизирует aria-valuenow хэндла, эмитит `angle-change`.
+   */
+  setIncidenceAngle(iDeg: number): void {
+    const next = Math.round(clamp(iDeg, I_MIN, I_MAX));
+    this.#i = next;
+    this.#redraw();
+    const r = this.refractionAngleDeg;
+    this.dispatchEvent(
+      new CustomEvent<{ i: number; r: number }>('angle-change', {
+        detail: { i: this.#i, r },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   /**
@@ -282,6 +442,8 @@ export class LabProtractorDisc extends HTMLElement {
     if (kind === 'semicylinder') {
       this.#toggleHidden(this.#glassBody, !on);
       this.#toggleHidden(this.#nLabel, !on);
+      // Лучи имеют смысл только когда стекло на месте.
+      this.#toggleHidden(this.#raysGroup, !on);
     } else if (kind === 'emitter') {
       this.#toggleHidden(this.#emitterGroup, !on);
     }
@@ -501,6 +663,212 @@ export class LabProtractorDisc extends HTMLElement {
     nLabel.textContent = 'n ≈1,5';
     svg.appendChild(nLabel);
     this.#nLabel = nLabel;
+
+    // ── Лучи + дуги + ридауты + хэндл (Task 4) ───────────────────────────────
+    this.#renderRays(svg);
+  }
+
+  /**
+   * Строит группу лучей (падающий/преломлённый/отражённый), дуги i/r,
+   * текстовые ридауты и перетаскиваемый хэндл угла падения.
+   * Геометрия обновляется в #redraw(); здесь только каркас + подписка событий.
+   */
+  #renderRays(svg: SVGSVGElement): void {
+    const rays = svgEl<SVGGElement>('g');
+    rays.setAttribute('class', 'rays-group');
+    rays.setAttribute('id', 'rays-group');
+
+    // Отражённый — рисуем первым (под остальными, тусклый)
+    const reflected = svgEl<SVGLineElement>('line');
+    reflected.setAttribute('class', 'ray-reflected');
+    rays.appendChild(reflected);
+    this.#rayReflected = reflected;
+
+    // Преломлённый
+    const refracted = svgEl<SVGLineElement>('line');
+    refracted.setAttribute('class', 'ray-refracted');
+    rays.appendChild(refracted);
+    this.#rayRefracted = refracted;
+
+    // Падающий
+    const incident = svgEl<SVGLineElement>('line');
+    incident.setAttribute('class', 'ray-incident');
+    rays.appendChild(incident);
+    this.#rayIncident = incident;
+
+    // Дуга i (верх, между падающим и верхней нормалью)
+    const arcI = svgEl<SVGPathElement>('path');
+    arcI.setAttribute('class', 'angle-arc angle-arc--i');
+    rays.appendChild(arcI);
+    this.#arcI = arcI;
+
+    // Дуга r (низ, между преломлённым и нижней нормалью)
+    const arcR = svgEl<SVGPathElement>('path');
+    arcR.setAttribute('class', 'angle-arc angle-arc--r');
+    rays.appendChild(arcR);
+    this.#arcR = arcR;
+
+    // Ридаут i
+    const readoutI = svgEl<SVGTextElement>('text');
+    readoutI.setAttribute('class', 'angle-readout angle-readout--i');
+    rays.appendChild(readoutI);
+    this.#readoutI = readoutI;
+
+    // Ридаут r
+    const readoutR = svgEl<SVGTextElement>('text');
+    readoutR.setAttribute('class', 'angle-readout angle-readout--r');
+    rays.appendChild(readoutR);
+    this.#readoutR = readoutR;
+
+    // Хэндл угла падения (кружок на конце падающего луча = на верхнем ободе)
+    const handle = svgEl<SVGGElement>('g');
+    handle.setAttribute('class', 'angle-handle');
+    handle.setAttribute('role', 'slider');
+    handle.setAttribute('tabindex', '0');
+    handle.setAttribute('aria-label', 'Угол падения, градусы');
+    handle.setAttribute('aria-valuemin', String(I_MIN));
+    handle.setAttribute('aria-valuemax', String(I_MAX));
+    handle.setAttribute('aria-valuenow', String(this.#i));
+
+    const dot = svgEl<SVGCircleElement>('circle');
+    dot.setAttribute('class', 'handle-dot');
+    dot.setAttribute('r', String(HANDLE_R));
+    handle.appendChild(dot);
+    this.#handleDot = dot;
+
+    handle.addEventListener('pointerdown', this.#onPointerDown);
+    handle.addEventListener('keydown', this.#onKeydown);
+    rays.appendChild(handle);
+    this.#handle = handle;
+
+    svg.appendChild(rays);
+    this.#raysGroup = rays;
+  }
+
+  // ─── Отрисовка лучей / дуг / ридаутов / хэндла ──────────────────────────────
+
+  /** Пересчитывает и перерисовывает всю угловую графику под текущие #i / #n. */
+  #redraw(): void {
+    if (!this.#rendered) return;
+    const i = this.#i;
+    const r = Math.round(refractionAngle(i, 1, this.#refractiveIndex));
+
+    // Падающий луч: точка на верхнем ободе (слева) → центр
+    const pInc = incidentRimPoint(i, R);
+    this.#setLine(this.#rayIncident, pInc.x, pInc.y, CX, CY);
+
+    // Преломлённый: центр → точка на нижнем ободе (вправо-вниз) под углом r
+    const pRef = refractedRimPoint(r, R);
+    this.#setLine(this.#rayRefracted, CX, CY, pRef.x, pRef.y);
+
+    // Отражённый: центр → точка на верхнем ободе (вправо-вверх) под углом i
+    const pRefl = reflectedRimPoint(i, R);
+    this.#setLine(this.#rayReflected, CX, CY, pRefl.x, pRefl.y);
+
+    // Дуга i: от верхней нормали (0°) до падающего луча (влево, i°)
+    this.#arcI?.setAttribute('d', this.#arcTopIncident(i, ARC_I_R));
+    // Дуга r: от нижней нормали (0°) до преломлённого луча (вправо, r°)
+    this.#arcR?.setAttribute('d', this.#arcBottomRefracted(r, ARC_R_R));
+
+    // Ридауты
+    if (this.#readoutI) {
+      const p = incidentRimPoint(i / 2, READOUT_R);
+      this.#readoutI.setAttribute('x', p.x.toFixed(1));
+      this.#readoutI.setAttribute('y', p.y.toFixed(1));
+      this.#readoutI.textContent = `i = ${i}°`;
+    }
+    if (this.#readoutR) {
+      const p = refractedRimPoint(r / 2, READOUT_R);
+      this.#readoutR.setAttribute('x', p.x.toFixed(1));
+      this.#readoutR.setAttribute('y', p.y.toFixed(1));
+      this.#readoutR.textContent = `r = ${r}°`;
+    }
+
+    // Хэндл в конце падающего луча + aria
+    if (this.#handleDot) {
+      this.#handleDot.setAttribute('cx', pInc.x.toFixed(1));
+      this.#handleDot.setAttribute('cy', pInc.y.toFixed(1));
+    }
+    this.#handle?.setAttribute('aria-valuenow', String(i));
+    this.#handle?.setAttribute('aria-valuetext', `${i} градусов`);
+  }
+
+  #setLine(line: SVGLineElement | null, x1: number, y1: number, x2: number, y2: number): void {
+    if (!line) return;
+    line.setAttribute('x1', x1.toFixed(1));
+    line.setAttribute('y1', y1.toFixed(1));
+    line.setAttribute('x2', x2.toFixed(1));
+    line.setAttribute('y2', y2.toFixed(1));
+  }
+
+  /** Дуга у центра от верхней нормали к падающему лучу (по часовой влево). */
+  #arcTopIncident(iDeg: number, r: number): string {
+    const start = { x: CX, y: CY - r }; // верхняя нормаль
+    const end = incidentRimPoint(iDeg, r); // падающий (влево-вверх)
+    // sweep-flag=0: от верха к влево-верху идёт против часовой в SVG-координатах
+    return `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} A ${r} ${r} 0 0 0 ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+  }
+
+  /** Дуга у центра от нижней нормали к преломлённому лучу (вправо-вниз). */
+  #arcBottomRefracted(rDeg: number, r: number): string {
+    const start = { x: CX, y: CY + r }; // нижняя нормаль
+    const end = refractedRimPoint(rDeg, r); // преломлённый (вправо-вниз)
+    // sweep-flag=0: от низа к вправо-низу идёт против часовой в SVG-координатах
+    return `M ${start.x.toFixed(1)} ${start.y.toFixed(1)} A ${r} ${r} 0 0 0 ${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+  }
+
+  // ─── Интеракция: указатель + клавиатура ─────────────────────────────────────
+
+  #onPointerDown = (ev: PointerEvent): void => {
+    ev.preventDefault();
+    this.#dragging = true;
+    this.#handle?.setPointerCapture?.(ev.pointerId);
+    this.#handle?.addEventListener('pointermove', this.#onPointerMove);
+    this.#handle?.addEventListener('pointerup', this.#onPointerUp);
+    this.#handle?.addEventListener('pointercancel', this.#onPointerUp);
+    this.#angleFromPointer(ev);
+  };
+
+  #onPointerMove = (ev: PointerEvent): void => {
+    if (!this.#dragging) return;
+    this.#angleFromPointer(ev);
+  };
+
+  #onPointerUp = (ev: PointerEvent): void => {
+    this.#dragging = false;
+    this.#handle?.releasePointerCapture?.(ev.pointerId);
+    this.#handle?.removeEventListener('pointermove', this.#onPointerMove);
+    this.#handle?.removeEventListener('pointerup', this.#onPointerUp);
+    this.#handle?.removeEventListener('pointercancel', this.#onPointerUp);
+  };
+
+  #onKeydown = (ev: KeyboardEvent): void => {
+    let delta = 0;
+    if (ev.key === 'ArrowRight' || ev.key === 'ArrowUp') delta = 1;
+    else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowDown') delta = -1;
+    else return;
+    ev.preventDefault();
+    this.setIncidenceAngle(this.#i + delta);
+  };
+
+  /**
+   * Преобразует позицию курсора в угол падения:
+   * атан2 от центра диска к курсору, спроецированный на верхнюю нормаль.
+   * Хэндл на левой стороне ⇒ i = atan2(-dx, -dy).
+   */
+  #angleFromPointer(ev: PointerEvent): void {
+    const svg = this.shadowRoot?.querySelector<SVGSVGElement>('svg');
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    // Курсор → SVG-координаты (viewBox 0..SVG_SIZE)
+    const sx = ((ev.clientX - rect.left) / rect.width) * SVG_SIZE;
+    const sy = ((ev.clientY - rect.top) / rect.height) * SVG_SIZE;
+    const dx = sx - CX;
+    const dy = sy - CY;
+    // i от верхней нормали, положительно влево (сторона хэндла)
+    const iDeg = (Math.atan2(-dx, -dy) * 180) / Math.PI;
+    this.setIncidenceAngle(iDeg);
   }
 }
 

@@ -238,3 +238,232 @@ describe('lab-protractor-disc — статический каркас', () => {
     expect(nLabel.hasAttribute('hidden')).toBe(true);
   });
 });
+
+describe('lab-protractor-disc — лучи и угол', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('setIncidenceAngle(45) → refractionAngleDeg≈28 (Снелл n=1.5)', () => {
+    const el = mount() as any;
+    el.setPlaced('semicylinder', true);
+    el.setIncidenceAngle(45);
+    expect(el.incidenceAngleDeg).toBe(45);
+    expect(el.refractionAngleDeg).toBe(28); // round(28.126)
+  });
+
+  it('setIncidenceAngle клампит в [0,85]', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(120);
+    expect(el.incidenceAngleDeg).toBe(85);
+    el.setIncidenceAngle(-10);
+    expect(el.incidenceAngleDeg).toBe(0);
+  });
+
+  it('эмитит angle-change с целыми i,r', () => {
+    const el = mount() as any;
+    let detail: any = null;
+    el.addEventListener('angle-change', (e: CustomEvent) => {
+      detail = e.detail;
+    });
+    el.setIncidenceAngle(60);
+    expect(detail).toEqual({ i: 60, r: 35 }); // round(35.264)
+  });
+
+  it('рисует падающий, преломлённый и отражённый лучи', () => {
+    const el = mount() as any;
+    el.setPlaced('semicylinder', true);
+    el.setIncidenceAngle(45);
+    const sr = el.shadowRoot!;
+    expect(sr.querySelector('.ray-incident')).not.toBeNull();
+    expect(sr.querySelector('.ray-refracted')).not.toBeNull();
+    expect(sr.querySelector('.ray-reflected')).not.toBeNull();
+  });
+
+  it('хэндл угла: role=slider, aria-valuenow синхронизирован', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(30);
+    const handle = el.shadowRoot!.querySelector('.angle-handle')!;
+    expect(handle.getAttribute('role')).toBe('slider');
+    expect(handle.getAttribute('aria-valuenow')).toBe('30');
+  });
+
+  it('стрелка вправо на хэндле → +1°', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(30);
+    const handle = el.shadowRoot!.querySelector('.angle-handle') as HTMLElement;
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(31);
+  });
+
+  it('refractiveIndex по умолчанию 1.5', () => {
+    const el = mount() as any;
+    expect(el.refractiveIndex).toBe(1.5);
+  });
+
+  // ── Дополнительные регрессионные ассерты (каждый умеет краснеть) ────────────
+
+  it('по умолчанию #i = 45 (эталонная точка Снелла)', () => {
+    const el = mount() as any;
+    expect(el.incidenceAngleDeg).toBe(45);
+    expect(el.refractionAngleDeg).toBe(28);
+  });
+
+  it('хэндл имеет aria-valuemin=0, aria-valuemax=85, tabindex=0, aria-label', () => {
+    const el = mount() as any;
+    const handle = el.shadowRoot!.querySelector('.angle-handle')!;
+    expect(handle.getAttribute('aria-valuemin')).toBe('0');
+    expect(handle.getAttribute('aria-valuemax')).toBe('85');
+    expect(handle.getAttribute('tabindex')).toBe('0');
+    expect(handle.getAttribute('aria-label')).toBe('Угол падения, градусы');
+  });
+
+  it('стрелка влево на хэндле → −1°', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(30);
+    const handle = el.shadowRoot!.querySelector('.angle-handle') as HTMLElement;
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(29);
+  });
+
+  it('стрелка вниз = −1°, стрелка вверх = +1°', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(40);
+    const handle = el.shadowRoot!.querySelector('.angle-handle') as HTMLElement;
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(39);
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(40);
+  });
+
+  it('стрелка не уводит угол за границы [0,85]', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(0);
+    const handle = el.shadowRoot!.querySelector('.angle-handle') as HTMLElement;
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(0);
+    el.setIncidenceAngle(85);
+    handle.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    expect(el.incidenceAngleDeg).toBe(85);
+  });
+
+  it('лучи скрыты, пока полуцилиндр не размещён; setPlaced(semicylinder,true) показывает группу лучей', () => {
+    const el = mount() as any;
+    const rays = el.shadowRoot!.querySelector('.rays-group') as SVGElement;
+    expect(rays).not.toBeNull();
+    expect(rays.hasAttribute('hidden')).toBe(true);
+    el.setPlaced('semicylinder', true);
+    expect(rays.hasAttribute('hidden')).toBe(false);
+    el.setPlaced('semicylinder', false);
+    expect(rays.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('ридауты i/r показывают текущие целые углы', () => {
+    const el = mount() as any;
+    el.setPlaced('semicylinder', true);
+    el.setIncidenceAngle(45);
+    const sr = el.shadowRoot!;
+    expect(sr.querySelector('.angle-readout--i')!.textContent).toBe('i = 45°');
+    expect(sr.querySelector('.angle-readout--r')!.textContent).toBe('r = 28°');
+  });
+
+  it('дуги i и r присутствуют', () => {
+    const el = mount() as any;
+    el.setPlaced('semicylinder', true);
+    const sr = el.shadowRoot!;
+    expect(sr.querySelector('.angle-arc--i')).not.toBeNull();
+    expect(sr.querySelector('.angle-arc--r')).not.toBeNull();
+  });
+
+  it('падающий луч упирается в центр (210,210) — конец в центре', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(45);
+    const inc = el.shadowRoot!.querySelector('.ray-incident') as SVGLineElement;
+    // x2/y2 — конец падающего луча = центр диска
+    expect(Number(inc.getAttribute('x2'))).toBeCloseTo(210, 1);
+    expect(Number(inc.getAttribute('y2'))).toBeCloseTo(210, 1);
+  });
+
+  it('падающий луч выходит из ВЕРХНЕЙ половины (y1<210), преломлённый уходит в НИЖНюю (y2>210)', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(45);
+    const sr = el.shadowRoot!;
+    const inc = sr.querySelector('.ray-incident') as SVGLineElement;
+    const ref = sr.querySelector('.ray-refracted') as SVGLineElement;
+    expect(Number(inc.getAttribute('y1'))).toBeLessThan(210); // старт в воздухе
+    expect(Number(ref.getAttribute('y2'))).toBeGreaterThan(210); // конец в стекле
+  });
+
+  it('падающий луч слева от нормали (x1<210), отражённый справа (x2>210)', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(45);
+    const sr = el.shadowRoot!;
+    const inc = sr.querySelector('.ray-incident') as SVGLineElement;
+    const refl = sr.querySelector('.ray-reflected') as SVGLineElement;
+    expect(Number(inc.getAttribute('x1'))).toBeLessThan(210);
+    expect(Number(refl.getAttribute('x2'))).toBeGreaterThan(210);
+  });
+
+  it('преломлённый ближе к нормали, чем падающий (r<i): |x2 преломл| < |x1 падающ|', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(60);
+    const sr = el.shadowRoot!;
+    const inc = sr.querySelector('.ray-incident') as SVGLineElement;
+    const ref = sr.querySelector('.ray-refracted') as SVGLineElement;
+    const incDx = Math.abs(Number(inc.getAttribute('x1')) - 210);
+    const refDx = Math.abs(Number(ref.getAttribute('x2')) - 210);
+    expect(refDx).toBeLessThan(incDx);
+  });
+
+  it('хэндл угла лежит на конце падающего луча (совпадает с x1/y1)', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(50);
+    const sr = el.shadowRoot!;
+    const inc = sr.querySelector('.ray-incident') as SVGLineElement;
+    const dot = sr.querySelector('.angle-handle .handle-dot') as SVGCircleElement;
+    expect(Number(dot.getAttribute('cx'))).toBeCloseTo(Number(inc.getAttribute('x1')), 1);
+    expect(Number(dot.getAttribute('cy'))).toBeCloseTo(Number(inc.getAttribute('y1')), 1);
+  });
+
+  it('при i=0 преломлённый идёт строго вниз по нормали (x2≈210, r=0)', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(0);
+    expect(el.refractionAngleDeg).toBe(0);
+    const ref = el.shadowRoot!.querySelector('.ray-refracted') as SVGLineElement;
+    expect(Number(ref.getAttribute('x2'))).toBeCloseTo(210, 1);
+    expect(Number(ref.getAttribute('y2'))).toBeGreaterThan(210);
+  });
+
+  it('изменение refractiveIndex пересчитывает r (n=2 → r меньше)', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(45);
+    const rAt15 = el.refractionAngleDeg;
+    el.refractiveIndex = 2;
+    const rAt2 = el.refractionAngleDeg;
+    expect(rAt2).toBeLessThan(rAt15);
+  });
+
+  it('setIncidenceAngle округляет дробный угол до целого', () => {
+    const el = mount() as any;
+    el.setIncidenceAngle(30.7);
+    expect(el.incidenceAngleDeg).toBe(31);
+  });
+
+  it('host остаётся role="group" (слайдер-хэндл внутри достижим)', () => {
+    const el = mount() as any;
+    expect(el.getAttribute('role')).toBe('group');
+    expect(el.shadowRoot!.querySelector('[role="slider"]')).not.toBeNull();
+  });
+
+  it('angle-change: bubbles и composed (пробивает Shadow DOM)', () => {
+    const el = mount() as any;
+    let ev: CustomEvent | null = null;
+    el.addEventListener('angle-change', (e: CustomEvent) => {
+      ev = e;
+    });
+    el.setIncidenceAngle(20);
+    expect(ev).not.toBeNull();
+    expect((ev as unknown as CustomEvent).bubbles).toBe(true);
+    expect((ev as unknown as CustomEvent).composed).toBe(true);
+  });
+});
