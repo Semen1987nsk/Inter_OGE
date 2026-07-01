@@ -801,6 +801,50 @@ export const IMAGE_PROPERTIES_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 4.5 «Исследование изменения фокусного расстояния двух сложенных линз».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19), сноска (4):
+ * «...изменения фокусного расстояния двух сложенных линз...». КОДИФ §1.29.
+ *
+ * Метод: сложить две тонкие линзы в контакте → оптические силы складываются
+ *   D_комб = D₁ + D₂ [дптр]. Измерить F_комб методом «фокус на экране»
+ *   (d предмет→линза, f линза→экран) → F_комб = d·f/(d+f) [мм].
+ *   Проверка правила: 1000/D_комб ≈ F_комб (в #result-panel).
+ *
+ * D₁,D₂ (с линз, читает ученик) — direct; d,f (со шкалы) — direct;
+ * D_комб=ΣD и F_комб=d·f/(d+f) — derived (ученик считает; программа в fully-auto).
+ * Инлайн-формулы считают ТОЛЬКО из прямых полей строки (§21.A.4).
+ */
+export const TWO_LENS_SPEC: JournalSpec = {
+  experimentId: '4.5',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'combo', label: 'Линзы', source: 'meta' },
+    { key: 'd1_dptr', label: 'D₁', source: 'direct', unit: 'дптр', format: 'fixed1' },
+    { key: 'd2_dptr', label: 'D₂', source: 'direct', unit: 'дптр', format: 'fixed1' },
+    {
+      key: 'dComb_dptr', label: 'D_комб', source: 'derived', unit: 'дптр', format: 'fixed1',
+      tolerance: 0.08,
+      // D_комб = D₁ + D₂ (сложение оптических сил тонких линз в контакте)
+      expectedFromRow: (r) => (r.d1_dptr ?? 0) + (r.d2_dptr ?? 0),
+    },
+    { key: 'd_mm', label: 'd', source: 'direct', unit: 'мм', format: 'int' },
+    { key: 'f_mm', label: 'f', source: 'direct', unit: 'мм', format: 'int' },
+    {
+      key: 'fComb_mm', label: 'F_комб', source: 'derived', unit: 'мм', format: 'int',
+      tolerance: 0.10,
+      // F_комб = d·f/(d+f) (формула тонкой линзы; из прямых d_mm,f_mm)
+      expectedFromRow: (r) => {
+        const d = r.d_mm ?? 0;
+        const f = r.f_mm ?? 0;
+        const s = d + f;
+        return s > 0 ? (d * f) / s : 0;
+      },
+    },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -824,6 +868,7 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   LENS_POWER_SPEC,
   FOCAL_2F_SPEC,
   IMAGE_PROPERTIES_SPEC,
+  TWO_LENS_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {

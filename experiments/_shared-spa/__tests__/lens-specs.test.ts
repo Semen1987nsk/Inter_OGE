@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LENS_POWER_SPEC, ALL_SPECS, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC, getSpecByExperimentId } from '../src/lib/journal/specs';
+import { LENS_POWER_SPEC, ALL_SPECS, FOCAL_2F_SPEC, IMAGE_PROPERTIES_SPEC, TWO_LENS_SPEC, getSpecByExperimentId } from '../src/lib/journal/specs';
 import { verifyRow } from '../src/lib/journal/verify';
 
 describe('LENS_POWER_SPEC (4.1)', () => {
@@ -208,5 +208,44 @@ describe('IMAGE_PROPERTIES_SPEC (опыт 4.4)', () => {
 
   it('зарегистрирован в ALL_SPECS / getSpecByExperimentId', () => {
     expect(getSpecByExperimentId('4.4')).toBe(IMAGE_PROPERTIES_SPEC);
+  });
+});
+
+describe('TWO_LENS_SPEC (4.5)', () => {
+  it('experimentId 4.5, idx-first, 8 колонок', () => {
+    expect(TWO_LENS_SPEC.experimentId).toBe('4.5');
+    expect(TWO_LENS_SPEC.columns[0]).toMatchObject({ key: 'idx', source: 'meta' });
+    expect(TWO_LENS_SPEC.columns.map((c) => c.key)).toEqual([
+      'idx', 'combo', 'd1_dptr', 'd2_dptr', 'dComb_dptr', 'd_mm', 'f_mm', 'fComb_mm',
+    ]);
+  });
+
+  it('combo1 соб1+соб2: D_комб=30, F_комб=33 — ok', () => {
+    // d=300, f=37.5 (F_комб=33.3) → округляем f до 38 как со шкалы
+    const row = {
+      idx: 1, timestamp: 0,
+      values: { idx: 1, combo: '100 + 50 мм', d1_dptr: 10, d2_dptr: 20, dComb_dptr: 30, d_mm: 300, f_mm: 38, fComb_mm: 34 },
+    };
+    const v = verifyRow(TWO_LENS_SPEC.columns, row);
+    expect(v.dComb_dptr).toBe('ok');   // 10+20=30
+    expect(v.fComb_mm).toBe('ok');     // 300·38/338≈33.7 ≈ 34
+  });
+
+  it('combo2 соб2+рассеив3: D_комб=6.7, F_комб=150 — ok', () => {
+    const row = {
+      idx: 1, timestamp: 0,
+      values: { idx: 1, combo: '50 + −75 мм', d1_dptr: 20, d2_dptr: -13.3, dComb_dptr: 6.7, d_mm: 300, f_mm: 300, fComb_mm: 150 },
+    };
+    const v = verifyRow(TWO_LENS_SPEC.columns, row);
+    expect(v.dComb_dptr).toBe('ok');   // 20+(−13.3)=6.7
+    expect(v.fComb_mm).toBe('ok');     // 300·300/600=150
+  });
+
+  it('неверная сумма D_комб → wrong', () => {
+    const row = {
+      idx: 1, timestamp: 0,
+      values: { idx: 1, combo: '100 + 50 мм', d1_dptr: 10, d2_dptr: 20, dComb_dptr: 15, d_mm: 300, f_mm: 38, fComb_mm: 34 },
+    };
+    expect(verifyRow(TWO_LENS_SPEC.columns, row).dComb_dptr).toBe('wrong');
   });
 });
