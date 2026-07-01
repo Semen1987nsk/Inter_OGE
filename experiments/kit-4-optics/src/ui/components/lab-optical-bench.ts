@@ -57,6 +57,12 @@ const MAX_BLUR_STD = 8;
 // Высота стрелки-предмета (≥15% от SVG_H=220 → выполняет правило ≥15% viewBox)
 const ARROW_H = 36;
 
+// ─── Стопка линз (Task 3: setLensStack) ─────────────────────────────────────
+// ±28px = 56px высота (≥25% SVG_H=220 → ✓ ≥15% viewBox)
+const LENS_GLYPH_HALF_H = 28;
+// Сдвиг второго глифа стопки (единственный источник — translate на <g class="lens-glyph">)
+const LENS_GLYPH_OFFSET = 5;
+
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
 /** Перевести мм вдоль скамьи в SVG px X-координату */
@@ -86,6 +92,22 @@ function computeImageDistance(F_mm: number, d_mm: number): number {
  */
 function fmtScaleY(sy: number): string {
   return Number.isInteger(sy) ? `-${sy}` : `-${sy.toFixed(2)}`;
+}
+
+/**
+ * Строит SVG-path для глифа линзы (biconvex F>0 / biconcave F<0).
+ * cx, cy — центр в SVG-координатах (задаётся в cx0 без учёта dx-сдвига стопки,
+ * чтобы избежать двойного сдвига; dx вносится ТОЛЬКО через translate на <g class="lens-glyph">).
+ */
+function benchLensPath(focalMm: number, cx: number, cy: number): string {
+  const f = Math.abs(focalMm);
+  const bulge = Math.min(11, Math.max(4, Math.round(600 / f)));
+  const sign = focalMm > 0 ? 1 : -1;       // >0 biconvex, <0 biconcave
+  const top = cy - LENS_GLYPH_HALF_H;
+  const bot = cy + LENS_GLYPH_HALF_H;
+  const lb = cx - sign * bulge;
+  const rb = cx + sign * bulge;
+  return `M ${cx} ${top} C ${lb} ${top} ${lb} ${bot} ${cx} ${bot} C ${rb} ${bot} ${rb} ${top} ${cx} ${top} Z`;
 }
 
 // ─── Шаблон ───────────────────────────────────────────────────────────────────
@@ -192,6 +214,9 @@ template.innerHTML = `
     dominant-baseline: auto;
   }
 
+  /* Глифы линз в стопке — не перехватывают drag-события */
+  .lens-glyph { pointer-events: none; }
+
   @media (prefers-reduced-motion: reduce) {
     .projected-image { transition: none; }
     .slot-rect { transition: none; }
@@ -213,6 +238,12 @@ template.innerHTML = `
     <filter id="img-blur" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="0" result="blur"/>
     </filter>
+    <!-- Градиент стекла линзы (стопка, Task 3) -->
+    <linearGradient id="lens-glass-bench" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a8d8f0" stop-opacity="0.5"/>
+      <stop offset="55%" stop-color="#e8f4ff" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#90b8d8" stop-opacity="0.5"/>
+    </linearGradient>
   </defs>
 
   <!-- ════ СКАМЬЯ (направляющая) ════ -->
@@ -269,6 +300,9 @@ template.innerHTML = `
     <text class="slot-label" x="${SLOT_W / 2}" y="${SLOT_H / 2 + 4}" font-size="10" fill="rgb(255 255 255 / 0.2)">▭</text>
     <text class="slot-label" x="${SLOT_W / 2}" y="${SLOT_H - 6}" font-size="7" fill="rgb(255 255 255 / 0.2)">screen</text>
   </g>
+
+  <!-- ════ ГЛИФЫ ЛИНЗ (стопка) — 0/1/2 линзы в гнезде линзы ════ -->
+  <g id="lens-stack-group"></g>
 
   <!-- ════ ПРОЕЦИРУЕМОЕ ИЗОБРАЖЕНИЕ (перевёрнутая стрелка на экране) ════ -->
   <!--
@@ -386,6 +420,7 @@ export class LabOpticalBench extends HTMLElement {
   #rayOverlay: SVGGElement | null = null;
   #slotObject: SVGGElement | null = null;
   #slotScreen: SVGGElement | null = null;
+  #lensStackGroup: SVGGElement | null = null;       // #lens-stack-group (стопка линз, Task 3)
 
   constructor() {
     super();
@@ -402,6 +437,7 @@ export class LabOpticalBench extends HTMLElement {
     this.#rayOverlay = shadow.querySelector<SVGGElement>('#ray-overlay');
     this.#slotObject = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-object"]');
     this.#slotScreen = shadow.querySelector<SVGGElement>('[data-slot="bench-slot-screen"]');
+    this.#lensStackGroup = shadow.querySelector<SVGGElement>('#lens-stack-group');
   }
 
   connectedCallback(): void {
@@ -487,6 +523,35 @@ export class LabOpticalBench extends HTMLElement {
     this.#applyBlur(sharpness);
   }
 
+  /**
+   * Отрисовать стопку линз (0/1/2 глифа) в позиции гнезда линзы. focals в мм.
+   * Собирающая (F>0) — biconvex, рассеивающая (F<0) — biconcave.
+   * При 2 глифах — сдвиг через translate(±OFFSET,0) на <g class="lens-glyph">;
+   * path строится в cx0 (БЕЗ dx), чтобы не было двойного сдвига.
+   */
+  setLensStack(focals: number[]): void {
+    const g = this.#lensStackGroup;
+    if (!g) return;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    const cx0 = mmToPx(this.#lensPosMm);
+    const cy = BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2;
+    const n = focals.length;
+    focals.forEach((F, i) => {
+      const dx = n === 2 ? (i === 0 ? -LENS_GLYPH_OFFSET : LENS_GLYPH_OFFSET) : 0;
+      const glyph = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      glyph.setAttribute('class', 'lens-glyph');
+      glyph.setAttribute('transform', `translate(${dx}, 0)`);
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', benchLensPath(F, cx0, cy));
+      path.setAttribute('fill', 'url(#lens-glass-bench)');
+      path.setAttribute('stroke', '#6ab0d8');
+      path.setAttribute('stroke-width', '1');
+      path.setAttribute('opacity', '0.9');
+      glyph.appendChild(path);
+      g.appendChild(glyph);
+    });
+  }
+
   // ─── Приватные методы ───────────────────────────────────────────────────────
 
   /** Переместить SVGGElement гнезда вдоль скамьи в новую позицию (мм). */
@@ -559,14 +624,20 @@ export class LabOpticalBench extends HTMLElement {
     this.#applyBlur(sharpness);
   }
 
-  /** Призрачная ПРЯМАЯ увеличенная стрелка у линзы (мнимое, |Γ|=F/(F−d), кламп [1,3]). */
+  /**
+   * Призрачная ПРЯМАЯ стрелка у линзы (мнимое изображение).
+   * Обобщена на |f/d| (clamp [0.3, 3]) — корректна и для d<F собирающей
+   * (увеличенная, sy>1) и для рассеивающей системы (F<0, уменьшенная, sy<1).
+   *
+   * Регресс-контроль Фазы C: d=60, F=100 →
+   *   f=computeImageDistance(100,60)=6000/(-40)=-150 → |f/d|=150/60=2.50 (без изменений).
+   */
   #updateVirtualImage(): void {
     if (!this.#virtualImageInner) return;
-    const F = this.#lensFocalMm;
+    const f = computeImageDistance(this.#lensFocalMm, this.#objectDistanceMm);
     const d = this.#objectDistanceMm;
-    const denom = F - d;
-    const g = denom > 0.001 ? F / denom : 3;
-    const sy = Math.max(1, Math.min(3, g));
+    const g = Number.isFinite(f) && d > 0 ? Math.abs(f / d) : 1;
+    const sy = Math.max(0.3, Math.min(3, g));
     const x = mmToPx(this.#lensPosMm);
     const y = BENCH_Y - BENCH_HEIGHT / 2 - SLOT_H / 2;
     // ПРЯМОЕ: scale(1, sy) БЕЗ минуса (не инвертировано); базовая стрелка направлена вверх.

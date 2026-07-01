@@ -260,6 +260,73 @@ describe('lab-optical-bench — стрелка-предмет и масштаб 
   });
 });
 
+// ─── Task 3: setLensStack + обобщённая мнимая ветка ────────────────────────
+
+describe('lab-optical-bench — setLensStack (стопка линз, Task 3)', () => {
+  it('setLensStack([100]) рисует один глиф линзы', () => {
+    const el = document.createElement('lab-optical-bench') as any;
+    document.body.appendChild(el);
+    el.setLensStack([100]);
+    const glyphs = el.shadowRoot.querySelectorAll('.lens-glyph');
+    expect(glyphs.length).toBe(1);
+    el.remove();
+  });
+
+  it('setLensStack([100,50]) рисует два глифа со сдвигом (стопка)', () => {
+    const el = document.createElement('lab-optical-bench') as any;
+    document.body.appendChild(el);
+    el.setLensStack([100, 50]);
+    const glyphs = el.shadowRoot.querySelectorAll('.lens-glyph');
+    expect(glyphs.length).toBe(2);
+    // сдвиг: у глифов разный transform (x-offset)
+    const t0 = glyphs[0].getAttribute('transform');
+    const t1 = glyphs[1].getAttribute('transform');
+    expect(t0).not.toBe(t1);
+    el.remove();
+  });
+
+  it('setLensStack([]) убирает глифы линз', () => {
+    const el = document.createElement('lab-optical-bench') as any;
+    document.body.appendChild(el);
+    el.setLensStack([100]);
+    el.setLensStack([]);
+    expect(el.shadowRoot.querySelectorAll('.lens-glyph').length).toBe(0);
+    el.remove();
+  });
+
+  it('диверг. система (F=-300, d=300): мнимая ветка активна, масштаб уменьшенный', () => {
+    const el = document.createElement('lab-optical-bench') as any;
+    document.body.appendChild(el);
+    el.setLensFocalMm(-300);
+    el.setObjectDistanceMm(300);
+    const vg = el.shadowRoot.querySelector('#virtual-image-group');
+    expect(vg.hasAttribute('hidden')).toBe(false); // мнимое видно
+    const inner = el.shadowRoot.querySelector('.virtual-image');
+    // sy = |f/d| = 150/300 = 0.5 (уменьшенное) → scale(1,0.50)
+    expect(inner.getAttribute('transform')).toMatch(/scale\(1,0\.50\)/);
+    el.remove();
+  });
+});
+
+// ─── Регресс Фазы C: d<F собирающей → sy≈2.50 должен сохраниться ───────────
+
+describe('lab-optical-bench — регресс мнимой ветки Фазы C (d<F, соб.)', () => {
+  it('d=60, F=100 (d<F, мнимое): sy=2.50 — значение не изменилось после обобщения', () => {
+    const el = document.createElement('lab-optical-bench') as any;
+    document.body.appendChild(el);
+    el.setLensFocalMm(100);
+    el.setObjectDistanceMm(60);
+    // computeImageDistance(100,60) = 60*100/(60-100) = 6000/(-40) = -150 → |f/d|=150/60=2.5
+    const inner = el.shadowRoot.querySelector('.virtual-image');
+    const t = inner.getAttribute('transform');
+    // Должен содержать scale(1,2.50) — регресс: НЕ scale(1,-2.50), и не scale(1,3)
+    expect(t).toMatch(/scale\(1,2\.50\)/);
+    el.remove();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 describe('lab-optical-bench — рендер изображения по зонам (опыт 4.4)', () => {
   function makeBench(): HTMLElement & {
     setObjectDistanceMm(d: number): void;
