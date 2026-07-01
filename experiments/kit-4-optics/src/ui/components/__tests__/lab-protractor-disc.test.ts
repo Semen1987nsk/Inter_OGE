@@ -6,6 +6,7 @@ function mount(): HTMLElement & {
   setSlotHover(id: string, active: boolean): void;
   setPlaced(kind: string, on: boolean): void;
   setDragging(on: boolean): void;
+  setRevealIndex(on: boolean): void;
   refractiveIndex: number;
 } {
   const el = document.createElement('lab-protractor-disc') as any;
@@ -222,20 +223,53 @@ describe('lab-protractor-disc — статический каркас', () => {
     expect(nLabel.hasAttribute('hidden')).toBe(true);
   });
 
-  it('setPlaced(semicylinder,true) показывает .n-label', () => {
+  it('no-leak: .n-label СКРЫТА даже при placed без setRevealIndex(true)', () => {
+    // Обязан краснеть, если setPlaced снова начнёт безусловно раскрывать n.
     const el = mount();
     const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
     el.setPlaced('semicylinder', true);
+    expect(nLabel.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('setRevealIndex(true) при placed показывает .n-label', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    el.setPlaced('semicylinder', true);
+    el.setRevealIndex(true);
     expect(nLabel.hasAttribute('hidden')).toBe(false);
   });
 
-  it('setPlaced(semicylinder,false) скрывает .n-label', () => {
+  it('setRevealIndex(false) скрывает .n-label обратно (после раскрытия)', () => {
     const el = mount();
     const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
     el.setPlaced('semicylinder', true);
+    el.setRevealIndex(true);
+    expect(nLabel.hasAttribute('hidden')).toBe(false);
+    el.setRevealIndex(false);
+    expect(nLabel.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('setRevealIndex(true) БЕЗ placed НЕ показывает .n-label (нет полуцилиндра — нечего подписывать)', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    el.setRevealIndex(true);
+    expect(nLabel.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('снятие полуцилиндра гасит .n-label даже при reveal=true', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    el.setPlaced('semicylinder', true);
+    el.setRevealIndex(true);
     expect(nLabel.hasAttribute('hidden')).toBe(false);
     el.setPlaced('semicylinder', false);
     expect(nLabel.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('a11y: .n-label помечена aria-hidden="true" (SR не озвучивает ответ n)', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    expect(nLabel.getAttribute('aria-hidden')).toBe('true');
   });
 });
 
@@ -402,6 +436,15 @@ describe('lab-protractor-disc — лучи и угол', () => {
     const refl = sr.querySelector('.ray-reflected') as SVGLineElement;
     expect(Number(inc.getAttribute('x1'))).toBeLessThan(210);
     expect(Number(refl.getAttribute('x2'))).toBeGreaterThan(210);
+  });
+
+  it('отражённый луч уходит в ВЕРХНЮЮ половину (воздух, y2<210)', () => {
+    // T4 Minor honesty: единственный непокрытый гео-инвариант отражённого луча.
+    // Обязан краснеть, если reflectedRimPoint начнёт уводить луч вниз (в стекло).
+    const el = mount() as any;
+    el.setIncidenceAngle(45);
+    const refl = el.shadowRoot!.querySelector('.ray-reflected') as SVGLineElement;
+    expect(Number(refl.getAttribute('y2'))).toBeLessThan(210);
   });
 
   it('преломлённый ближе к нормали, чем падающий (r<i): |x2 преломл| < |x1 падающ|', () => {

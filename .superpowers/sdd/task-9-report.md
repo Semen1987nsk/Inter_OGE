@@ -106,3 +106,102 @@ RefractionExperiment.ts не менялся — баг pending B-angle отсу�
 ## Concerns
 - happy-dom doesn't process CSS transitions → animation path tested implicitly only (attribute reactivity verified directly)
 - `void stroke` suppresses TS unused-param warning — stroke is in signature per brief but unused in geometry math
+
+---
+
+# Consolidated fix финала (Phase E, Kit-4 Optics)
+
+Финальный whole-branch review + reality-check контролёра нашли merge-блокер (утечка ответа n)
+плюс виз-полировку. Все 6 пунктов + T4-honesty исправлены одним заходом.
+
+## Что сделано по каждому пункту
+
+**MUST-FIX 1 — заголовок карточки палил n (Global Constraint 6).**
+`template.html`: `title="Полуцилиндр (стекло, n≈1,5)"` → `title="Полуцилиндр (стекло)"`.
+Прогон grep по всему template: остальные вхождения `1.5` — это `stroke-width="1.5"` (легитимные
+SVG-обводки), `n≈` вне fully-auto нигде нет.
+
+**MUST-FIX 2 — подпись .n-label на диске гейтирована по режиму.**
+`lab-protractor-disc.ts`: добавлены поля `#placedCyl`, `#revealIndex` (по умолчанию `false`),
+метод `setRevealIndex(on)` и единый источник видимости `#syncNLabel()` — n-label видна ⇔
+(полуцилиндр размещён И reveal включён). `setPlaced('semicylinder', true)` больше НЕ раскрывает n
+безусловно. Метке `<text>` добавлен `aria-hidden="true"` (SR не озвучивает ответ).
+`RefractionExperiment.ts`: добавлен `#syncRevealIndex()` = `disc.setRevealIndex(mode === 'fully-auto')`,
+вызывается в конструкторе, в `#handleRecordModeChange`, после размещения (`#recordPlacement`) и в `reset`.
+Вне fully-auto n-label скрыта.
+
+**MUST-FIX 3 — selfcheck-4-3 no-leak расширен (регресс-гард).**
+`checkA11yNoLeak`: добавлен скан ВСЕЙ видимой сцены в semi-auto — shadowRoot `#protractor-disc`
+(видимая, не hidden, `.n-label`) И `.equipment-panel` (атрибуты `title` карточек `lab-equipment-card`
++ текст). Паттерны `/[=≈]?\s*1[,.]5/` и `/\bn\b[^0-9]{0,8}1[,.]5/i`. Найдено «1,5» → FAIL.
+
+**SHOULD-FIX 4 — глиф осветителя.**
+`emitter-group` перерисован из голого rect в узнаваемый источник света: корпус (rx, тёплый металлик,
+paint-order stroke) + продольный блик + трапеция-рефлектор (горловина) + светящаяся линза-апертура
+(ellipse) + расширяющийся пучок (path, α 0.28) + осевой яркий луч к краю диска. Корпус 72px ≥15% viewBox.
+Всё через `createElementNS`. Утечки n нет.
+
+**SHOULD-FIX 5 — тинт стекла.**
+`.glass-body` fill `rgba(100,180,240,0.22)` → `rgba(120,195,245,0.34)`, stroke `#5ab0e0`→`#74c4ee` 1.2→1.6.
+`.flat-face` stroke `#7ecef0`→`#aee3f7` 2→2.6. Нижний полукруг чётко читается как стекло на тёмном фоне.
+Гео-тест sweep-flag 0 не тронут (менялся только CSS, не `d`).
+
+**SHOULD-FIX 6 — анонс смены таба.**
+`RefractionExperiment.setActiveTask` анонсирует в `#live-region`: A → «Опыт 4.3, показатель преломления.»,
+B → «Опыт 4.6, зависимость угла преломления.» (новые литералы `HINTS.taskSwitchA/B`).
+
+**T4 Minor (honesty).**
+Добавлен ассерт: отражённый луч в ВЕРХНЕЙ половине — `expect(Number(refl.getAttribute('y2'))).toBeLessThan(210)`
+(единственный непокрытый гео-инвариант).
+
+## Доказательство красноты расширенного no-leak selfcheck (честность)
+
+Обе ветви скана доказаны фальсифицируемыми:
+
+1. **Ветвь карточек** — временно вернул `title="Полуцилиндр (стекло, n≈1,5)"`:
+   ```
+   FAIL  4.3 a11y: СЦЕНА палит числовой ответ n в semi-auto: утечки: card.title="Полуцилиндр (стекло, n≈1,5)"
+   selfcheck-4-3: PASS=38  FAIL=1  SKIP=0  STATUS: FAIL  (exit 1)
+   ```
+   Откатил → снова зелено.
+
+2. **Ветвь диска** — временно заставил `#syncRevealIndex` всегда `setRevealIndex(true)`:
+   ```
+   FAIL  4.3 a11y: СЦЕНА палит числовой ответ n в semi-auto: утечки: disc.n-label(visible)="n ≈1,5"
+   selfcheck-4-3: PASS=38  FAIL=1  SKIP=0  STATUS: FAIL  (exit 1)
+   ```
+   Откатил → снова зелено (PASS=39 FAIL=0).
+
+## Reality-check (визуал + no-leak в semi-auto по умолчанию)
+
+Скриншот `selfcheck-screenshots/rc-disc-assembled.png` + инспекция shadowRoot после сборки:
+```
+nLabelHidden: true, nLabelAria: "true", emitterHidden: false, emitterChildren: 6,
+glassFill: "rgba(120, 195, 245, 0.34)"
+```
+Нижний полукруг читается как стекло, осветитель — узнаваемый источник света, n-label скрыта.
+
+## Итоги всех гейтов
+
+```
+vitest (@labosfera/kit-4-optics):  8 files, 367 passed  (FAIL=0)
+  — lab-protractor-disc.test.ts: 60, refraction.test.ts: 60
+tsc -p kit-4-optics --noEmit:      EXIT 0
+build (@labosfera/kit-4-optics):   OK (vite built, 40 modules)
+eslint src:                        EXIT 0
+selfcheck-4-3.mjs:                 PASS=39  FAIL=0  SKIP=0
+selfcheck-4-6.mjs:                 PASS=37  FAIL=0  SKIP=0
+```
+
+## Затронутые файлы
+- `experiments/kit-4-optics/src/screens/refraction/template.html` (MUST-1)
+- `experiments/kit-4-optics/src/ui/components/lab-protractor-disc.ts` (MUST-2, SHOULD-4, SHOULD-5)
+- `experiments/kit-4-optics/src/ui/components/__tests__/lab-protractor-disc.test.ts` (MUST-2 тесты, T4-honesty)
+- `experiments/kit-4-optics/src/screens/refraction/RefractionExperiment.ts` (MUST-2, SHOULD-6)
+- `experiments/kit-4-optics/src/screens/refraction/RefractionScreen.ts` (тип disc: +setRevealIndex — иначе tsc красный)
+- `experiments/kit-4-optics/src/screens/refraction/__tests__/refraction.test.ts` (SHOULD-6 тест, тип disc)
+- `experiments/kit-4-optics/selfcheck-4-3.mjs` (MUST-3)
+
+## Коммит
+`3037a88` — `fix(kit-4): убери утечку n + гейт n-label + полировка осветителя/стекла — финал Фазы E`
+(8 файлов, +342 −24; RefractionScreen.ts вошёл как обязательный тип-фикс для tsc EXIT 0)

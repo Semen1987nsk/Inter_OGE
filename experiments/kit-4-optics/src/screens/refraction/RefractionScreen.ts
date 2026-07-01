@@ -39,6 +39,7 @@ export class RefractionScreen implements IScreen {
       setPlaced(kind: string, on: boolean): void;
       setDragging(on: boolean): void;
       setIncidenceAngle(i: number): void;
+      setRevealIndex(on: boolean): void;
       readonly incidenceAngleDeg: number;
       readonly refractionAngleDeg: number;
     }>('#protractor-disc')!;

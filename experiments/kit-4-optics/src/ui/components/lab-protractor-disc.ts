@@ -151,15 +151,15 @@ template.innerHTML = `
 
   /* Нижний полукруг (стекло полуцилиндра) */
   .glass-body {
-    fill: rgba(100, 180, 240, 0.22);
-    stroke: #5ab0e0;
-    stroke-width: 1.2;
+    fill: rgba(120, 195, 245, 0.34);
+    stroke: #74c4ee;
+    stroke-width: 1.6;
   }
 
-  /* Плоская грань */
+  /* Плоская грань — усиленная граница воздух/стекло */
   .flat-face {
-    stroke: #7ecef0;
-    stroke-width: 2;
+    stroke: #aee3f7;
+    stroke-width: 2.6;
     stroke-linecap: round;
   }
 
@@ -328,6 +328,8 @@ template.innerHTML = `
 export class LabProtractorDisc extends HTMLElement {
   #refractiveIndex = 1.5;
   #i = I_DEFAULT; // угол падения (целые градусы), default 45°
+  #placedCyl = false; // полуцилиндр размещён в гнезде
+  #revealIndex = false; // раскрывать подпись n (только в fully-auto)
 
   // Ссылки на SVG-элементы (кешируются после render)
   #glassBody: SVGPathElement | null = null;
@@ -440,13 +442,31 @@ export class LabProtractorDisc extends HTMLElement {
    */
   setPlaced(kind: 'semicylinder' | 'emitter' | string, on: boolean): void {
     if (kind === 'semicylinder') {
+      this.#placedCyl = on;
       this.#toggleHidden(this.#glassBody, !on);
-      this.#toggleHidden(this.#nLabel, !on);
+      // n-label раскрывается ТОЛЬКО когда полуцилиндр на месте И включён reveal
+      // (fully-auto). setPlaced НЕ палит ответ сам по себе — no-leak (§21).
+      this.#syncNLabel();
       // Лучи имеют смысл только когда стекло на месте.
       this.#toggleHidden(this.#raysGroup, !on);
     } else if (kind === 'emitter') {
       this.#toggleHidden(this.#emitterGroup, !on);
     }
+  }
+
+  /**
+   * Раскрыть/скрыть подпись показателя преломления «n ≈1,5» на диске.
+   * По умолчанию СКРЫТА (no-leak). Оркестратор включает только в fully-auto.
+   * Даже при on=true метка видна лишь когда полуцилиндр размещён.
+   */
+  setRevealIndex(on: boolean): void {
+    this.#revealIndex = on;
+    this.#syncNLabel();
+  }
+
+  /** Единый источник видимости n-label: показывать ⇔ полуцилиндр на месте И reveal. */
+  #syncNLabel(): void {
+    this.#toggleHidden(this.#nLabel, !(this.#placedCyl && this.#revealIndex));
   }
 
   /**
@@ -622,34 +642,91 @@ export class LabProtractorDisc extends HTMLElement {
     svg.appendChild(slotEm);
 
     // ── Группа осветителя (SVG-значок, видима только после setPlaced) ─────
-    // Минимальный глиф: прямоугольник + лучи — ≥15% от SVG_SIZE=420 → ≥63 единицы.
+    // Узнаваемый источник света: корпус + горловина + линза-апертура + пучок к центру.
+    // Функц-детали ≥15% от SVG_SIZE=420 → корпус 72px высотой (§27/§28).
     const emitterGroup = svgEl<SVGGElement>('g');
     emitterGroup.setAttribute('class', 'emitter-group');
     emitterGroup.setAttribute('id', 'emitter-glyph');
 
-    // Корпус осветителя (≥15% от 420 = 63px, делаем 70px высотой)
+    const EM_W = 42;
+    const EM_H = 72; // ≥15% viewBox (правило §27/§28)
+    const emBodyX = SLOT_EM_X + (SLOT_EM_W - EM_W) / 2;
+    const emBodyY = CY - EM_H / 2;
+    const emNoseX = emBodyX + EM_W; // передний торец корпуса (со стороны диска)
+
+    // Корпус (прямоугольник со скруглением, тёплый металлик)
     const emBody = svgEl<SVGRectElement>('rect');
-    const EM_W = 40;
-    const EM_H = 70;  // ≥15% viewBox (правило §27/§28)
-    emBody.setAttribute('x', String(SLOT_EM_X + (SLOT_EM_W - EM_W) / 2));
-    emBody.setAttribute('y', String(CY - EM_H / 2));
+    emBody.setAttribute('x', String(emBodyX));
+    emBody.setAttribute('y', String(emBodyY));
     emBody.setAttribute('width', String(EM_W));
     emBody.setAttribute('height', String(EM_H));
-    emBody.setAttribute('rx', '4');
+    emBody.setAttribute('rx', '6');
     emBody.setAttribute('fill', '#e8a020');
-    emBody.setAttribute('stroke', '#c07010');
-    emBody.setAttribute('stroke-width', '1.5');
+    emBody.setAttribute('stroke', '#a85e08');
+    emBody.setAttribute('stroke-width', '1.6');
+    emBody.setAttribute('paint-order', 'stroke');
     emitterGroup.appendChild(emBody);
 
-    // Луч осветителя (горизонтальная линия от корпуса к диску)
+    // Продольный блик на корпусе (объём)
+    const emGloss = svgEl<SVGRectElement>('rect');
+    emGloss.setAttribute('x', String(emBodyX + 5));
+    emGloss.setAttribute('y', String(emBodyY + 6));
+    emGloss.setAttribute('width', '6');
+    emGloss.setAttribute('height', String(EM_H - 12));
+    emGloss.setAttribute('rx', '3');
+    emGloss.setAttribute('fill', 'rgb(255 240 200 / 0.55)');
+    emitterGroup.appendChild(emGloss);
+
+    // Горловина-рефлектор (трапеция, сужается к линзе)
+    const emNose = svgEl<SVGPathElement>('path');
+    const noseH = 34; // высота выходной апертуры
+    emNose.setAttribute(
+      'd',
+      `M ${emNoseX} ${CY - EM_H / 2 + 12} ` +
+        `L ${emNoseX + 14} ${CY - noseH / 2} ` +
+        `L ${emNoseX + 14} ${CY + noseH / 2} ` +
+        `L ${emNoseX} ${CY + EM_H / 2 - 12} Z`,
+    );
+    emNose.setAttribute('fill', '#c8801a');
+    emNose.setAttribute('stroke', '#a85e08');
+    emNose.setAttribute('stroke-width', '1.4');
+    emNose.setAttribute('stroke-linejoin', 'round');
+    emNose.setAttribute('paint-order', 'stroke');
+    emitterGroup.appendChild(emNose);
+
+    // Линза-апертура (светящийся овал на торце горловины)
+    const emLens = svgEl<SVGEllipseElement>('ellipse');
+    emLens.setAttribute('cx', String(emNoseX + 14));
+    emLens.setAttribute('cy', String(CY));
+    emLens.setAttribute('rx', '4.5');
+    emLens.setAttribute('ry', String(noseH / 2 - 1));
+    emLens.setAttribute('fill', 'rgb(255 246 214 / 0.95)');
+    emLens.setAttribute('stroke', '#f5d060');
+    emLens.setAttribute('stroke-width', '1.4');
+    emitterGroup.appendChild(emLens);
+
+    // Пучок света (короткая расширяющаяся полоса от линзы к краю диска)
+    const beamStartX = emNoseX + 18;
+    const emBeam = svgEl<SVGPathElement>('path');
+    emBeam.setAttribute(
+      'd',
+      `M ${beamStartX} ${CY - noseH / 2 + 3} ` +
+        `L ${FACE_X1} ${CY - 6} ` +
+        `L ${FACE_X1} ${CY + 6} ` +
+        `L ${beamStartX} ${CY + noseH / 2 - 3} Z`,
+    );
+    emBeam.setAttribute('fill', 'rgb(255 224 102 / 0.28)');
+    emitterGroup.appendChild(emBeam);
+
+    // Осевой луч (яркая линия по центру пучка к центру диска)
     const emRay = svgEl<SVGLineElement>('line');
-    emRay.setAttribute('x1', String(SLOT_EM_X + SLOT_EM_W));
+    emRay.setAttribute('x1', String(beamStartX));
     emRay.setAttribute('y1', String(CY));
     emRay.setAttribute('x2', String(FACE_X1));
     emRay.setAttribute('y2', String(CY));
-    emRay.setAttribute('stroke', '#f5d060');
-    emRay.setAttribute('stroke-width', '2');
-    emRay.setAttribute('stroke-dasharray', '4 3');
+    emRay.setAttribute('stroke', '#ffe066');
+    emRay.setAttribute('stroke-width', '2.2');
+    emRay.setAttribute('stroke-linecap', 'round');
     emitterGroup.appendChild(emRay);
 
     svg.appendChild(emitterGroup);
@@ -660,6 +737,8 @@ export class LabProtractorDisc extends HTMLElement {
     nLabel.setAttribute('class', 'n-label');
     nLabel.setAttribute('x', String(CX));
     nLabel.setAttribute('y', String(CY + 50));
+    // a11y no-leak: SR не должен озвучивать ответ n — метка вне дерева доступности.
+    nLabel.setAttribute('aria-hidden', 'true');
     nLabel.textContent = 'n ≈1,5';
     svg.appendChild(nLabel);
     this.#nLabel = nLabel;

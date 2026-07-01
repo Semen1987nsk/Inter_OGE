@@ -69,6 +69,7 @@ function buildRefs(): { refs: RefractionRefs; host: HTMLElement } {
     setPlaced(kind: string, on: boolean): void;
     setDragging(on: boolean): void;
     setIncidenceAngle(i: number): void;
+    setRevealIndex(on: boolean): void;
     readonly incidenceAngleDeg: number;
     readonly refractionAngleDeg: number;
   };
@@ -349,6 +350,19 @@ describe('RefractionExperiment — каркас (T5)', () => {
     // Обязан давать красный если подсказка не меняется при смене задачи
     // (тексты задач A и B разные по брифу)
     expect(textAfter).not.toBe(textBefore);
+  });
+
+  it('SHOULD-FIX 6: смена таба озвучивается в #live-region (непустой текст)', async () => {
+    // Обязан давать красный, если setActiveTask перестанет анонсировать смену задачи.
+    const live = host.querySelector<HTMLElement>('#live-region')!;
+    live.textContent = '';
+    exp.setActiveTask('B-angle');
+    // announce откладывает запись на rAF — читаем после двойного rAF
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => res(null))));
+    const text = live.textContent ?? '';
+    expect(text.length).toBeGreaterThan(0);
+    // no-leak: анонс не палит число n
+    expect(/1[.,]5\d?/.test(text)).toBe(false);
   });
 });
 

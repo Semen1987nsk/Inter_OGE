@@ -549,6 +549,66 @@ async function checkA11yNoLeak(page) {
   } catch (err) {
     fail('4.3 a11y: #result-panel', err.message);
   }
+
+  // ── Регресс-гард: сцена целиком не палит n=1,5 в semi-auto ────────────────
+  // Сканируем места, где ответ мог утечь помимо result-panel/live-region:
+  //   • shadowRoot #protractor-disc (текст .n-label «n ≈1,5» — раскрывается только в fully-auto)
+  //   • .equipment-panel (заголовки карточек lab-equipment-card — «Полуцилиндр (стекло, n≈1,5)»)
+  // Паттерны: любое «1,5»/«1.5» и «n … 1,5». Инструкция «n = sin i / sin r» их НЕ содержит.
+  try {
+    const sceneScan = await page.evaluate(() => {
+      const SCENE_LEAK_RE = /[=≈]?\s*1[,.]5/; // «1,5» / «1.5» / «≈1,5» / «= 1,5»
+      const N_NEAR_RE = /\bn\b[^0-9]{0,8}1[,.]5/i; // «n … 1,5»
+      const hits = [];
+
+      // 1) shadowRoot диска — видимая (не hidden) подпись n-label
+      const disc = document.querySelector('#protractor-disc');
+      const sr = disc?.shadowRoot ?? null;
+      if (sr) {
+        const nLabel = sr.querySelector('.n-label');
+        if (nLabel) {
+          const hidden = nLabel.hasAttribute('hidden');
+          const txt = nLabel.textContent ?? '';
+          if (!hidden && (SCENE_LEAK_RE.test(txt) || N_NEAR_RE.test(txt))) {
+            hits.push(`disc.n-label(visible)="${txt.trim()}"`);
+          }
+        }
+      }
+
+      // 2) equipment-panel — заголовки карточек оборудования
+      const panel = document.querySelector('.equipment-panel');
+      if (panel) {
+        for (const card of panel.querySelectorAll('lab-equipment-card')) {
+          const title = card.getAttribute('title') ?? '';
+          if (SCENE_LEAK_RE.test(title) || N_NEAR_RE.test(title)) {
+            hits.push(`card.title="${title.trim()}"`);
+          }
+          // Видимый .title внутри карточки (Shadow DOM или light DOM)
+          const cardText = card.textContent ?? '';
+          if (N_NEAR_RE.test(cardText)) {
+            hits.push(`card.text содержит «n … 1,5»`);
+          }
+        }
+      }
+
+      return {
+        hits,
+        discFound: !!sr,
+        panelFound: !!panel,
+      };
+    });
+
+    if (!sceneScan.discFound && !sceneScan.panelFound) {
+      skip('4.3 a11y: сцена не палит n', 'ни #protractor-disc, ни .equipment-panel не найдены');
+    } else if (sceneScan.hits.length === 0) {
+      pass('4.3 a11y: сцена (диск .n-label + карточки .equipment-panel) не палит n=1,5 в semi-auto');
+    } else {
+      fail('4.3 a11y: СЦЕНА палит числовой ответ n в semi-auto',
+        `утечки: ${sceneScan.hits.join('; ')}`);
+    }
+  } catch (err) {
+    fail('4.3 a11y: скан сцены на утечку n', err.message);
+  }
 }
 
 // ─── Пункт 8: fully-auto — td[data-key="n"] readonly ─────────────────────────

@@ -67,6 +67,7 @@ export interface RefractionRefs {
     setPlaced(kind: string, on: boolean): void;
     setDragging(on: boolean): void;
     setIncidenceAngle(i: number): void;
+    setRevealIndex(on: boolean): void;
     readonly incidenceAngleDeg: number;
     readonly refractionAngleDeg: number;
   };
@@ -141,6 +142,8 @@ const HINTS = {
   reset: 'Установка сброшена. Все приборы возвращены в комплект.',
   placedCyl: 'Полуцилиндр установлен на транспортире.',
   placedEmit: 'Осветитель установлен.',
+  taskSwitchA: 'Опыт 4.3, показатель преломления.',
+  taskSwitchB: 'Опыт 4.6, зависимость угла преломления.',
 } as const;
 
 // ─── HintEngine (локальная копия — НЕ импортировать из lens-bench) ───────────
@@ -230,8 +233,18 @@ export class RefractionExperiment {
     this.#wireUp();
     // Дефолтный угол инициализируем на диске
     refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
+    // n-label на диске раскрыта только в fully-auto (no-leak, §21)
+    this.#syncRevealIndex();
     this.#refreshTaskStepper();
     this.#refreshUi(); // вызывает #hints.update внутри
+  }
+
+  /**
+   * Синхронизировать подпись показателя преломления на диске с record-mode.
+   * n раскрывается ТОЛЬКО в fully-auto (a11y no-leak) — вне его метка скрыта.
+   */
+  #syncRevealIndex(): void {
+    this.#refs.disc.setRevealIndex(this.#recordMode() === 'fully-auto');
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -262,6 +275,10 @@ export class RefractionExperiment {
     this.#store.update(() => ({ activeTask: task }));
     this.#refreshTaskStepper();
     this.#refreshUi(); // вызывает #hints.update внутри
+    // a11y: смена таба озвучивается SR (заголовок задачи, без утечки ответа).
+    this.#hints.announce(
+      task === 'A-index' ? HINTS.taskSwitchA : HINTS.taskSwitchB,
+    );
   }
 
   /**
@@ -330,6 +347,7 @@ export class RefractionExperiment {
     this.#refs.disc.setPlaced('emitter', false);
     this.#refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
     this.#refs.disc.setDragging(false);
+    this.#syncRevealIndex();
     this.#refreshTaskStepper();
     this.#refreshUi(); // вызывает #hints.update внутри
     this.#hints.announce(HINTS.reset);
@@ -526,6 +544,8 @@ export class RefractionExperiment {
     this.#store.update(() => ({ placed: newPlaced }));
 
     this.#refs.disc.setPlaced(kind, true);
+    // После размещения полуцилиндра n-label раскрыта только в fully-auto (no-leak).
+    this.#syncRevealIndex();
 
     // Пометить карточку как placed
     const card = this.#cardByEquipmentId.get(equipmentId);
@@ -583,6 +603,8 @@ export class RefractionExperiment {
 
   /** Смена режима записи: fully-auto → авто-запись готового замера, затем пересборка. */
   #handleRecordModeChange(): void {
+    // n-label на диске раскрывается/скрывается вслед за режимом (no-leak).
+    this.#syncRevealIndex();
     if (
       this.#recordMode() === 'fully-auto' &&
       this.#canRecordNow() &&
