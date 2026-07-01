@@ -14,25 +14,30 @@
  *   «изменения фокусного расстояния двух сложенных линз»
  *
  * Проверяет (12 пунктов):
- *   1. Навигация http://127.0.0.1:5196/?screen=lens-bench; 200 OK; lab-optical-bench смонтирован.
+ *   1. Навигация http://127.0.0.1:5192/?screen=lens-bench; 200 OK; lab-optical-bench смонтирован.
  *   2. Переключение на шаг D ([data-task="D-combo"]): aria-selected=true, карточки соб2/рассеив3 видны.
  *   3. REST-state: подсветки гнёзд скрыты в покое (.slot-rect opacity 0).
  *   4. Реальный mouse-D&D: осветитель, экран, соб2→гнездо линзы, рассеив3→то же гнездо (стопка).
  *      Подтверждение: card[data-placed] для обеих линз; 2 .lens-glyph на скамье.
  *   5. combo2 (соб2+рассеив3): setScreenDistanceMm(300) до резкости (d=300, F_комб=150, f=300).
  *      isSharp===true, combinedFocalMm≈150.
- *   6. semi-auto: запись через #record-pending-btn; журнал .lab-journal-body строки;
- *      ввод D_комб/F_комб → verdict ok / ввод неверного → verdict wrong.
- *   7. a11y no-leak: #live-region и #result-panel НЕ содержат «150»/«6,7» в semi-auto.
+ *   6. semi-auto: ЯВНЫЙ ассерт #record-pending-btn ВИДНА → клик по кнопке (реальный);
+ *      журнал .lab-journal-body строки; ввод D_комб/F_комб → verdict ok / ввод неверного → verdict wrong.
+ *      ЧЕСТНОСТЬ: если кнопка НЕ видна → FAIL (не маскировать programmatic fallback).
+ *   7. a11y no-leak: #live-region и #result-panel НЕ содержат числовых ответов в semi-auto.
+ *      Паттерн сужен до уникальных ответов: «6,7»/«6.7» (D_комб, уникально для combo2).
+ *      Для result-panel дополнительно проверяем «= 150» в контексте «F_комб».
+ *      ЧЕСТНОСТЬ: паттерн не ловит инструкционный текст «до 150 мм».
  *   8. fully-auto: derived-ячейки [data-key=dComb_dptr]/[data-key=fComb_mm] readonly с числом.
- *   9. Диверг. пара (соб1+рассеив3): хинт содержит «действительного изображения нет»;
- *      #record-pending-btn НЕ появляется (если появился → FAIL).
+ *   9. Диверг. пара (соб1+рассеив3): реальный mouse-D&D; хинт содержит «действительного изображения нет»;
+ *      #record-pending-btn НЕ появляется (если появился → FAIL). Programmatic fallback только если
+ *      карточка соб1 реально скрыта — тогда ЯВНО сообщаем через programmatic.
  *  10. Изоляция D→A: задача A восстановлена, стопка очищена, соб2/соб3 скрыты.
  *  11. 3 режима (реальный ключ inter-oge.record-mode.kit-4).
  *  12. axe @axe-core/playwright: 0 нарушений. Правила НЕ отключаем.
  *
  * Запуск:
- *   npm --workspace=@labosfera/kit-4-optics run dev -- --host 127.0.0.1 --port 5196 --strictPort
+ *   npm --workspace=@labosfera/kit-4-optics run dev -- --host 127.0.0.1 --port 5192 --strictPort
  *   node experiments/kit-4-optics/selfcheck-4-5.mjs
  *
  * Вывод: PASS=N FAIL=0 SKIP=K
@@ -269,7 +274,7 @@ async function assembleTaskDCombo2(page, label) {
   return placed;
 }
 
-// Проверить что на скамье 2 .lens-glyph
+// Проверить что на скамье N .lens-glyph
 async function checkLensGlyphs(page, label, expected) {
   try {
     const count = await page.evaluate(() => {
@@ -297,10 +302,21 @@ async function checkCombo2Sharpness(page) {
 
   // combo2: соб2(D=20)+рассеив3(D=-13.3) → D_комб=6.7 → F_комб=1000/6.7≈150 мм
   // d=300 (предмет фиксирован) → f = d·F/(d-F) = 300·150/(300-150) = 300 мм
+
+  // [FIX п.5] Убрана тавтология: вместо безусловного pass('вызван') — guard на typeof метода.
+  // optional-chaining ?.() не ловит отсутствие метода (возвращает undefined без ошибки).
+  // Честная проверка: метод должен существовать как функция.
   try {
-    await page.evaluate(() => window.lensBenchExperiment?.setScreenDistanceMm?.(300));
+    const methodExists = await page.evaluate(() =>
+      typeof window.lensBenchExperiment?.setScreenDistanceMm === 'function'
+    );
+    if (!methodExists) {
+      fail('4.5 combo2: setScreenDistanceMm', 'метод setScreenDistanceMm отсутствует на window.lensBenchExperiment');
+      return;
+    }
+    await page.evaluate(() => window.lensBenchExperiment.setScreenDistanceMm(300));
     await page.waitForTimeout(150);
-    pass('4.5 combo2: setScreenDistanceMm(300) вызван (экран в позиции f≈300 для F_комб=150)');
+    pass('4.5 combo2: setScreenDistanceMm(300) вызван — метод существует и принял d=300 мм');
   } catch (err) {
     fail('4.5 combo2: setScreenDistanceMm(300)', err.message);
     return;
@@ -346,31 +362,36 @@ async function checkCombo2Sharpness(page) {
 async function checkSemiAutoJournal(page) {
   console.log('\n  ── Пункт 6: semi-auto запись D_комб/F_комб verdict ─────────────────────');
 
-  // Нажать #record-pending-btn
-  let recorded = false;
+  // [FIX п.6] УБРАН programmatic-fallback. Честный ассерт: #record-pending-btn ОБЯЗАНА быть видна.
+  // В semi-auto при D-combo + 2 converging линзы + isSharp + isPending → showPending=true → кнопка видна.
+  // Если кнопка НЕ видна → реальный UI-баг → FAIL (не маскировать!).
   try {
     const btn = page.locator('#record-pending-btn');
     const btnVisible = await btn.isVisible().catch(() => false);
     if (!btnVisible) {
-      // Попытка через programmatic API (fallback)
-      await page.evaluate(() => window.lensBenchExperiment?.recordMeasurement?.());
-      await page.waitForTimeout(200);
-      pass('4.5 semi-auto: запись через recordMeasurement() (#record-pending-btn не виден)');
-      recorded = true;
-    } else {
-      await btn.click();
-      await page.waitForTimeout(200);
-      pass('4.5 semi-auto: запись через клик #record-pending-btn (combo2, f=300)');
-      recorded = true;
+      // Это реальный баг: pending-плашка не показалась при валидном состоянии D+combo2+sharp+semi-auto.
+      // Диагностика: читаем canRecordNow-факторы для отчёта
+      const diag = await page.evaluate(() => ({
+        activeTask: window.lensBenchExperiment?.activeTask,
+        stackedLen: window.lensBenchExperiment?.stackedLenses?.length,
+        isDiverging: window.lensBenchExperiment?.isDiverging,
+        isSharp: window.lensBenchExperiment?.isSharp,
+        mode: document.body?.dataset['recordMode'],
+        pendingSlotHidden: document.querySelector('#record-pending-slot')?.hidden,
+      })).catch(() => ({}));
+      fail('4.5 semi-auto: #record-pending-btn НЕ видна',
+        `UI-баг: кнопка должна появиться при D-combo+2линзы+convergent+sharp+semi-auto; диаг=${JSON.stringify(diag)}`);
+      return;
     }
+    await btn.click();
+    await page.waitForTimeout(200);
+    pass('4.5 semi-auto: #record-pending-btn ВИДНА и нажата — запись через реальный клик кнопки (combo2, f=300)');
   } catch (err) {
     fail('4.5 semi-auto: запись строки', err.message);
     return;
   }
 
   await screenshot(page, '06-semi-auto-recorded');
-
-  if (!recorded) return;
 
   // Журнал должен содержать строку с полями dComb_dptr и fComb_mm
   try {
@@ -530,8 +551,13 @@ async function checkSemiAutoJournal(page) {
 async function checkA11yNoLeak(page) {
   console.log('\n  ── Пункт 7: a11y no-leak — #live-region и #result-panel не палят ответ ──');
 
-  // В semi-auto: #live-region и #result-panel НЕ должны содержать «150» или «6,7»
-  const leakPatterns = ['150', '6,7', '6.7'];
+  // [FIX п.7] Паттерн сужен: не используем '150' (слишком широко — совпадает с «до 150 мм»).
+  // Утечка D_комб: «6,7» или «6.7» — уникально для combo2 в этом контексте ответа.
+  // Утечка F_комб в result-panel: ищем «= 150» или «F_комб.*150» — признак готового ответа.
+  // Доказательство честности: эти паттерны НЕ совпадают с инструкционным текстом.
+  // «6,7»/«6.7» — число дптр, в инструкции не встречается.
+  // «= 150» — конкретная формула ответа, в инструкции не пишут «= 150».
+  const D_LEAK_PATTERNS = ['6,7', '6.7']; // D_комб combo2 — уникальный числовой ответ
 
   try {
     const liveText = await page.evaluate(() => {
@@ -542,12 +568,12 @@ async function checkA11yNoLeak(page) {
     if (liveText === null) {
       skip('4.5 a11y: #live-region', 'элемент не найден');
     } else {
-      // ЧЕСТНЫЙ АССЕРТ: должен уметь дать красный — проверяем наличие утечки
-      const leaked = leakPatterns.filter(p => liveText.includes(p));
+      // ЧЕСТНЫЙ АССЕРТ: ищем только уникальные числовые ответы D_комб
+      const leaked = D_LEAK_PATTERNS.filter(p => liveText.includes(p));
       if (leaked.length === 0) {
-        pass(`4.5 a11y: #live-region не содержит числовых ответов «150»/«6,7» в semi-auto`);
+        pass(`4.5 a11y: #live-region не содержит числовых ответов D_комб «6,7»/«6.7» в semi-auto`);
       } else {
-        fail('4.5 a11y: #live-region палит ответ в semi-auto', `найдено: ${leaked.join(', ')} в «${liveText.trim()}»`);
+        fail('4.5 a11y: #live-region палит числовой ответ D_комб в semi-auto', `найдено: ${leaked.join(', ')} в «${liveText.trim()}»`);
       }
     }
   } catch (err) {
@@ -555,22 +581,27 @@ async function checkA11yNoLeak(page) {
   }
 
   try {
-    const resultText = await page.evaluate(() => {
+    const resultInfo = await page.evaluate(() => {
       const el = document.querySelector('#result-panel');
       return el ? { text: el.textContent ?? '', hidden: el.hidden } : null;
     });
 
-    if (resultText === null) {
+    if (resultInfo === null) {
       skip('4.5 a11y: #result-panel', 'элемент не найден');
-    } else if (resultText.hidden) {
+    } else if (resultInfo.hidden) {
       pass('4.5 a11y: #result-panel скрыт (hidden) — утечки нет');
     } else {
-      const leaked = leakPatterns.filter(p => resultText.text.includes(p));
-      if (leaked.length === 0) {
-        pass(`4.5 a11y: #result-panel не содержит числовых ответов «150»/«6,7» в semi-auto`);
+      // Для visible result-panel: проверяем D-answer и F-answer в контексте
+      const text = resultInfo.text;
+      const dLeaked = D_LEAK_PATTERNS.filter(p => text.includes(p));
+      // F_комб-утечка: «= 150» рядом с F (формульный контекст ответа, не инструкция)
+      const fLeaked = /F[_\s]?[кKkc]?[оo]?[мm]?[бb]?.{0,10}=\s*150|=\s*150\s*(?:мм|mm)/i.test(text);
+      if (dLeaked.length === 0 && !fLeaked) {
+        pass(`4.5 a11y: #result-panel (visible) не содержит числовых ответов D_комб «6,7» или F_комб «= 150»`);
       } else {
-        fail('4.5 a11y: #result-panel палит ответ в semi-auto',
-          `найдено: ${leaked.join(', ')} в «${resultText.text.trim().substring(0, 120)}»`);
+        const leakDesc = [...dLeaked, ...(fLeaked ? ['F_комб=150 контекст'] : [])].join(', ');
+        fail('4.5 a11y: #result-panel палит числовой ответ в semi-auto',
+          `найдено: ${leakDesc} в «${text.trim().substring(0, 120)}»`);
       }
     }
   } catch (err) {
@@ -610,20 +641,29 @@ async function checkFullyAutoJournal(page) {
     }
 
     // Установить резкость f=300
-    await page.evaluate(() => window.lensBenchExperiment?.setScreenDistanceMm?.(300));
-    await page.waitForTimeout(150);
+    const methodExists = await page.evaluate(() =>
+      typeof window.lensBenchExperiment?.setScreenDistanceMm === 'function'
+    );
+    if (methodExists) {
+      await page.evaluate(() => window.lensBenchExperiment.setScreenDistanceMm(300));
+      await page.waitForTimeout(150);
+    }
 
-    // Записать строку
+    // В fully-auto запись происходит автоматически. Если #record-pending-btn появилась —
+    // нажать её (в fully-auto может быть видна в C-image, для D-combo нет, но на всякий случай).
+    // Если нет — попытаться programmatic (в fully-auto авторегистрация — это часть дизайна).
     const btn = page.locator('#record-pending-btn');
     const btnVisible = await btn.isVisible().catch(() => false);
     if (btnVisible) {
       await btn.click();
       await page.waitForTimeout(300);
-      pass('4.5 fully-auto: запись через #record-pending-btn');
+      pass('4.5 fully-auto: запись через #record-pending-btn (кнопка видна в fully-auto)');
     } else {
+      // В fully-auto режиме запись авто — programmatic fallback допустим здесь
+      // (это НЕ D&D flow, а механизм режима fully-auto)
       await page.evaluate(() => window.lensBenchExperiment?.recordMeasurement?.());
       await page.waitForTimeout(300);
-      pass('4.5 fully-auto: запись через recordMeasurement()');
+      pass('4.5 fully-auto: запись через recordMeasurement() — в fully-auto авто-запись допустима');
     }
 
     await screenshot(page, '09-fully-auto-recorded');
@@ -708,46 +748,42 @@ async function checkDivergingPair(page) {
     return;
   }
 
-  // Перетащить соб1 (data-eq="lens") в гнездо линзы
-  try {
-    const ok = await dragInstrumentToSlot(page, 'lens', 'lens');
-    if (ok) {
-      pass('4.5 diverging: соб1 (lens, F=100) в гнездо линзы');
-    } else {
-      // Не фатально: если соб1 не видна в задаче D, то она может быть скрыта
-      // Проверяем доступность
-      const card = await page.locator('lab-equipment-card[data-eq="lens"]').isVisible().catch(() => false);
-      if (!card) {
-        skip('4.5 diverging: соб1 недоступна в задаче D', 'карточка lens скрыта — тест диверг. пропускается');
+  // [FIX п.9] Проверить видимость соб1 ПЕРЕД попыткой drag.
+  // Если карточка видна — drag ОБЯЗАН работать; если нет — допускаем programmatic.
+  const lens1CardVisible = await page.locator('lab-equipment-card[data-eq="lens"]').isVisible().catch(() => false);
+
+  if (lens1CardVisible) {
+    // Карточка соб1 видна → реальный mouse-D&D обязателен; если drag не сработал → FAIL
+    try {
+      const ok1 = await dragInstrumentToSlot(page, 'lens', 'lens');
+      if (ok1) {
+        pass('4.5 diverging: соб1 (lens, F=100) → гнездо линзы реальным mouse-D&D');
+      } else {
+        // Карточка видна, drag не сработал — это баг
+        fail('4.5 diverging: соб1 (lens) → гнездо', 'дроп не сел, но карточка видна — баг D&D');
         return;
       }
-      fail('4.5 diverging: соб1 (lens) → гнездо', 'дроп не сел');
+    } catch (err) {
+      fail('4.5 diverging: соб1 (lens) → гнездо', err.message);
       return;
     }
-  } catch (err) {
-    // соб1 может быть скрыта в задаче D (combo-only view)
-    const card = await page.locator('lab-equipment-card[data-eq="lens"]').isVisible().catch(() => false);
-    if (!card) {
-      skip('4.5 diverging: соб1 (lens) скрыта в задаче D', 'задача D показывает только combo-карточки; diverging-тест через programmatic API');
-      // Programmatic fallback для diverging-теста
-      await checkDivergingProgrammatic(page);
-      return;
-    }
-    fail('4.5 diverging: соб1 (lens) → гнездо', err.message);
-    return;
-  }
 
-  // Перетащить рассеив3 (data-eq="lens-3") в то же гнездо (стопка)
-  try {
-    const ok = await dragInstrumentToSlot(page, 'lens-3', 'lens');
-    if (ok) {
-      pass('4.5 diverging: рассеив3 (lens-3, F=-75) в то же гнездо — стопка диверг.');
-    } else {
-      fail('4.5 diverging: рассеив3 (lens-3) → гнездо (стопка)', 'дроп не сел');
+    try {
+      const ok3 = await dragInstrumentToSlot(page, 'lens-3', 'lens');
+      if (ok3) {
+        pass('4.5 diverging: рассеив3 (lens-3, F=-75) → то же гнездо — стопка диверг.');
+      } else {
+        fail('4.5 diverging: рассеив3 (lens-3) → гнездо (стопка)', 'дроп не сел');
+        return;
+      }
+    } catch (err) {
+      fail('4.5 diverging: рассеив3 → гнездо', err.message);
       return;
     }
-  } catch (err) {
-    fail('4.5 diverging: рассеив3 → гнездо', err.message);
+  } else {
+    // Соб1 скрыта в задаче D (combo-only view) → programmatic API
+    skip('4.5 diverging: соб1 карточка скрыта в задаче D', 'используем programmatic API для диверг. теста');
+    await checkDivergingProgrammatic(page);
     return;
   }
 
@@ -756,7 +792,7 @@ async function checkDivergingPair(page) {
 }
 
 async function checkDivergingProgrammatic(page) {
-  // Fallback: через placeInSlot API
+  // Fallback только когда карточка соб1 реально скрыта в задаче D
   try {
     const result = await page.evaluate(() => {
       const exp = window.lensBenchExperiment;
@@ -849,11 +885,6 @@ async function checkTaskIsolation(page) {
       fail('4.5 isolation: activeTask после переключения на A', `activeTask="${activeAfter}"`);
     }
 
-    // Стопка должна быть очищена: stackedLenses.length === 0
-    const stackedAfter = await page.evaluate(() => {
-      const exp = window.lensBenchExperiment;
-      return exp?.measurements?.filter(m => m.task === 'D-combo')?.length ?? -1;
-    });
     // (Не проверяем stackedLenses напрямую — это внутренний state; косвенно через combinedFocalMm)
     const fAfterSwitch = await page.evaluate(() => window.lensBenchExperiment?.combinedFocalMm ?? null);
     // После D→A стек очищен → combinedFocalMm должен быть NaN (нет линз в стеке)
@@ -1091,8 +1122,13 @@ async function run() {
     if (dVis2) { await taskBtnD2.click(); await page.waitForTimeout(200); }
   }
   // Убедиться в резкости
-  await page.evaluate(() => window.lensBenchExperiment?.setScreenDistanceMm?.(300));
-  await page.waitForTimeout(150);
+  const methodOk = await page.evaluate(() =>
+    typeof window.lensBenchExperiment?.setScreenDistanceMm === 'function'
+  );
+  if (methodOk) {
+    await page.evaluate(() => window.lensBenchExperiment.setScreenDistanceMm(300));
+    await page.waitForTimeout(150);
+  }
 
   await checkSemiAutoJournal(page);
   await checkA11yNoLeak(page);
