@@ -137,6 +137,7 @@ const HINTS = {
   needEmit: 'Поставьте осветитель рядом с транспортиром.',
   taskA: 'Наведите луч на полуцилиндр, снимите i и r, посчитайте n = sin i / sin r.',
   taskB: 'Меняйте угол падения и записывайте r — постройте график r(i).',
+  taskBNeedTwo: 'Снимите не менее двух углов, чтобы построить график r(i).',
   reset: 'Установка сброшена. Все приборы возвращены в комплект.',
   placedCyl: 'Полуцилиндр установлен на транспортире.',
   placedEmit: 'Осветитель установлен.',
@@ -153,7 +154,7 @@ class HintEngine {
     this.#live = live;
   }
 
-  update(st: RefractionState): void {
+  update(st: RefractionState, taskBCount = 0): void {
     const semicylinderPlaced = st.placed.has('semicylinder');
     const emitterPlaced = st.placed.has('emitter');
     const isTaskA = st.activeTask === 'A-index';
@@ -172,7 +173,12 @@ class HintEngine {
       return;
     }
     // Оба размещены — контекстная подсказка по задаче
-    this.#set(isTaskA ? HINTS.taskA : HINTS.taskB);
+    if (!isTaskA) {
+      // B-angle (4.6): пока меньше 2 записей — напоминаем про минимум точек для графика
+      this.#set(taskBCount < 2 ? HINTS.taskBNeedTwo : HINTS.taskB);
+      return;
+    }
+    this.#set(HINTS.taskA);
   }
 
   flash(msg: string): void {
@@ -225,8 +231,7 @@ export class RefractionExperiment {
     // Дефолтный угол инициализируем на диске
     refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
     this.#refreshTaskStepper();
-    this.#refreshUi();
-    this.#hints.update(this.#store.get());
+    this.#refreshUi(); // вызывает #hints.update внутри
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
@@ -256,8 +261,7 @@ export class RefractionExperiment {
   setActiveTask(task: RefractionTaskId): void {
     this.#store.update(() => ({ activeTask: task }));
     this.#refreshTaskStepper();
-    this.#refreshUi();
-    this.#hints.update(this.#store.get());
+    this.#refreshUi(); // вызывает #hints.update внутри
   }
 
   /**
@@ -327,8 +331,7 @@ export class RefractionExperiment {
     this.#refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
     this.#refs.disc.setDragging(false);
     this.#refreshTaskStepper();
-    this.#refreshUi();
-    this.#hints.update(this.#store.get());
+    this.#refreshUi(); // вызывает #hints.update внутри
     this.#hints.announce(HINTS.reset);
   }
 
@@ -536,8 +539,7 @@ export class RefractionExperiment {
     }
 
     this.#hints.announce(kind === 'semicylinder' ? HINTS.placedCyl : HINTS.placedEmit);
-    this.#hints.update(this.#store.get());
-    this.#afterAngleChange();
+    this.#afterAngleChange(); // вызывает #refreshUi → #hints.update внутри
   }
 
   // ─── Журнал v2 (§21) ───────────────────────────────────────────────────────
@@ -549,6 +551,11 @@ export class RefractionExperiment {
   /** Запись доступна: оба прибора на транспортире И i>0 (при i=0 нет преломления). */
   #canRecordNow(): boolean {
     return this.bothPlaced && this.#store.get().iDeg > 0;
+  }
+
+  /** Число записей задачи B-angle (для хинта ≥2 углов). */
+  #taskBCount(): number {
+    return this.#store.get().measurements.filter((m) => m.task === 'B-angle').length;
   }
 
   /** Сигнатура анти-дубля: одна строка на каждый угол падения в задаче. */
@@ -643,6 +650,9 @@ export class RefractionExperiment {
     this.#refreshGraph();
 
     this.#refreshTaskStepper();
+
+    // ── Хинт (актуализируем после каждого изменения UI, включая запись) ─────
+    this.#hints.update(st, this.#taskBCount());
   }
 
   #buildJournalRows(list: ReadonlyArray<RefractionMeasurement>): JournalRow[] {

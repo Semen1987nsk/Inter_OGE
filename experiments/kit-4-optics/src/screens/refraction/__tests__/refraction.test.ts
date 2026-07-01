@@ -763,12 +763,75 @@ describe('RefractionExperiment — график 4.6', () => {
     expect(graph.data.gridYStep).toBe(5);
     exp.destroy();
   });
+
+  // ─── Fix 3 (S2): подсказка «≥2 угла» при B-angle c < 2 записями ─────────────
+
+  it('Fix 3 — B-angle с 0 записями: hint содержит «двух угл»', () => {
+    // Обязан давать красный если подсказка не появляется до первой записи.
+    // Реальная фальсификация: убери HINTS.taskBNeedTwo из #recordPlacement →
+    // в hint-bar останется taskB («Меняйте угол...») без «двух» → toBe(true) провалится.
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    // 0 записей → подсказка «не менее двух углов»
+    const text = refs.hintBar.textContent ?? '';
+    // Обязан давать красный если hint не содержит слова из HINTS.taskBNeedTwo
+    expect(/двух/i.test(text)).toBe(true);
+    expect(exp.measurements.length).toBe(0); // guard: нет записей
+    exp.destroy();
+  });
+
+  it('Fix 3 — B-angle с 1 записью: hint содержит «двух угл»', () => {
+    // Обязан давать красный если подсказка исчезает после первой записи.
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(30);
+    exp.recordMeasurement();
+    expect(exp.measurements.filter((m) => m.task === 'B-angle').length).toBe(1); // guard
+    const text = refs.hintBar.textContent ?? '';
+    // Обязан давать красный если подсказку убрали после 1 записи (нужно ≥2)
+    expect(/двух/i.test(text)).toBe(true);
+    exp.destroy();
+  });
+
+  it('Fix 3 — B-angle с ≥2 записями: hint НЕ содержит «двух», result-panel виден', () => {
+    // Обязан давать красный если подсказка не исчезает при ≥2 записях
+    // (оставить в hint вечно — плохо, ученик уже снял нужное количество).
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(30);
+    exp.recordMeasurement();
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    expect(exp.measurements.filter((m) => m.task === 'B-angle').length).toBe(2); // guard
+    const hintText = refs.hintBar.textContent ?? '';
+    // При ≥2 записях подсказка уходит — показывается рабочий хинт taskB
+    expect(/двух/i.test(hintText)).toBe(false);
+    // result-panel должен быть виден (есть записи) — guard на реальность
+    expect(refs.resultPanel.hidden).toBe(false);
+    exp.destroy();
+  });
 });
 
 // ─── lab-graph: обратная совместимость gridXStep/gridYStep ───────────────────
 
 describe('lab-graph — обратная совместимость gridXStep/gridYStep', () => {
-  it('вызов без gridXStep/gridYStep: компонент создаётся и data.xMax сохраняется (обратная совместимость)', () => {
+  it('вызов без gridXStep/gridYStep: рисует 15 grid-line (10 X + 5 Y при шаге 1)', () => {
+    // Fix 1: проверяем РЕАЛЬНОЕ число нарисованных линий, а не только data.xMax.
+    // Тест фальсифицируем: если дефолт шага поменяют с 1 на 0 — цикл не нарисует
+    // ни одной линии (0<=10+1e-9 но шаг=0 → бесконечный цикл или 0 итераций).
+    // Если дефолт станет 2 — 5+3=8 линий → тест красный.
     const el = document.createElement('lab-graph') as any;
     document.body.appendChild(el);
     el.data = {
@@ -779,11 +842,12 @@ describe('lab-graph — обратная совместимость gridXStep/gr
       yMax: 5,
       // gridXStep и gridYStep НЕ переданы → default 1
     };
-    // Обязан давать красный если интерфейс сломан (TypeScript-уровень проверяется typecheck)
-    expect(el.data.xMax).toBe(10);
-    // Поля не переданы → undefined (обратная совместимость)
-    expect(el.data.gridXStep).toBeUndefined();
-    expect(el.data.gridYStep).toBeUndefined();
+    // Проверяем реальное число нарисованных линий сетки в Shadow DOM.
+    // При шаге 1: X=1..10 (10 линий) + Y=1..5 (5 линий) = 15.
+    // Обязан давать красный если дефолт шага не равен 1.
+    const gridLines = el.shadowRoot!.querySelectorAll('.grid-line');
+    expect(gridLines.length).not.toBe(0); // guard: компонент вообще отрисовался
+    expect(gridLines.length).toBe(15);
     el.remove();
   });
 
@@ -802,6 +866,30 @@ describe('lab-graph — обратная совместимость gridXStep/gr
     // Обязан давать красный если setter не сохраняет переданные поля
     expect(el.data.gridXStep).toBe(10);
     expect(el.data.gridYStep).toBe(5);
+    el.remove();
+  });
+
+  it('Fix 2 — дробный шаг 0.2: xMax=1, yMax=1 → 10 grid-line (5 X + 5 Y)', () => {
+    // Fix 2 (Important Minor из ревью): ловит бесконечный цикл / пропуск
+    // из-за float-накопления, если убрать 1e-9-guard в #drawGrid.
+    // X: 0.2, 0.4, 0.6, 0.8, 1.0 = 5 линий.
+    // Y: 0.2, 0.4, 0.6, 0.8, 1.0 = 5 линий.
+    // Итого: 10. Обязан давать красный если float-guard снят (тогда 1.0-шаг
+    // может не попасть в условие v<=1.0 без 1e-9, и будет 4+4=8 линий).
+    const el = document.createElement('lab-graph') as any;
+    document.body.appendChild(el);
+    el.data = {
+      series: [],
+      xLabel: 'sin i',
+      yLabel: 'sin r',
+      xMax: 1,
+      yMax: 1,
+      gridXStep: 0.2,
+      gridYStep: 0.2,
+    };
+    const gridLines = el.shadowRoot!.querySelectorAll('.grid-line');
+    expect(gridLines.length).not.toBe(0); // guard: компонент отрисовался
+    expect(gridLines.length).toBe(10);
     el.remove();
   });
 });
