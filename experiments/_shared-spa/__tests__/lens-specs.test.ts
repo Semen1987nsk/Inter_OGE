@@ -248,4 +248,17 @@ describe('TWO_LENS_SPEC (4.5)', () => {
     };
     expect(verifyRow(TWO_LENS_SPEC.columns, row).dComb_dptr).toBe('wrong');
   });
+
+  it('неверное F_комб → wrong (формула d·f/(d+f) тестируется негативно)', () => {
+    const row = {
+      idx: 1, timestamp: 0,
+      values: { idx: 1, combo: '50 + −75 мм', d1_dptr: 20, d2_dptr: -13.3, dComb_dptr: 6.7, d_mm: 300, f_mm: 300, fComb_mm: 250 },
+    };
+    // expected = 300·300/600 = 150; value 250 → |Δ|/150 = 0.667 >> 0.10 → wrong
+    expect(verifyRow(TWO_LENS_SPEC.columns, row).fComb_mm).toBe('wrong');
+  });
+
+  it('зарегистрирован в ALL_SPECS через getSpecByExperimentId', () => {
+    expect(getSpecByExperimentId('4.5')).toBe(TWO_LENS_SPEC);
+  });
 });

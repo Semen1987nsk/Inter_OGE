@@ -833,7 +833,7 @@ export const TWO_LENS_SPEC: JournalSpec = {
     { key: 'f_mm', label: 'f', source: 'direct', unit: 'мм', format: 'int' },
     {
       key: 'fComb_mm', label: 'F_комб', source: 'derived', unit: 'мм', format: 'int',
-      tolerance: 0.10,
+      tolerance: 0.10, // запас на арифметику ученика (в семье с rho/k-спеками tol 0.10); F_комб малой линзы combo1≈33 мм
       // F_комб = d·f/(d+f) (формула тонкой линзы; из прямых d_mm,f_mm)
       expectedFromRow: (r) => {
         const d = r.d_mm ?? 0;
