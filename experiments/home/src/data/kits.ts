@@ -144,10 +144,10 @@ export const KITS: ReadonlyArray<Kit> = [
       // id 'lens-power' → ремап на 'lens-bench' (слаг экрана LensBenchScreen).
       { id: 'lens-bench',           title: 'Оптическая сила линзы',               resultVerb: 'Измерь оптическую силу собирающей линзы',                 fipiTask: '4.1', isFipi: true, done: true  },
       { id: 'lens-bench',           title: 'Фокусное расстояние линзы',            resultVerb: 'Измерь фокусное расстояние собирающей линзы',             fipiTask: '4.2', isFipi: true, done: true  },
-      { id: 'refraction-index',    title: 'Показатель преломления стекла',        resultVerb: 'Измерь показатель преломления стекла',                   fipiTask: '4.3', isFipi: true, done: false },
+      { id: 'refraction',          title: 'Показатель преломления стекла',        resultVerb: 'Измерь показатель преломления стекла',                   fipiTask: '4.3', isFipi: true, done: true  },
       { id: 'lens-bench',          title: 'Изображение в собирающей линзе',       resultVerb: 'Исследуй свойства изображения в собирающей линзе',        fipiTask: '4.4', isFipi: true, done: true  },
       { id: 'lens-bench',          title: 'Фокусное расстояние двух линз',        resultVerb: 'Исследуй изменение фокусного расстояния двух сложенных линз', fipiTask: '4.5', isFipi: true, done: true  },
-      { id: 'refraction-angle',    title: 'Угол преломления от угла падения',     resultVerb: 'Исследуй зависимость угла преломления от угла падения',   fipiTask: '4.6', isFipi: true, done: false },
+      { id: 'refraction',          title: 'Угол преломления от угла падения',     resultVerb: 'Исследуй зависимость угла преломления от угла падения',   fipiTask: '4.6', isFipi: true, done: true  },
     ],
     photo: 'kit-4.svg',
     eta: '2027 Q1',
