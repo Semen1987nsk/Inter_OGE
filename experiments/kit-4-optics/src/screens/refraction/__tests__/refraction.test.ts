@@ -464,3 +464,144 @@ describe('RefractionExperiment — lifecycle', () => {
     globalThis.gc?.();
   });
 });
+
+// ─── Журнал v2 (T7): опыт 4.3 n = sin i / sin r + no-leak ─────────────────────
+
+describe('RefractionExperiment — журнал 4.3', () => {
+  let currentHost: HTMLElement | null = null;
+
+  afterEach(() => {
+    currentHost?.remove();
+    currentHost = null;
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+    globalThis.gc?.();
+  });
+
+  it('запись строки 4.3 рендерит журнал с i_deg,r_deg', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    const journalHost = refs.journalHost!;
+    // Обязан давать красный если renderJournalTable не вызвался при записи
+    expect(journalHost.querySelectorAll('.lab-journal-body tr').length).toBeGreaterThan(0);
+    expect(journalHost.querySelector('[data-key="i_deg"]')).not.toBeNull();
+    expect(journalHost.querySelector('[data-key="r_deg"]')).not.toBeNull();
+    exp.destroy();
+  });
+
+  it('ЛГУЩИЙ-ТЕСТ guard: в fully-manual n — редактируемый input, проверяем input.value (НЕ textContent td)', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-manual');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    const input = refs.journalHost!.querySelector('input[data-key="n"]') as HTMLInputElement | null;
+    // Обязан давать красный если derived n рендерится как readonly td (а не input) в fully-manual
+    expect(input).not.toBeNull();
+    // Пусто в fully-manual — ученик вводит сам; ассерт умеет краснеть если программа подставит значение
+    expect(input!.value).toBe('');
+    exp.destroy();
+  });
+
+  it('a11y no-leak: semi-auto — n не в result-panel, не в live-region; input[n] пуст (S5/S6)', async () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    // result-panel: n≈1,5 не утекает (паттерн «1,5»/«1.5»)
+    expect(/1[.,]5\d?/.test(refs.resultPanel.textContent ?? '')).toBe(false);
+    // guard: панель не пуста — иначе ассерт выше проходит тавтологически
+    expect((refs.resultPanel.textContent ?? '').length).toBeGreaterThan(10);
+    // S6: n derived НЕ подставлен программой — поле ввода пусто (ассерт умеет краснеть)
+    const nInput = refs.journalHost!.querySelector('input[data-key="n"]') as HTMLInputElement | null;
+    expect(nInput).not.toBeNull();
+    expect(nInput!.value).toBe('');
+    // S5: live-region читаем ПОСЛЕ двойного rAF (announce откладывает запись); i/r озвучены, n — нет
+    await new Promise((res) => requestAnimationFrame(() => requestAnimationFrame(() => res(null))));
+    const live = refs.liveRegion.textContent ?? '';
+    expect(live.length).toBeGreaterThan(0); // пустой live = провал (ассерт умеет краснеть)
+    expect(/1[.,]5\d?/.test(live)).toBe(false); // n не озвучен
+    exp.destroy();
+  });
+
+  it('fully-auto: derived n readonly ≈1,5', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    const td = refs.journalHost!.querySelector('td[data-key="n"]')!;
+    // Обязан давать красный если n рендерится input'ом в fully-auto (должен быть readonly текст)
+    expect(td.querySelector('input')).toBeNull();
+    expect(/1[.,]5/.test(td.textContent ?? '')).toBe(true);
+    // fully-auto МОЖЕТ показать n в result-panel — проверяем что показывает (ассерт умеет краснеть)
+    expect(/1[.,]5/.test(refs.resultPanel.textContent ?? '')).toBe(true);
+    exp.destroy();
+  });
+
+  it('B-angle (4.6): нет derived-колонки n, result-panel без числа n', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    // REFRACTION_ANGLE_SPEC не содержит колонку n
+    expect(refs.journalHost!.querySelector('[data-key="n"]')).toBeNull();
+    expect(refs.journalHost!.querySelector('[data-key="i_deg"]')).not.toBeNull();
+    // Обязан давать красный если result-panel B-angle протащит число n стекла
+    expect(/1[.,]5\d?/.test(refs.resultPanel.textContent ?? '')).toBe(false);
+    exp.destroy();
+  });
+
+  it('pending-плашка (semi-auto) видна при bothPlaced && i>0, скрыта при i=0', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    // Обязан давать красный если pending не показывается в semi-auto при готовности
+    expect(refs.recordPendingSlot!.hidden).toBe(false);
+    exp.setIncidenceAngle(0);
+    // i=0 → нет преломления → запись недоступна → pending скрыт
+    expect(refs.recordPendingSlot!.hidden).toBe(true);
+    exp.destroy();
+  });
+
+  it('анти-дубль: повторная запись того же i не добавляет строку', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    exp.recordMeasurement();
+    // Обязан давать красный если сигнатура анти-дубля не работает
+    expect(exp.measurements.length).toBe(1);
+    exp.setIncidenceAngle(60);
+    exp.recordMeasurement();
+    expect(exp.measurements.length).toBe(2);
+    exp.destroy();
+  });
+});

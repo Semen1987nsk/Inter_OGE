@@ -17,12 +17,24 @@
  *   2. Менять угол падения и записывать r — строить график r(i).
  *
  * Паттерн: ОДИН оркестратор + Store + локальный HintEngine + OpticalDragController.
- * Журнал/график — T7/T8, здесь минимальная заглушка recordMeasurement.
+ * §21 — журнал v2 (renderJournalTable + REFRACTION_*_SPEC + record-mode 'kit-4').
  */
 
 import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { OpticalDragController } from '@controller/OpticalDragController';
+
+// §21 — единый журнал v2
+import {
+  getRecordMode,
+  injectRecordModeToggleStyles,
+  renderRecordModeToggle,
+  type RecordMode,
+} from '@labosfera/shared-spa/lib/record-mode';
+import { renderJournalTable } from '@labosfera/shared-spa/lib/journal/render';
+import { verifyRow } from '@labosfera/shared-spa/lib/journal/verify';
+import { REFRACTION_INDEX_SPEC, REFRACTION_ANGLE_SPEC } from '@labosfera/shared-spa/lib/journal/specs';
+import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-spa/lib/journal/types';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +50,8 @@ export interface RefractionMeasurement {
   readonly task: RefractionTaskId;
   readonly iDeg: number;
   readonly rDeg: number;
+  /** Метка времени — handle для drafts/verdicts журнала. */
+  readonly timestamp: number;
 }
 
 /** DOM-ссылки оркестратора. Все обязательны кроме журнальных `?`. */
@@ -81,6 +95,28 @@ interface RefractionState {
 
 /** Дефолтный угол падения (45° → r≈28° при n=1.5 — эталонная точка Снелла). */
 const DEFAULT_I_DEG = 45;
+
+/** Кит для record-mode toggle (localStorage `inter-oge.record-mode.kit-4`). */
+const RECORD_MODE_KIT = 'kit-4';
+
+/** °→рад для расчёта n = sin i / sin r (единый источник с REFRACTION_INDEX_SPEC). */
+const DEG_TO_RAD = Math.PI / 180;
+
+/** Журнал-спека по задаче. A-index=4.3 (n derived), B-angle=4.6 (только i,r). */
+const SPEC_BY_TASK: Record<RefractionTaskId, JournalSpec> = {
+  'A-index': REFRACTION_INDEX_SPEC,
+  'B-angle': REFRACTION_ANGLE_SPEC,
+};
+
+/**
+ * Показатель преломления n = sin i / sin r по измеренным целым углам.
+ * Единый источник истины с `REFRACTION_INDEX_SPEC.expectedFromRow` —
+ * derived-ячейка (fully-auto) и число в result-panel обязаны совпадать.
+ */
+function refractiveIndexFrom(iDeg: number, rDeg: number): number {
+  const sr = Math.sin(rDeg * DEG_TO_RAD);
+  return sr > 1e-9 ? Math.sin(iDeg * DEG_TO_RAD) / sr : 0;
+}
 
 const INITIAL_STATE: RefractionState = {
   activeTask: 'A-index',
@@ -160,6 +196,13 @@ export class RefractionExperiment {
   #hints: HintEngine;
   #cardByEquipmentId = new Map<RefractionEquipmentId, LabEquipmentCard>();
 
+  // §21 — журнал v2
+  #journalDrafts = new Map<number, Record<string, number | string>>();
+  #journalVerdicts = new Map<number, Record<string, JournalVerdict>>();
+  #detachRecordModeToggle: (() => void) | null = null;
+  #lastRecordedSignature = '';
+  #lastResultHtml = '';
+
   constructor(refs: RefractionRefs) {
     this.#refs = refs;
     // Клонируем INITIAL_STATE: Set мутируется, нельзя делить между экземплярами
@@ -175,6 +218,7 @@ export class RefractionExperiment {
     // Дефолтный угол инициализируем на диске
     refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
     this.#refreshTaskStepper();
+    this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
 
@@ -205,6 +249,7 @@ export class RefractionExperiment {
   setActiveTask(task: RefractionTaskId): void {
     this.#store.update(() => ({ activeTask: task }));
     this.#refreshTaskStepper();
+    this.#refreshUi();
     this.#hints.update(this.#store.get());
   }
 
@@ -217,21 +262,32 @@ export class RefractionExperiment {
     this.#refs.disc.setIncidenceAngle(i);
     // disc.setIncidenceAngle клампит и округляет → читаем обратно чтобы Store был синхронен
     this.#store.update(() => ({ iDeg: this.#refs.disc.incidenceAngleDeg }));
+    this.#afterAngleChange();
   }
 
   /**
-   * Записать измерение (минимальная заглушка T5 — журнал подключается в T7).
-   * Условие: bothPlaced = true.
+   * Записать измерение в журнал.
+   * Условие: оба прибора размещены И i>0 (при i=0 преломления нет).
+   * Анти-дубль по сигнатуре `${task}-${iDeg}`.
    */
   recordMeasurement(): void {
-    if (!this.bothPlaced) return;
+    if (!this.#canRecordNow()) return;
+    if (this.#pendingSignature() === this.#lastRecordedSignature) return;
+
     const st = this.#store.get();
+    const rDeg = this.#refs.disc.refractionAngleDeg;
     const measurement: RefractionMeasurement = {
       task: st.activeTask,
       iDeg: st.iDeg,
-      rDeg: this.#refs.disc.refractionAngleDeg,
+      rDeg,
+      timestamp: Date.now(),
     };
     this.#store.update((s) => ({ measurements: [...s.measurements, measurement] }));
+    this.#lastRecordedSignature = this.#pendingSignature();
+    this.#refreshUi();
+
+    // a11y no-leak: озвучиваем ТОЛЬКО измеренные i,r — n (число) не в live-region.
+    this.#hints.announce(`Записано: угол падения ${st.iDeg}°, угол преломления ${rDeg}°.`);
   }
 
   /**
@@ -246,6 +302,10 @@ export class RefractionExperiment {
       placed: new Set<RefractionEquipmentId>(),
       measurements: [],
     });
+    this.#journalDrafts.clear();
+    this.#journalVerdicts.clear();
+    this.#lastRecordedSignature = '';
+    this.#lastResultHtml = '';
     // Сбросить карточки в available
     for (const card of this.#cardByEquipmentId.values()) {
       card.setAttribute('status', 'available');
@@ -256,6 +316,7 @@ export class RefractionExperiment {
     this.#refs.disc.setIncidenceAngle(DEFAULT_I_DEG);
     this.#refs.disc.setDragging(false);
     this.#refreshTaskStepper();
+    this.#refreshUi();
     this.#hints.update(this.#store.get());
     this.#hints.announce(HINTS.reset);
   }
@@ -263,6 +324,8 @@ export class RefractionExperiment {
   /** Cleanup при unmount. */
   destroy(): void {
     this.#drag.cancel();
+    this.#detachRecordModeToggle?.();
+    this.#detachRecordModeToggle = null;
   }
 
   /**
@@ -350,8 +413,11 @@ export class RefractionExperiment {
     this.#refs.disc.addEventListener('angle-change', (ev: Event) => {
       const detail = (ev as CustomEvent<{ i: number; r: number }>).detail;
       if (!detail || !Number.isFinite(detail.i)) return;
+      // Не реагируем, если Store уже синхронен (setIncidenceAngle сам эмитит event
+      // и уже вызвал #afterAngleChange — избегаем двойной пересборки/автозаписи).
+      if (this.#store.get().iDeg === detail.i) return;
       this.#store.update(() => ({ iDeg: detail.i }));
-      // T7: здесь будет #afterAngleChange() (pending)
+      this.#afterAngleChange();
     });
 
     // ── Кнопка сброса ────────────────────────────────────────────────────
@@ -404,7 +470,16 @@ export class RefractionExperiment {
       }
     });
 
-    // ── Кнопка «Записать» (pending-плашка, T7 подключит полный журнал) ───
+    // ── §21.4 — record-mode toggle ───────────────────────────────────────
+    if (this.#refs.recordModeSlot) {
+      injectRecordModeToggleStyles();
+      this.#detachRecordModeToggle = renderRecordModeToggle(this.#refs.recordModeSlot, {
+        kitId: RECORD_MODE_KIT,
+        onChange: () => this.#handleRecordModeChange(),
+      });
+    }
+
+    // ── §21.10 — pending-плашка (кнопка «Записать в журнал») ─────────────
     if (this.#refs.recordPendingBtn) {
       this.#refs.recordPendingBtn.addEventListener('click', () => {
         this.recordMeasurement();
@@ -441,6 +516,186 @@ export class RefractionExperiment {
 
     this.#hints.announce(kind === 'semicylinder' ? HINTS.placedCyl : HINTS.placedEmit);
     this.#hints.update(this.#store.get());
+    this.#afterAngleChange();
+  }
+
+  // ─── Журнал v2 (§21) ───────────────────────────────────────────────────────
+
+  #recordMode(): RecordMode {
+    return getRecordMode(RECORD_MODE_KIT);
+  }
+
+  /** Запись доступна: оба прибора на транспортире И i>0 (при i=0 нет преломления). */
+  #canRecordNow(): boolean {
+    return this.bothPlaced && this.#store.get().iDeg > 0;
+  }
+
+  /** Сигнатура анти-дубля: одна строка на каждый угол падения в задаче. */
+  #pendingSignature(): string {
+    if (!this.#canRecordNow()) return '';
+    const st = this.#store.get();
+    return `${st.activeTask}-${st.iDeg}`;
+  }
+
+  /**
+   * Реакция на смену угла падения: fully-auto авто-запись + пересборка UI.
+   * Вызывается из setIncidenceAngle, angle-change и #recordPlacement.
+   */
+  #afterAngleChange(): void {
+    if (
+      this.#recordMode() === 'fully-auto' &&
+      this.#canRecordNow() &&
+      this.#pendingSignature() !== this.#lastRecordedSignature
+    ) {
+      this.recordMeasurement();
+      return; // recordMeasurement уже вызвал #refreshUi
+    }
+    this.#refreshUi();
+  }
+
+  /** Смена режима записи: fully-auto → авто-запись готового замера, затем пересборка. */
+  #handleRecordModeChange(): void {
+    if (
+      this.#recordMode() === 'fully-auto' &&
+      this.#canRecordNow() &&
+      this.#pendingSignature() !== this.#lastRecordedSignature
+    ) {
+      this.recordMeasurement();
+      return;
+    }
+    this.#refreshUi();
+  }
+
+  #refreshUi(): void {
+    const st = this.#store.get();
+    const spec = SPEC_BY_TASK[st.activeTask];
+    const mode = this.#recordMode();
+    const taskMeasurements = st.measurements.filter((m) => m.task === st.activeTask);
+    const hasMeasurements = taskMeasurements.length > 0;
+
+    // ── Pending-плашка (только semi-auto, §21.10) ──────────────────────────
+    const isPending =
+      this.#canRecordNow() && this.#pendingSignature() !== this.#lastRecordedSignature;
+    if (this.#refs.recordPendingSlot) {
+      this.#refs.recordPendingSlot.hidden = !(isPending && mode === 'semi-auto');
+    }
+    if (this.#refs.recordPendingSummary && isPending) {
+      // i,r — измерения, показывать можно (n — НЕ показываем).
+      this.#refs.recordPendingSummary.textContent =
+        `i = ${st.iDeg}°, r = ${this.#refs.disc.refractionAngleDeg}°`;
+    }
+
+    // ── Таблица журнала ────────────────────────────────────────────────────
+    if (hasMeasurements && this.#refs.journalHost) {
+      this.#refs.journalHost.hidden = false;
+      const rows = this.#buildJournalRows(taskMeasurements);
+      renderJournalTable(this.#refs.journalHost, spec, rows, {
+        mode: mode as 'semi-auto' | 'fully-manual' | 'fully-auto',
+        onCellInput: (rowIdx, key, value) => {
+          const m = taskMeasurements[rowIdx - 1];
+          if (!m) return;
+          const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
+          if (value !== null) drafts[key] = value;
+          else delete drafts[key];
+          this.#journalDrafts.set(m.timestamp, drafts);
+        },
+        onVerify: (rowIdx) => {
+          const m = taskMeasurements[rowIdx - 1];
+          if (!m) return;
+          const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
+          const journalRow = this.#buildJournalRow(m, rowIdx);
+          for (const [k, v] of Object.entries(drafts)) journalRow.values[k] = v;
+          const verdicts = verifyRow(spec.columns, journalRow);
+          this.#journalVerdicts.set(m.timestamp, verdicts);
+          this.#refreshUi();
+        },
+      });
+    } else if (this.#refs.journalHost) {
+      this.#refs.journalHost.hidden = true;
+      this.#refs.journalHost.replaceChildren();
+    }
+
+    // ── Result-panel (a11y no-leak: n только в fully-auto) ─────────────────
+    this.#renderResultPanel(taskMeasurements, mode);
+
+    this.#refreshTaskStepper();
+  }
+
+  #buildJournalRows(list: ReadonlyArray<RefractionMeasurement>): JournalRow[] {
+    return list.map((m, i) => {
+      const row = this.#buildJournalRow(m, i + 1);
+      const drafts = this.#journalDrafts.get(m.timestamp) ?? {};
+      for (const [k, v] of Object.entries(drafts)) row.values[k] = v;
+      const verdicts = this.#journalVerdicts.get(m.timestamp);
+      if (verdicts) row.verdicts = verdicts;
+      return row;
+    });
+  }
+
+  /**
+   * Строка журнала. i_deg,r_deg — direct (всегда из измеренных углов).
+   * n — derived: заполняется программой ТОЛЬКО в fully-auto, иначе null
+   * (ученик вводит сам; пустой input в semi-auto/fully-manual — no-leak).
+   */
+  #buildJournalRow(m: RefractionMeasurement, idx: number): JournalRow {
+    const isFullyAuto = this.#recordMode() === 'fully-auto';
+    const values: Record<string, number | string | null> = {
+      idx,
+      i_deg: m.iDeg,
+      r_deg: m.rDeg,
+    };
+    if (m.task === 'A-index') {
+      values['n'] = isFullyAuto ? refractiveIndexFrom(m.iDeg, m.rDeg) : null;
+    }
+    return { idx, timestamp: m.timestamp, values };
+  }
+
+  /**
+   * Result-panel. Для 4.3 (A-index):
+   *   - fully-auto → показываем среднее n (можно палить ответ после записи).
+   *   - semi-auto/fully-manual → качественный текст БЕЗ числа n.
+   * Для 4.6 (B-angle) — про зависимость r(i), без числа n.
+   */
+  #renderResultPanel(list: ReadonlyArray<RefractionMeasurement>, mode: RecordMode): void {
+    const panel = this.#refs.resultPanel;
+    if (list.length === 0) {
+      panel.hidden = true;
+      panel.innerHTML = '';
+      this.#lastResultHtml = '';
+      return;
+    }
+
+    const isFullyAuto = mode === 'fully-auto';
+    const task = list[0]!.task;
+    let html: string;
+
+    if (task === 'A-index') {
+      if (isFullyAuto) {
+        const avg =
+          list.reduce((s, m) => s + refractiveIndexFrom(m.iDeg, m.rDeg), 0) / list.length;
+        const avgStr = avg.toFixed(2).replace('.', ',');
+        html =
+          `<p class="result-line"><strong>n</strong> = ${avgStr} ≈ 1,5 (постоянно для стекла)</p>` +
+          `<p class="result-note">Показатель преломления не зависит от угла падения: n = sin i / sin r.</p>`;
+      } else {
+        // a11y no-leak: НИ «≈1,5», НИ иного значения n — только качественный текст.
+        html =
+          `<p class="result-line">Показатель преломления стекла постоянен и не зависит ` +
+          `от угла падения — вычислите n = sin i / sin r по своим измерениям.</p>`;
+      }
+    } else {
+      // B-angle (4.6): вывод про зависимость r(i), без числа n.
+      html =
+        `<p class="result-line">С ростом угла падения растёт и угол преломления, ` +
+        `но медленнее: r &lt; i для перехода воздух → стекло.</p>` +
+        `<p class="result-note">В осях sin i — sin r точки ложатся на прямую (закон преломления).</p>`;
+    }
+
+    panel.hidden = false;
+    if (html !== this.#lastResultHtml) {
+      panel.innerHTML = html;
+      this.#lastResultHtml = html;
+    }
   }
 
   /** Обновить aria-selected и tabIndex на [data-task] кнопках. */
