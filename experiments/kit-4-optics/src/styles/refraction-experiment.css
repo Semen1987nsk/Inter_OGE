@@ -1,0 +1,191 @@
+/* Стили экрана «Показатель преломления» (опыты 4.3 / 4.6) */
+
+/* ─── Steps stepper (зеркало lens-bench-experiment.css) ────────────── */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 0.04);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  appearance: none;
+  text-align: left;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.1);
+  color: var(--color-text-secondary);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.step-label {
+  white-space: nowrap;
+}
+
+.step[data-state='active'] {
+  background: rgb(245 158 11 / 0.15);
+  border-color: rgb(245 158 11 / 0.6);
+  color: #f59e0b;
+  font-weight: 700;
+  transform: scale(1.04);
+  box-shadow: 0 0 0 4px rgb(245 158 11 / 0.08);
+}
+
+.step[data-state='active'] .step-num {
+  background: #f59e0b;
+  color: #06151c;
+}
+
+.step[data-state='done'] {
+  background: rgb(16 185 129 / 0.08);
+  border-color: rgb(16 185 129 / 0.3);
+  color: var(--color-success);
+}
+
+.step[data-state='done'] .step-num {
+  background: var(--color-success);
+  color: #06151c;
+}
+
+.step + .step::before {
+  content: '';
+  width: 14px;
+  height: 1px;
+  background: rgb(255 255 255 / 0.15);
+  flex-shrink: 0;
+  margin-left: -8px;
+  margin-right: 4px;
+}
+
+/* ─── Сцена преломления ────────────────────────────────────────────── */
+
+.refraction-stage-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 1rem);
+  position: relative;
+  flex: 1;
+  align-items: center;
+}
+
+/* ─── Блок графика (только для задачи B-angle) ─────────────────────── */
+
+#graph-block[hidden] {
+  display: none;
+}
+
+#graph-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+  max-width: 480px;
+}
+
+.graph-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 6px;
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text, #111);
+  align-self: flex-start;
+  transition: background var(--dur-fast, 120ms) var(--ease-out, ease-out);
+}
+
+.graph-toggle-btn[aria-pressed='true'] {
+  background: var(--color-accent, #a855f7);
+  color: #fff;
+  border-color: var(--color-accent, #a855f7);
+}
+
+/* ─── Карточка-глиф оборудования ───────────────────────────────────── */
+
+.eq-glyph {
+  display: block;
+  /* Функциональные детали ≥15% высоты viewBox (REFERENCE §SVG-ловушки) */
+  width: 80px;
+  height: 60px;
+}
+
+/* ─── Результаты ────────────────────────────────────────────────────── */
+
+.result-line {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.result-sep {
+  margin: 0 0.25em;
+}
+
+.result-note {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #6b7280);
+  margin: 0;
+}
+
+/* ─── Адаптивность ──────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .steps {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 4px;
+    padding-bottom: 2px;
+  }
+  .step {
+    font-size: 11px;
+    padding: 3px 8px 3px 3px;
+    flex-shrink: 0;
+  }
+  .step-num {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    transition: none;
+  }
+  .graph-toggle-btn {
+    transition: none;
+  }
+}

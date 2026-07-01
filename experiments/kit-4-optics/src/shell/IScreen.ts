@@ -11,7 +11,7 @@ import type {
   ScreenMeta as SharedScreenMeta,
 } from '@shared/shell/IScreen';
 
-export type ScreenId = 'lens-bench';
+export type ScreenId = 'lens-bench' | 'refraction';
 export type IconId = 'lens' | 'prism';
 
 export type IScreen = SharedIScreen<ScreenId, IconId>;

@@ -342,6 +342,108 @@ describe('RefractionExperiment — каркас (T5)', () => {
   });
 });
 
+// ─── RefractionScreen: монтирование IScreen-фасада ───────────────────────────
+
+describe('RefractionScreen — mount / unmount', () => {
+  it('#protractor-disc присутствует после mount', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    // Обязан давать красный если template.html не содержит #protractor-disc
+    expect(host.querySelector('#protractor-disc')).not.toBeNull();
+    screen.unmount();
+    host.remove();
+  });
+
+  it('обе [data-task]-кнопки присутствуют после mount', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    // Обязан давать красный если один из табов A-index/B-angle отсутствует в template.html
+    expect(host.querySelector('[data-task="A-index"]')).not.toBeNull();
+    expect(host.querySelector('[data-task="B-angle"]')).not.toBeNull();
+    screen.unmount();
+    host.remove();
+  });
+
+  it('window.refractionExperiment установлен после mount', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    // Обязан давать красный если RefractionScreen не вешает window.refractionExperiment
+    expect(
+      (window as unknown as { refractionExperiment?: unknown }).refractionExperiment,
+    ).toBeDefined();
+    screen.unmount();
+    host.remove();
+  });
+
+  it('unmount очищает host и удаляет window.refractionExperiment', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    screen.unmount();
+    // Обязан давать красный если unmount не зовёт replaceChildren / не чистит window
+    expect(host.children.length).toBe(0);
+    expect(
+      (window as unknown as { refractionExperiment?: unknown }).refractionExperiment,
+    ).toBeUndefined();
+    host.remove();
+  });
+
+  it('повторный mount на тот же host — idempotent (не дублирует эксперимент)', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    const expFirst = (window as unknown as { refractionExperiment?: unknown }).refractionExperiment;
+    screen.mount(host); // второй вызов должен быть no-op
+    // Обязан давать красный если mount не проверяет this.#experiment (создаёт дубликат)
+    expect(
+      (window as unknown as { refractionExperiment?: unknown }).refractionExperiment,
+    ).toBe(expFirst);
+    screen.unmount();
+    host.remove();
+    globalThis.gc?.();
+  });
+
+  it('meta.id === refraction', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    // Обязан давать красный если id опечатан или не задан
+    expect(screen.meta.id).toBe('refraction');
+  });
+
+  it('meta.icon === prism', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    // Обязан давать красный если icon не prism (IScreen-контракт)
+    expect(screen.meta.icon).toBe('prism');
+  });
+
+  it('saveState возвращает пустой объект', async () => {
+    const { RefractionScreen } = await import('../RefractionScreen');
+    const screen = new RefractionScreen();
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    screen.mount(host);
+    // Обязан давать красный если saveState возвращает undefined или бросает
+    expect(screen.saveState()).toEqual({});
+    screen.unmount();
+    host.remove();
+    globalThis.gc?.();
+  });
+});
+
 // ─── Lifecycle: mount → destroy → remount ─────────────────────────────────────
 
 describe('RefractionExperiment — lifecycle', () => {

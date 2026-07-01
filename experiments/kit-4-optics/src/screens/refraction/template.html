@@ -1,0 +1,176 @@
+<div class="app-main-v3">
+  <h2 class="sr-only">Рабочий стенд — преломление света</h2>
+  <section class="workbench" aria-label="Рабочая зона">
+    <header class="workbench-header">
+      <div class="steps" id="steps" role="tablist" aria-label="Опыт (что измеряем)">
+        <button class="step" data-task="A-index" data-state="active" tabindex="0" role="tab" aria-selected="true" type="button">
+          <span class="step-num">A</span>
+          <span class="step-label">Показатель преломления <small>(4.3)</small></span>
+        </button>
+        <button class="step" data-task="B-angle" tabindex="-1" role="tab" aria-selected="false" type="button">
+          <span class="step-num">B</span>
+          <span class="step-label">Угол преломления <small>(4.6)</small></span>
+        </button>
+      </div>
+      <div class="workbench-hint" id="hint-bar">
+        Перетащите полуцилиндр и осветитель на транспортир.
+      </div>
+      <button id="reset-btn" class="reset-btn" type="button"
+        aria-label="Сбросить опыт" title="Сбросить опыт">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+          stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <path d="M3 12a9 9 0 1 0 9-9 9.74 9.74 0 0 0-7 3l-2 2"/>
+          <path d="M3 4v5h5"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="workbench-stage" id="stage">
+      <span class="stage-corner stage-corner--tl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--tr" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--bl" aria-hidden="true"></span>
+      <span class="stage-corner stage-corner--br" aria-hidden="true"></span>
+
+      <div class="refraction-stage-content">
+        <lab-protractor-disc
+          id="protractor-disc"
+          aria-label="Круговой транспортир с полуцилиндром"
+        ></lab-protractor-disc>
+
+        <!-- Блок графика r(i) — только для задачи B-angle -->
+        <div id="graph-block" hidden>
+          <lab-graph
+            id="refraction-graph"
+            aria-label="График зависимости угла преломления от угла падения"
+          ></lab-graph>
+          <button id="graph-toggle-btn" type="button" aria-pressed="false"
+            class="graph-toggle-btn">
+            Оси: r(i) &#8596; sin
+          </button>
+        </div>
+
+        <!-- Плавающая панель: журнал + результаты -->
+        <div
+          id="measurement-panel"
+          class="measurement-panel"
+          data-state="empty"
+          aria-label="Панель измерений"
+          role="region"
+        >
+          <header class="measurement-panel-header">
+            <button
+              id="measurement-toggle"
+              class="measurement-toggle"
+              type="button"
+              aria-expanded="true"
+              aria-controls="measurement-body"
+            >
+              <svg class="chev" viewBox="0 0 24 24" width="14" height="14"
+                fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+              <span class="measurement-title">Журнал измерений</span>
+              <span id="measurement-count" class="measurement-count" hidden>0</span>
+            </button>
+            <!-- §21 — record-mode toggle инжектируется JS-ом -->
+            <div id="record-mode-slot" class="record-mode-slot"></div>
+          </header>
+
+          <div id="measurement-body" class="measurement-body">
+            <div class="journal-empty" id="journal-empty">
+              Поставьте полуцилиндр и осветитель на транспортир,
+              задайте угол падения и запишите i и r.
+            </div>
+
+            <!-- §21 — контейнер для shared renderJournalTable -->
+            <div id="journal-host" class="journal-host" hidden></div>
+
+            <!-- §21.10 — pending-плашка для semi-auto -->
+            <div id="record-pending-slot" class="record-pending-slot" hidden>
+              <button id="record-pending-btn" class="record-pending-btn" type="button"
+                aria-label="Записать текущее измерение в журнал">
+                <span class="record-icon" aria-hidden="true">&#9998;</span>
+                <span class="record-text">Записать в журнал</span>
+                <span id="record-pending-summary" class="record-summary"></span>
+              </button>
+            </div>
+
+            <!-- Результаты: n — обновляется после записи -->
+            <div id="result-panel" class="result-panel" aria-live="polite" hidden></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- drag-overlay ВНУТРИ сцены -->
+      <div id="drag-overlay" class="drag-overlay" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <!-- Правая панель оборудования -->
+  <section class="equipment-panel" aria-label="Оборудование комплекта №4 ФИПИ — преломление">
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Полуцилиндр</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Полуцилиндр (стекло, n≈1,5)"
+          status="available"
+          data-eq="semicylinder"
+          data-draggable="semicylinder"
+          data-dropzone="semicylinder"
+          data-dropzone-id="card-semicylinder"
+        >
+          <!-- T5: drag цепляется на .eq-glyph, а не на тег-компонент -->
+          <svg class="eq-glyph" viewBox="0 0 80 60" width="80" height="60"
+            aria-label="Полуцилиндр" role="img">
+            <title>Полуцилиндр</title>
+            <!-- Нижний полукруг (стекло) -->
+            <path d="M10 30 A30 30 0 0 1 70 30 Z"
+              fill="rgb(140 180 220 / 0.55)" stroke="#5b8db8" stroke-width="1.5"
+              paint-order="stroke"/>
+            <!-- Плоская грань -->
+            <line x1="10" y1="30" x2="70" y2="30"
+              stroke="#3a6a9a" stroke-width="1.5"/>
+            <!-- Нормаль (пунктир) -->
+            <line x1="40" y1="8" x2="40" y2="52"
+              stroke="#aaaaaa" stroke-width="1" stroke-dasharray="3 3"/>
+          </svg>
+        </lab-equipment-card>
+      </div>
+    </section>
+
+    <section class="equipment-group">
+      <h3 class="equipment-group-title">Осветитель</h3>
+      <div class="equipment-grid equipment-grid-1">
+        <lab-equipment-card
+          title="Осветитель (узкий луч)"
+          status="available"
+          data-eq="emitter"
+          data-draggable="emitter"
+          data-dropzone="emitter"
+          data-dropzone-id="card-emitter"
+        >
+          <!-- T5: drag цепляется на .eq-glyph -->
+          <svg class="eq-glyph" viewBox="0 0 80 60" width="80" height="60"
+            aria-label="Осветитель" role="img">
+            <title>Осветитель</title>
+            <!-- Корпус осветителя -->
+            <rect x="8" y="20" width="36" height="20" rx="4"
+              fill="rgb(60 60 70)" stroke="#888" stroke-width="1.2"
+              paint-order="stroke"/>
+            <!-- Линза-выход луча -->
+            <ellipse cx="44" cy="30" rx="5" ry="9"
+              fill="rgb(200 220 255 / 0.6)" stroke="#7090c0" stroke-width="1"/>
+            <!-- Лучи -->
+            <line x1="49" y1="30" x2="72" y2="30"
+              stroke="#ffe066" stroke-width="2.5"/>
+            <line x1="49" y1="30" x2="68" y2="22"
+              stroke="#ffe066" stroke-width="1.5" opacity="0.6"/>
+            <line x1="49" y1="30" x2="68" y2="38"
+              stroke="#ffe066" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+        </lab-equipment-card>
+      </div>
+    </section>
+  </section>
+</div>
+<div id="live-region" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

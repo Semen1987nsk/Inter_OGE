@@ -35,11 +35,16 @@ import './ui/components/lab-lens';
 import './ui/components/lab-screen';
 import './styles/lens-bench-experiment.css';
 
+// Опыт 4.3/4.6 — приборные компоненты и стили экрана preломления
+import './ui/components/lab-protractor-disc';
+import './styles/refraction-experiment.css';
+
 import { KitShell } from '@shell/KitShell';
 import type { IScreen, ScreenId } from '@shell/IScreen';
 import type { LabKitNav } from './ui/components/lab-kit-nav';
 import type { LabKitHeader } from './ui/components/lab-kit-header';
 import { LensBenchScreen } from '@screens/lens-bench/LensBenchScreen';
+import { RefractionScreen } from '@screens/refraction/RefractionScreen';
 import { homeUrl, readRoleFromUrl, persistRole, readPersistedRole, type Role } from './lib/urls';
 
 // ─── Role: ?role=teacher|student → body[data-role] + role-badge ───
@@ -72,6 +77,7 @@ const header = document.getElementById('kit-header') as LabKitHeader;
 // ЕДИНСТВЕННАЯ и ФИНАЛЬНАЯ регистрация экранов кита-4.
 const screens: IScreen[] = [
   new LensBenchScreen(),
+  new RefractionScreen(),
 ];
 
 navBar.setScreens(screens.map((s) => s.meta));
