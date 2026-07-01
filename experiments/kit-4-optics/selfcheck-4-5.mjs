@@ -652,6 +652,7 @@ async function checkFullyAutoJournal(page) {
     // В fully-auto запись происходит автоматически. Если #record-pending-btn появилась —
     // нажать её (в fully-auto может быть видна в C-image, для D-combo нет, но на всякий случай).
     // Если нет — попытаться programmatic (в fully-auto авторегистрация — это часть дизайна).
+    const measuresBefore = await page.evaluate(() => window.lensBenchExperiment?.measurements?.length ?? 0);
     const btn = page.locator('#record-pending-btn');
     const btnVisible = await btn.isVisible().catch(() => false);
     if (btnVisible) {
@@ -663,7 +664,13 @@ async function checkFullyAutoJournal(page) {
       // (это НЕ D&D flow, а механизм режима fully-auto)
       await page.evaluate(() => window.lensBenchExperiment?.recordMeasurement?.());
       await page.waitForTimeout(300);
-      pass('4.5 fully-auto: запись через recordMeasurement() — в fully-auto авто-запись допустима');
+      const measuresAfter = await page.evaluate(() => window.lensBenchExperiment?.measurements?.length ?? 0);
+      if (measuresAfter > measuresBefore) {
+        pass('4.5 fully-auto: запись через recordMeasurement() — measurements.length увеличился');
+      } else {
+        fail('4.5 fully-auto: recordMeasurement() не добавил строку',
+          `before=${measuresBefore}, after=${measuresAfter} — авто-запись не сработала`);
+      }
     }
 
     await screenshot(page, '09-fully-auto-recorded');

@@ -980,6 +980,34 @@ describe('Задача D (4.5) — две сложенные линзы', () => 
     expect(exp.placeInSlot('lens', 'lens-2')).toBe(true);
     expect(exp.placeInSlot('lens', 'lens-3')).toBe(false); // capacity=2 исчерпана
   });
+
+  it('задача A: activeTask=A при placeInSlot lens — гейт глифа активен (D-only)', () => {
+    const { exp } = make();
+    // A-power: placeInSlot с одной линзой — activeTask остаётся A, не D.
+    // setLensStack([]) вызывается в A (гейт), поэтому .lens-glyph = 0.
+    // Прямая проверка shadowRoot недоступна в unit; проверяем контракт: activeTask=A
+    // и что combinedFocalMm вычисляется корректно (линза 100мм в стеке → 100).
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('lens', 'lens');
+    exp.placeInSlot('screen', 'screen');
+    expect(exp.activeTask).toBe('A-power');
+    // В A линза помещается в stackedLenses (стейт), combinedFocalMm читает оттуда → 100.
+    // setLensStack в A гейтируется → вызывается с [] (глифов нет). Это проверяет selfcheck п.4.
+    expect(exp.combinedFocalMm).toBeCloseTo(100, 0);
+  });
+
+  it('задача D: 2 глифа после стопки двух линз', () => {
+    const { exp } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object');
+    exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens-2');
+    exp.placeInSlot('lens', 'lens-3');
+    // В задаче D стек заполнен двумя линзами → setLensStack([50, -75])
+    // combinedFocalMm ≈ 150 подтверждает что обе линзы в стеке.
+    expect(exp.combinedFocalMm).toBeCloseTo(150, 0);
+    // Прямую проверку .lens-glyph оставляем selfcheck (shadowRoot не доступен в unit).
+  });
 });
 
 // ─── Task 5: журнал/результат/хинт задачи D ──────────────────────────────────
@@ -1010,9 +1038,18 @@ describe('Задача D (4.5) — журнал/результат/хинт (Tas
     exp.placeInSlot('object', 'light-object'); exp.placeInSlot('screen', 'screen');
     exp.placeInSlot('lens', 'lens-2'); exp.placeInSlot('lens', 'lens-3');
     exp.setScreenDistanceMm(300); exp.recordMeasurement();
-    // dComb_dptr — редактируемая (пустая), НЕ содержит числа-ответа
-    const dComb = host.querySelector('[data-key="dComb_dptr"]');
-    expect(dComb?.textContent ?? '').not.toMatch(/6[.,]7|30/);
+    // derived-ячейки рендерятся как <td><input data-key="..."></td> в fully-manual.
+    // Проверяем VALUE инпута, а не textContent td (который всегда '' при наличии дочернего input).
+    const dCombInput = host.querySelector<HTMLInputElement>('input[data-key="dComb_dptr"]');
+    expect(dCombInput).not.toBeNull();
+    expect(dCombInput!.value).toBe('');
+    const fCombInput = host.querySelector<HTMLInputElement>('input[data-key="fComb_mm"]');
+    expect(fCombInput).not.toBeNull();
+    expect(fCombInput!.value).toBe('');
+    // direct-поля: минимальная гарантия — measurements содержит строку с d1_dptr=20 и d_mm=300.
+    const m = exp.measurements.at(-1)!;
+    expect(m.d1_dptr).toBeCloseTo(20, 1);   // D соб2=50мм → 1/0.05=20 дптр
+    expect(m.d_mm).toBe(300);
     localStorage.removeItem('inter-oge.record-mode.kit-4');
   });
 
@@ -1028,8 +1065,12 @@ describe('Задача D (4.5) — журнал/результат/хинт (Tas
     const live = host.querySelector('#live-region')!.textContent ?? '';
     expect(live.length).toBeGreaterThan(0);        // announce сработал (иначе проверка «нет чисел» тавтологична на пустой строке)
     expect(live).not.toMatch(/150|6[.,]7/);       // ни F_комб, ни D_комб
-    const rp = host.querySelector('#result-panel')!.textContent ?? '';
-    expect(rp).not.toMatch(/150|6[.,]7/);
+    // result-panel: guard непустоты/видимости перед проверкой утечки
+    const rpEl = host.querySelector<HTMLElement>('#result-panel')!;
+    expect(rpEl.hidden).toBe(false);              // guard: result-panel должен быть виден (иначе проверка тавтологична)
+    const rp = rpEl.textContent ?? '';
+    expect(rp.length).toBeGreaterThan(0);          // guard: непустой (иначе «нет 6,7» тавтологично)
+    expect(rp).not.toMatch(/6[.,]7/);             // D_комб combo2 — уникальный числовой ответ (150 не уникально)
     localStorage.removeItem('inter-oge.record-mode.kit-4');
   });
 

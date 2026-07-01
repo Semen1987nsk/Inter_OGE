@@ -467,12 +467,13 @@ export class LensBenchExperiment {
       const f1 = LENS_CATALOG[id1!]; const f2 = LENS_CATALOG[id2!];
       const d = st.objectDistanceMm; const f = st.screenDistanceMm;
       const F = focalFromDistances(d, f);
+      const fmtF = (fv: number): string => fv < 0 ? '−' + Math.abs(fv) : String(fv);
       const measurement: BenchMeasurement = {
         id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
         timestamp: Date.now(), task: 'D-combo',
         d_mm: d, f_mm: f, F_mm: F, D_dptr: opticalPower(F / 1000),
         d1_dptr: opticalPower(f1 / 1000), d2_dptr: opticalPower(f2 / 1000),
-        comboLabel: `${f1} + ${f2} мм`,
+        comboLabel: `${fmtF(f1)} + ${fmtF(f2)} мм`,
       };
       this.#store.update((s) => ({ measurements: [...s.measurements, measurement] }));
       this.#lastRecordedSignature = this.#pendingSignature();
@@ -796,7 +797,9 @@ export class LensBenchExperiment {
       : focals.length === 1 ? focals[0]!
       : combinedFocal(...focals);
     this.#store.update(() => ({ lensF_mm: F }));
-    this.#refs.bench.setLensStack(focals);
+    // Глиф стопки линз рисуется только в задаче D (в A/B/C визуально не менялось).
+    const isD = this.#store.get().activeTask === 'D-combo';
+    this.#refs.bench.setLensStack(isD ? focals : []);
     this.#refs.bench.setLensFocalMm(F);
   }
 
@@ -913,7 +916,7 @@ export class LensBenchExperiment {
         st.activeTask === 'C-image'
           ? `Зона ${zoneLabelRu(objectZone(st.lensF_mm, st.objectDistanceMm))}`
           : st.activeTask === 'D-combo'
-            ? `${st.stackedLenses.length} линз, f=${st.screenDistanceMm.toFixed(0)} мм`
+            ? `2 линзы, f=${st.screenDistanceMm.toFixed(0)} мм`
             : st.activeTask === 'B-focal2f'
               ? `2F=${st.objectDistanceMm.toFixed(0)} мм`
               : `d=${st.objectDistanceMm.toFixed(0)} мм, f=${st.screenDistanceMm.toFixed(0)} мм`;
