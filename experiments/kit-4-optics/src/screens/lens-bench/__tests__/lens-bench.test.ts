@@ -1023,8 +1023,10 @@ describe('Задача D (4.5) — журнал/результат/хинт (Tas
     exp.placeInSlot('object', 'light-object'); exp.placeInSlot('screen', 'screen');
     exp.placeInSlot('lens', 'lens-2'); exp.placeInSlot('lens', 'lens-3');
     exp.setScreenDistanceMm(300); exp.recordMeasurement();
-    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    // HintEngine.announce пишет через двойной rAF (сначала textContent='', потом в след. кадре пишет).
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
     const live = host.querySelector('#live-region')!.textContent ?? '';
+    expect(live.length).toBeGreaterThan(0);        // announce сработал (иначе проверка «нет чисел» тавтологична на пустой строке)
     expect(live).not.toMatch(/150|6[.,]7/);       // ни F_комб, ни D_комб
     const rp = host.querySelector('#result-panel')!.textContent ?? '';
     expect(rp).not.toMatch(/150|6[.,]7/);
