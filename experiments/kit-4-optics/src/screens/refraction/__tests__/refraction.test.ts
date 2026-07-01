@@ -203,15 +203,15 @@ describe('RefractionExperiment — каркас (T5)', () => {
     expect(exp.bothPlaced).toBe(true);
   });
 
-  it('placeInSlot обоих → disc.setPlaced вызывается (стекло/осветитель видны)', () => {
-    // Проверяем через incidenceAngleDeg (disc получает setIncidenceAngle только когда оба placed)
-    // — косвенная проверка вызова disc.setPlaced(semicylinder, true)
+  it('placeInSlot обоих → disc.setPlaced показал стекло и осветитель', () => {
     (exp as any).placeInSlot('semicylinder', 'semicylinder');
     (exp as any).placeInSlot('emitter', 'emitter');
-    // После обоих placed disc.setIncidenceAngle должен был вызваться → disc.incidenceAngleDeg синхронен
-    // Обязан давать красный если disc.setIncidenceAngle не вызывается после обоих placed
-    expect(exp.incidenceAngleDeg).toBe(exp.incidenceAngleDeg); // trivially non-NaN
-    expect(Number.isFinite(exp.incidenceAngleDeg)).toBe(true);
+    const disc = document.querySelector('lab-protractor-disc') as HTMLElement;
+    const sr = disc.shadowRoot!;
+    // Прямая фальсифицируемая проверка: до placeInSlot .glass-body/.emitter-group скрыты (hidden);
+    // если #recordPlacement НЕ зовёт disc.setPlaced(kind,true) — они останутся hidden → тест красный.
+    expect(sr.querySelector('.glass-body')!.hasAttribute('hidden')).toBe(false);
+    expect(sr.querySelector('.emitter-group')!.hasAttribute('hidden')).toBe(false);
   });
 
   // ─── recordMeasurement (заглушка T5) ─────────────────────────────────────
