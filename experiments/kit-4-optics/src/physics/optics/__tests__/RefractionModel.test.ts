@@ -127,12 +127,12 @@ describe('property fuzzing — ≥12 инвариантных категорий
     // Fix 1: (12) монотонность по n — для фиксированного i>0 больший n → меньший r
     // Инвариант ФАЛЬСИФИЦИРУЕМ: если refractionAngle вернёт константу или возрастающую функцию n,
     // тест покраснеет. Проверено: временный фикс (return 30 константа) → тест красный.
-    const nSet = [1.1, 1.3, 1.5, 1.8];
+    // Пары (n_меньшее, n_большее) кортежами — избегаем индексации массива
+    // (noUncheckedIndexedAccess дал бы number | undefined).
+    const nPairs: ReadonlyArray<readonly [number, number]> = [[1.1, 1.3], [1.3, 1.5], [1.5, 1.8]];
     const iSet = [10, 30, 45, 60, 80];
     for (const iDeg of iSet) {
-      for (let j = 0; j < nSet.length - 1; j++) {
-        const nSmall = nSet[j];
-        const nBig = nSet[j + 1];
+      for (const [nSmall, nBig] of nPairs) {
         // n↑ → r↓ (больший n2 → сильнее преломление к нормали → меньший r)
         expect(refractionAngle(iDeg, 1, nBig)).toBeLessThan(refractionAngle(iDeg, 1, nSmall));
         iters++;
