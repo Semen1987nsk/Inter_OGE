@@ -15,6 +15,10 @@
           <span class="step-num">C</span>
           <span class="step-label">Свойства изображения <small>(4.4)</small></span>
         </button>
+        <button class="step" data-task="D-combo" tabindex="-1" role="tab" aria-selected="false" type="button">
+          <span class="step-num">D</span>
+          <span class="step-label">Две линзы <small>(4.5)</small></span>
+        </button>
       </div>
       <div class="workbench-hint" id="hint-bar">
         Перетащите приборы с правой панели на оптическую скамью.
@@ -185,6 +189,22 @@
           data-dropzone-id="card-lens"
         >
           <lab-lens focal-mm="100"></lab-lens>
+        </lab-equipment-card>
+        <lab-equipment-card
+          class="combo-lens"
+          title="Собирающая линза F2 = 50 мм"
+          status="available" data-eq="lens-2" data-draggable="lens"
+          data-dropzone="lens" data-dropzone-id="card-lens-2" hidden
+        >
+          <lab-lens focal-mm="50"></lab-lens>
+        </lab-equipment-card>
+        <lab-equipment-card
+          class="combo-lens"
+          title="Рассеивающая линза F3 = −75 мм"
+          status="available" data-eq="lens-3" data-draggable="lens"
+          data-dropzone="lens" data-dropzone-id="card-lens-3" hidden
+        >
+          <lab-lens focal-mm="-75"></lab-lens>
         </lab-equipment-card>
       </div>
     </section>

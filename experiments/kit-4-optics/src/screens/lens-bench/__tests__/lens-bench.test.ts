@@ -728,14 +728,14 @@ describe('LensBenchScreen — IScreen lifecycle', () => {
     host.remove();
   });
 
-  it('template содержит task-switcher #steps с задачами A/B/C (4.1/4.2/4.4)', () => {
+  it('template содержит task-switcher #steps с задачами A/B/C/D (4.1/4.2/4.4/4.5)', () => {
     const { host, screen } = mountScreen();
     const steps = host.querySelector('#steps');
     expect(steps).not.toBeNull();
     const tasks = host.querySelectorAll('#steps [data-task]');
-    expect(tasks.length).toBe(3);
+    expect(tasks.length).toBe(4);
     const ids = Array.from(tasks).map((t) => (t as HTMLElement).dataset['task']);
-    expect(ids).toEqual(['A-power', 'B-focal2f', 'C-image']);
+    expect(ids).toEqual(['A-power', 'B-focal2f', 'C-image', 'D-combo']);
     screen.unmount();
     host.remove();
   });
@@ -1044,5 +1044,90 @@ describe('Задача D (4.5) — журнал/результат/хинт (Tas
     const rp = host.querySelector('#result-panel')!.textContent ?? '';
     expect(rp).toMatch(/D_комб|ΣD|склад/i);
     localStorage.removeItem('inter-oge.record-mode.kit-4');
+  });
+});
+
+// ─── Task 6: шаг D в tablist + карточки combo-линз ────────────────────────────
+
+describe('Task 6 — шаг D в tablist + карточки combo-линз', () => {
+  function mountScreen() {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const screen = new LensBenchScreen();
+    screen.mount(host);
+    const exp = (window as unknown as { lensBenchExperiment?: LensBenchExperiment }).lensBenchExperiment!;
+    return { host, screen, exp };
+  }
+
+  afterEach(() => {
+    globalThis.gc?.();
+  });
+
+  it('шаг D присутствует в tablist, role=tab, aria-selected=false изначально', () => {
+    const { host, screen } = mountScreen();
+    const dTab = host.querySelector<HTMLElement>('[data-task="D-combo"]');
+    expect(dTab).not.toBeNull();
+    expect(dTab!.getAttribute('role')).toBe('tab');
+    expect(dTab!.getAttribute('aria-selected')).toBe('false');
+    screen.unmount();
+    host.remove();
+  });
+
+  it('клик по шагу D переключает activeTask на D-combo', () => {
+    const { host, screen, exp } = mountScreen();
+    const dTab = host.querySelector<HTMLElement>('[data-task="D-combo"]')!;
+    expect(dTab).not.toBeNull(); // guard: тест падает если D нет в template
+    dTab.click();
+    expect(exp.activeTask).toBe('D-combo');
+    screen.unmount();
+    host.remove();
+  });
+
+  it('карточки [data-eq=lens-2] и [data-eq=lens-3] присутствуют в DOM', () => {
+    const { host, screen } = mountScreen();
+    const lens2 = host.querySelector('[data-eq="lens-2"]');
+    const lens3 = host.querySelector('[data-eq="lens-3"]');
+    expect(lens2).not.toBeNull(); // combo-карточка соб2 обязана быть в template
+    expect(lens3).not.toBeNull(); // combo-карточка рассеив3 обязана быть в template
+    screen.unmount();
+    host.remove();
+  });
+
+  it('combo-карточки скрыты в задаче A (hidden по умолчанию)', () => {
+    const { host, screen } = mountScreen();
+    // A-power — начальная задача; combo-карточки должны быть hidden
+    const lens2 = host.querySelector<HTMLElement>('[data-eq="lens-2"]')!;
+    const lens3 = host.querySelector<HTMLElement>('[data-eq="lens-3"]')!;
+    expect(lens2).not.toBeNull();
+    expect(lens3).not.toBeNull();
+    expect(lens2.hidden).toBe(true);  // скрыты в A
+    expect(lens3.hidden).toBe(true);
+    screen.unmount();
+    host.remove();
+  });
+
+  it('combo-карточки становятся видимыми при переключении на D', () => {
+    const { host, screen, exp } = mountScreen();
+    const lens2 = host.querySelector<HTMLElement>('[data-eq="lens-2"]')!;
+    const lens3 = host.querySelector<HTMLElement>('[data-eq="lens-3"]')!;
+    expect(lens2).not.toBeNull();
+    exp.setActiveTask('D-combo');
+    expect(lens2.hidden).toBe(false); // показаны в D
+    expect(lens3.hidden).toBe(false);
+    screen.unmount();
+    host.remove();
+  });
+
+  it('combo-карточки снова скрываются при переключении D→A', () => {
+    const { host, screen, exp } = mountScreen();
+    const lens2 = host.querySelector<HTMLElement>('[data-eq="lens-2"]')!;
+    const lens3 = host.querySelector<HTMLElement>('[data-eq="lens-3"]')!;
+    exp.setActiveTask('D-combo');
+    expect(lens2.hidden).toBe(false);
+    exp.setActiveTask('A-power');
+    expect(lens2.hidden).toBe(true);  // снова скрыты после возврата в A
+    expect(lens3.hidden).toBe(true);
+    screen.unmount();
+    host.remove();
   });
 });

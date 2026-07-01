@@ -319,6 +319,7 @@ export class LensBenchExperiment {
     this.#applyScreenSliderRange(this.#store.get().activeTask);
     this.#refreshObjectSliderVisibility();
     this.#refreshTaskStepper();
+    this.#refreshComboLensVisibility();
     this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
@@ -415,6 +416,7 @@ export class LensBenchExperiment {
     this.#syncObjectSlider(def.objectMm);
     this.#refreshObjectSliderVisibility();
     this.#refreshTaskStepper();
+    this.#refreshComboLensVisibility();
     this.#updateZoneReadout();
     this.#refreshUi();
     this.#hints.update(this.#store.get());
@@ -1152,6 +1154,14 @@ export class LensBenchExperiment {
       item.setAttribute('aria-selected', isActive ? 'true' : 'false');
       item.setAttribute('aria-current', isActive ? 'true' : 'false');
       item.tabIndex = isActive ? 0 : -1;
+    });
+  }
+
+  /** Скрыть/показать combo-only карточки (соб2/рассеив3): видны ТОЛЬКО в задаче D. */
+  #refreshComboLensVisibility(): void {
+    const isD = this.#store.get().activeTask === 'D-combo';
+    this.#cardByEquipmentId.forEach((card, id) => {
+      if (id === 'lens-2' || id === 'lens-3') card.hidden = !isD;
     });
   }
 
