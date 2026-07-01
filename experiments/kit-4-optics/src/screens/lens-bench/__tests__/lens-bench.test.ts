@@ -981,3 +981,66 @@ describe('Задача D (4.5) — две сложенные линзы', () => 
     expect(exp.placeInSlot('lens', 'lens-3')).toBe(false); // capacity=2 исчерпана
   });
 });
+
+// ─── Task 5: журнал/результат/хинт задачи D ──────────────────────────────────
+
+describe('Задача D (4.5) — журнал/результат/хинт (Task 5)', () => {
+  const created: Array<{ exp: LensBenchExperiment; host: HTMLElement }> = [];
+
+  function make(): { exp: LensBenchExperiment; refs: ExperimentRefs; host: HTMLElement } {
+    const result = makeExperiment();
+    created.push({ exp: result.exp, host: result.host });
+    return result;
+  }
+
+  afterEach(() => {
+    while (created.length > 0) {
+      const item = created.pop()!;
+      item.exp.destroy();
+      item.host.remove();
+    }
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+    globalThis.gc?.();
+  });
+
+  it('journal D fully-manual: derived пусты, direct заполнены', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-manual');
+    const { exp, host } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object'); exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens-2'); exp.placeInSlot('lens', 'lens-3');
+    exp.setScreenDistanceMm(300); exp.recordMeasurement();
+    // dComb_dptr — редактируемая (пустая), НЕ содержит числа-ответа
+    const dComb = host.querySelector('[data-key="dComb_dptr"]');
+    expect(dComb?.textContent ?? '').not.toMatch(/6[.,]7|30/);
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+  });
+
+  it('a11y: live-region не палит F_комб/D_комб в semi-auto', async () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'semi-auto');
+    const { exp, host } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object'); exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens-2'); exp.placeInSlot('lens', 'lens-3');
+    exp.setScreenDistanceMm(300); exp.recordMeasurement();
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+    const live = host.querySelector('#live-region')!.textContent ?? '';
+    expect(live).not.toMatch(/150|6[.,]7/);       // ни F_комб, ни D_комб
+    const rp = host.querySelector('#result-panel')!.textContent ?? '';
+    expect(rp).not.toMatch(/150|6[.,]7/);
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+  });
+
+  it('result-panel fully-auto: показывает правило и числа', () => {
+    localStorage.setItem('inter-oge.record-mode.kit-4', 'fully-auto');
+    const { exp, host } = make();
+    exp.setActiveTask('D-combo');
+    exp.placeInSlot('object', 'light-object'); exp.placeInSlot('screen', 'screen');
+    exp.placeInSlot('lens', 'lens'); exp.placeInSlot('lens', 'lens-2');  // F=33
+    exp.setScreenDistanceMm(imageForF(33.33, 300)); // резко
+    exp.recordMeasurement();
+    const rp = host.querySelector('#result-panel')!.textContent ?? '';
+    expect(rp).toMatch(/D_комб|ΣD|склад/i);
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+  });
+});

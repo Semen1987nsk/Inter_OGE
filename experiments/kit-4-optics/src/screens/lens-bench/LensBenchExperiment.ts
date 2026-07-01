@@ -225,6 +225,22 @@ class HintEngine {
       this.#set(`Добавьте на скамью: ${missingLabels}.`);
       return;
     }
+    if (st.activeTask === 'D-combo') {
+      const n = st.stackedLenses.length;
+      if (n < 2) { this.#set('Сложите ВТОРУЮ линзу в то же гнездо с первой.'); return; }
+      const focals = st.stackedLenses.map((id) => LENS_CATALOG[id]);
+      const F = combinedFocal(...focals);
+      if (!(Number.isFinite(F) && F > 0)) {
+        this.#set('Рассеивающая система: действительного изображения на экране нет. Соберите две собирающие или собирающую сильнее рассеивающей.');
+        return;
+      }
+      const plane = imageDistance(F, st.objectDistanceMm);
+      const sharp = Number.isFinite(plane) && plane > 0 && Math.abs(st.screenDistanceMm - plane) < 5;
+      this.#set(sharp
+        ? 'Резко! Запишите D₁, D₂, d, f. Сложите силы: D_комб = D₁ + D₂.'
+        : 'Двигайте экран до резкого изображения от сложенных линз.');
+      return;
+    }
     if (st.activeTask === 'C-image') {
       const zone = objectZone(st.lensF_mm, st.objectDistanceMm);
       this.#set(`Двигайте предмет по зонам. Сейчас: ${zoneLabelRu(zone)}. Запишите наблюдение и классифицируйте изображение.`);
@@ -351,7 +367,11 @@ export class LensBenchExperiment {
   get combinedFocalMm(): number {
     const focals = this.#store.get().stackedLenses.map((id) => LENS_CATALOG[id]);
     if (focals.length === 0) return Number.NaN;
-    return focals.length === 1 ? focals[0]! : combinedFocal(...focals);
+    if (focals.length === 1) {
+      const f0 = focals[0]!;
+      return Number.isFinite(f0) && f0 !== 0 ? f0 : Number.NaN;
+    }
+    return combinedFocal(...focals);
   }
 
   /** Задача D: две линзы и система рассеивающая (F_комб ≤ 0) — действит. изображения нет. */
@@ -954,11 +974,22 @@ export class LensBenchExperiment {
             `<p class="result-note">Выберите вид, ориентацию и размер изображения в журнале и проверьте (✓).${gammaNote}</p>`;
         }
       } else if (st.activeTask === 'D-combo') {
-        // Task 5 добавит полную ветку. Task 4: результат скрыт.
-        this.#refs.resultPanel.hidden = true;
-        this.#refs.resultPanel.innerHTML = '';
-        this.#lastAnnouncedResult = '';
-        html = ''; // значение не используется, но переменная должна быть инициализирована
+        const last = taskMeasurements[taskMeasurements.length - 1]!;
+        if (isFullyAuto) {
+          const d1 = (last.d1_dptr ?? 0).toFixed(1).replace('.', ',');
+          const d2 = (last.d2_dptr ?? 0).toFixed(1).replace('.', ',');
+          const dComb = (last.d1_dptr ?? 0) + (last.d2_dptr ?? 0);
+          const dCombStr = dComb.toFixed(1).replace('.', ',');
+          const fRule = (dComb !== 0 ? 1000 / dComb : 0).toFixed(0);
+          const fMeas = last.F_mm.toFixed(0);
+          html =
+            `<p class="result-line"><strong>D_комб</strong> = D₁ + D₂ = ${d1} + ${d2} = ${dCombStr} дптр</p>` +
+            `<p class="result-note">F по правилу 1000/D_комб = ${fRule} мм ≈ измеренное F_комб = ${fMeas} мм. Оптические силы складываются.</p>`;
+        } else {
+          html =
+            `<p class="result-line">Строка записана.</p>` +
+            `<p class="result-note">Сложите оптические силы: D_комб = D₁ + D₂. Сравните 1000/D_комб с измеренным F_комб = d·f/(d+f).</p>`;
+        }
       } else if (st.activeTask === 'B-focal2f') {
         const last = taskMeasurements[taskMeasurements.length - 1]!;
         const twoFstr = (last.twoF_mm ?? last.d_mm).toFixed(0);
@@ -991,12 +1022,10 @@ export class LensBenchExperiment {
             `<p class="result-note">Вычислите F и D по формулам и проверьте в таблице.</p>`;
         }
       }
-      if (st.activeTask !== 'D-combo') {
-        this.#refs.resultPanel.hidden = false;
-        if (html !== this.#lastAnnouncedResult) {
-          this.#refs.resultPanel.innerHTML = html;
-          this.#lastAnnouncedResult = html;
-        }
+      this.#refs.resultPanel.hidden = false;
+      if (html !== this.#lastAnnouncedResult) {
+        this.#refs.resultPanel.innerHTML = html;
+        this.#lastAnnouncedResult = html;
       }
     } else {
       this.#refs.resultPanel.hidden = true;
@@ -1021,12 +1050,18 @@ export class LensBenchExperiment {
   #buildJournalRow(m: BenchMeasurement, idx: number): JournalRow {
     const isFullyAuto = this.#recordMode() === 'fully-auto';
     if (m.task === 'D-combo') {
-      // TODO Task 5: derived только в fully-auto
-      return { idx, timestamp: m.timestamp, values: {
-        idx, combo: m.comboLabel ?? '',
-        d1_dptr: m.d1_dptr ?? 0, d2_dptr: m.d2_dptr ?? 0, dComb_dptr: null,
-        d_mm: m.d_mm, f_mm: m.f_mm, fComb_mm: null,
-      } };
+      const d1 = m.d1_dptr ?? 0; const d2 = m.d2_dptr ?? 0;
+      return {
+        idx, timestamp: m.timestamp,
+        values: {
+          idx,
+          combo: m.comboLabel ?? '',
+          d1_dptr: d1, d2_dptr: d2,                       // direct — всегда
+          dComb_dptr: isFullyAuto ? d1 + d2 : null,       // derived — только fully-auto
+          d_mm: m.d_mm, f_mm: m.f_mm,                     // direct — всегда
+          fComb_mm: isFullyAuto ? m.F_mm : null,           // derived — только fully-auto
+        },
+      };
     }
     if (m.task === 'C-image') {
       const props = imageProperties(m.F_mm, m.d_mm);
