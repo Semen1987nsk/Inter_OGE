@@ -12,7 +12,7 @@ export interface SnapZone {
   accepts: ReadonlyArray<string>;
   getRect(): DOMRect;
   onHover?(active: boolean): void;
-  onDrop(payload: { equipmentId: string }): boolean;
+  onDrop(payload: { equipmentId: string; kind: string }): boolean;
 }
 
 export interface DragState<TKind extends string, TId extends string> {
@@ -42,12 +42,14 @@ export class OpticalDragController<TKind extends string, TId extends string> {
     opts: {
       equipmentId: TId;
       kind: TKind;
+      canDrag?(): boolean;
       onDragStart(): void;
       onDragEnd(): void;
     },
   ): void {
     el.addEventListener('pointerdown', (ev) => {
       if (ev.button !== 0) return;
+      if (opts.canDrag && !opts.canDrag()) return;
       ev.preventDefault();
 
       const rect = el.getBoundingClientRect();
@@ -118,7 +120,7 @@ export class OpticalDragController<TKind extends string, TId extends string> {
 
       const zone = this.#findZone(ev.clientX, ev.clientY, st.kind);
       if (zone) {
-        this.#zones.get(zone)?.onDrop({ equipmentId: st.equipmentId });
+        this.#zones.get(zone)?.onDrop({ equipmentId: st.equipmentId, kind: st.kind });
       }
 
       opts.onDragEnd();

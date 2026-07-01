@@ -1,6 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BenchTopology, BENCH_TOPOLOGY_4_1 } from '../OpticalBenchAssembly';
 
+describe('BenchTopology capacity', () => {
+  it('гнездо capacity=2 принимает две линзы, третью отклоняет', () => {
+    const t = new BenchTopology([{ id: 'lens', role: 'lens', accepts: ['lens'], capacity: 2 }]);
+    expect(t.place('lens', 'lens')).toBe(true);
+    expect(t.place('lens', 'lens')).toBe(true);
+    expect(t.place('lens', 'lens')).toBe(false); // capacity исчерпана
+    expect(t.slotStack('lens')).toEqual(['lens', 'lens']);
+  });
+
+  it('capacity по умолчанию = 1 (обратная совместимость)', () => {
+    const t = new BenchTopology([{ id: 'screen', role: 'screen', accepts: ['screen'] }]);
+    expect(t.place('screen', 'screen')).toBe(true);
+    expect(t.place('screen', 'screen')).toBe(false);
+    expect(t.slotFilledBy('screen')).toBe('screen');
+  });
+
+  it('validate: слот пуст (length 0) → ошибка; заполненный → ok', () => {
+    const t = new BenchTopology([{ id: 'lens', role: 'lens', accepts: ['lens'], capacity: 2 }]);
+    expect(t.validate().ok).toBe(false);
+    t.place('lens', 'lens');
+    expect(t.validate().ok).toBe(true);
+    expect(t.isComplete()).toBe(true);
+  });
+
+  it('reset очищает стек', () => {
+    const t = new BenchTopology([{ id: 'lens', role: 'lens', accepts: ['lens'], capacity: 2 }]);
+    t.place('lens', 'lens'); t.place('lens', 'lens');
+    t.reset();
+    expect(t.slotStack('lens')).toEqual([]);
+    expect(t.validate().ok).toBe(false);
+  });
+});
+
 describe('BenchTopology (опыт 4.1)', () => {
   it('пустая → не complete, не ok', () => {
     const t = new BenchTopology(BENCH_TOPOLOGY_4_1);
@@ -122,9 +155,9 @@ describe('OpticalBenchAssembly', () => {
     const topo = new BenchTopology(BENCH_TOPOLOGY_4_1);
     new OpticalBenchAssembly(board, topo, dc);
 
-    dc._zones.get('bench-slot-object')!.onDrop({ equipmentId: 'light-object' });
-    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens' });
-    dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'screen' });
+    dc._zones.get('bench-slot-object')!.onDrop({ equipmentId: 'light-object', kind: 'light-object' });
+    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens', kind: 'lens' });
+    dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'screen', kind: 'screen' });
     expect(topo.isComplete()).toBe(true);
   });
 
@@ -134,7 +167,7 @@ describe('OpticalBenchAssembly', () => {
     const topo = new BenchTopology(BENCH_TOPOLOGY_4_1);
     new OpticalBenchAssembly(board, topo, dc);
 
-    const accepted = dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'lens' });
+    const accepted = dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'lens', kind: 'lens' });
     expect(accepted).toBe(false);
     expect(topo.slotFilledBy('screen')).toBeNull();
   });
@@ -156,7 +189,7 @@ describe('OpticalBenchAssembly', () => {
     const dc = makeDragController();
     const topo = new BenchTopology(BENCH_TOPOLOGY_4_1);
     const asm = new OpticalBenchAssembly(board, topo, dc);
-    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens' });
+    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens', kind: 'lens' });
     expect(topo.slotFilledBy('lens')).toBe('lens');
     asm.removeFromSlot('lens');
     expect(topo.slotFilledBy('lens')).toBeNull();
@@ -169,11 +202,11 @@ describe('OpticalBenchAssembly', () => {
     const onPlaced = vi.fn();
     new OpticalBenchAssembly(board, topo, dc, { onPlaced });
 
-    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens' });
+    dc._zones.get('bench-slot-lens')!.onDrop({ equipmentId: 'lens', kind: 'lens' });
     expect(onPlaced).toHaveBeenCalledWith('lens', 'lens');
 
     // неуспешный drop не дёргает onPlaced
-    dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'lens' });
+    dc._zones.get('bench-slot-screen')!.onDrop({ equipmentId: 'lens', kind: 'lens' });
     expect(onPlaced).toHaveBeenCalledTimes(1);
   });
 

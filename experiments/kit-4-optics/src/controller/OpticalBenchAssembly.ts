@@ -18,12 +18,15 @@ export interface SlotDef {
   readonly id: string;
   readonly role: SlotRole;
   readonly accepts: ReadonlyArray<string>;
+  /** Максимум приборов в гнезде (стопка линз = 2). По умолчанию 1. */
+  readonly capacity?: number;
 }
 
 interface SlotState {
   readonly role: SlotRole;
   readonly accepts: ReadonlyArray<string>;
-  filledBy: string | null;
+  readonly capacity: number;
+  filledBy: string[];
 }
 
 export interface ValidationResult {
@@ -51,32 +54,37 @@ export class BenchTopology {
 
   constructor(defs: ReadonlyArray<SlotDef>) {
     this.#slots = new Map(
-      defs.map((d) => [d.id, { role: d.role, accepts: d.accepts, filledBy: null }]),
+      defs.map((d) => [d.id, { role: d.role, accepts: d.accepts, capacity: d.capacity ?? 1, filledBy: [] }]),
     );
   }
 
   /**
    * Попытаться разместить прибор eqKind в слот slotId.
-   * Возвращает false если: слот не существует, прибор не в accepts, или слот уже занят.
+   * Возвращает false если: слот не существует, прибор не в accepts, или слот заполнен до capacity.
    */
   place(slotId: string, eqKind: string): boolean {
     const slot = this.#slots.get(slotId);
     if (!slot) return false;
     if (!slot.accepts.includes(eqKind)) return false;
-    if (slot.filledBy !== null) return false;
-    slot.filledBy = eqKind;
+    if (slot.filledBy.length >= slot.capacity) return false;
+    slot.filledBy.push(eqKind);
     return true;
   }
 
   /** Освободить слот. Нет-оп если слот не существует или уже пуст. */
   remove(slotId: string): void {
     const slot = this.#slots.get(slotId);
-    if (slot) slot.filledBy = null;
+    if (slot) slot.filledBy = [];
   }
 
-  /** Что сейчас занимает слот. null если пуст или слот не существует. */
+  /** Первый занявший слот прибор (обратная совместимость). null если пуст или слот не существует. */
   slotFilledBy(slotId: string): string | null {
-    return this.#slots.get(slotId)?.filledBy ?? null;
+    return this.#slots.get(slotId)?.filledBy[0] ?? null;
+  }
+
+  /** Все kind'ы в слоте (стопка). Пустой массив если слот пуст/не существует. */
+  slotStack(slotId: string): readonly string[] {
+    return this.#slots.get(slotId)?.filledBy ?? [];
   }
 
   /** Валидация топологии — полнота скамьи. */
@@ -90,7 +98,7 @@ export class BenchTopology {
     };
 
     for (const [id, slot] of this.#slots) {
-      if (slot.filledBy === null) {
+      if (slot.filledBy.length === 0) {
         errors.push(`Слот '${id}' (${roleLabel[slot.role]}) пуст`);
       }
     }
@@ -101,14 +109,14 @@ export class BenchTopology {
   /** Очистить все слоты (сброс скамьи). */
   reset(): void {
     for (const slot of this.#slots.values()) {
-      slot.filledBy = null;
+      slot.filledBy = [];
     }
   }
 
-  /** Все слоты заняты? */
+  /** Все слоты заняты (хотя бы по одному прибору в каждом)? */
   isComplete(): boolean {
     for (const slot of this.#slots.values()) {
-      if (slot.filledBy === null) return false;
+      if (slot.filledBy.length === 0) return false;
     }
     return true;
   }
@@ -134,7 +142,7 @@ interface BenchDragController {
     accepts: ReadonlyArray<string>;
     getRect(): DOMRect;
     onHover?(active: boolean): void;
-    onDrop(payload: { equipmentId: string }): boolean;
+    onDrop(payload: { equipmentId: string; kind: string }): boolean;
   }): void;
   removeSnapZone(id: string): void;
 }
@@ -175,8 +183,8 @@ export class OpticalBenchAssembly {
         onHover: (active) => {
           this.#board.setSlotHover(slotId, active);
         },
-        onDrop: ({ equipmentId }) => {
-          const ok = this.#topology.place(slotId, equipmentId);
+        onDrop: ({ equipmentId, kind }) => {
+          const ok = this.#topology.place(slotId, kind);
           if (ok) this.#onPlaced?.(slotId, equipmentId);
           return ok;
         },
