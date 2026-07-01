@@ -50,6 +50,34 @@ describe('guard / домен', () => {
   it('refractionAngle бросает на non-finite аргумент', () => {
     expect(() => refractionAngle(NaN, 1, 1.5)).toThrow(RangeError);
   });
+  // Fix 2: домен-гарды для iDeg ∈ [0,90]
+  it('refractionAngle бросает при отрицательном iDeg', () => {
+    expect(() => refractionAngle(-30, 1, 1.5)).toThrow(RangeError);
+  });
+  it('refractionAngle бросает при iDeg=91 (вне диапазона)', () => {
+    expect(() => refractionAngle(91, 1, 1.5)).toThrow(RangeError);
+  });
+  it('refractionAngle НЕ бросает при iDeg=90 (скользящее падение, ≈41.8°)', () => {
+    // i=90: sin r = n1/n2 = 1/1.5 → r = asin(2/3) ≈ 41.81°
+    expect(() => refractionAngle(90, 1, 1.5)).not.toThrow();
+    near(refractionAngle(90, 1, 1.5), 41.8103, 1e-3);
+  });
+  it('refractionAngle бросает при n1≤0', () => {
+    expect(() => refractionAngle(30, 0, 1.5)).toThrow(RangeError);
+    expect(() => refractionAngle(30, -1, 1.5)).toThrow(RangeError);
+  });
+  it('refractionAngle бросает при n2≤0', () => {
+    expect(() => refractionAngle(30, 1, 0)).toThrow(RangeError);
+    expect(() => refractionAngle(30, 1, -1.5)).toThrow(RangeError);
+  });
+  it('refractiveIndex бросает при iDeg вне [0,90]', () => {
+    expect(() => refractiveIndex(-10, 20)).toThrow(RangeError);
+    expect(() => refractiveIndex(91, 20)).toThrow(RangeError);
+  });
+  it('refractiveIndex бросает при rDeg вне [0,90]', () => {
+    expect(() => refractiveIndex(30, -5)).toThrow(RangeError);
+    expect(() => refractiveIndex(30, 91)).toThrow(RangeError);
+  });
 });
 
 // mustFix M5 — фаззинг ≥12 категорий / ≥50k итераций (образец LensModel.test.ts «12 инвариантов»).
@@ -68,7 +96,8 @@ describe('property fuzzing — ≥12 инвариантных категорий
         expect(r).toBeLessThanOrEqual(iDeg + 1e-9);                 // (4) r≤i при n>1 (к нормали)
         expect(r).toBeLessThanOrEqual(toDeg(Math.asin(1 / n)) + 1e-6); // (5) r≤asin(1/n)
         if (iDeg > 0) near(refractiveIndex(iDeg, r), n, 1e-6);      // (6) round-trip
-        iters += 6;
+        // Fix 3: точный счётчик — при iDeg=0 инвариант (6) пропускается
+        iters += iDeg > 0 ? 6 : 5;
       }
     }
     for (let nk = 100; nk <= 200; nk += 5) {                        // (7) монотонность r(i)
@@ -89,12 +118,25 @@ describe('property fuzzing — ≥12 инвариантных категорий
       if (iDeg > toDeg(Math.asin(1 / 1.5))) expect(() => refractionAngle(iDeg, 1.5, 1)).toThrow(RangeError);
       iters++;
     }
-    for (let iDeg = 1; iDeg <= 85; iDeg++) {                        // (10) n=sin i/sin r; (11) n>1; (12) детерминизм
+    for (let iDeg = 1; iDeg <= 85; iDeg++) {                        // (10) n=sin i/sin r; (11) n>1
       const r = refractionAngle(iDeg, 1, 1.5);
       near(Math.sin(iDeg * Math.PI / 180) / Math.sin(r * Math.PI / 180), 1.5, 1e-9);
       expect(refractiveIndex(iDeg, r)).toBeGreaterThan(1);
-      expect(refractionAngle(iDeg, 1, 1.5)).toBe(r);
-      iters += 3;
+      iters += 2;
+    }
+    // Fix 1: (12) монотонность по n — для фиксированного i>0 больший n → меньший r
+    // Инвариант ФАЛЬСИФИЦИРУЕМ: если refractionAngle вернёт константу или возрастающую функцию n,
+    // тест покраснеет. Проверено: временный фикс (return 30 константа) → тест красный.
+    const nSet = [1.1, 1.3, 1.5, 1.8];
+    const iSet = [10, 30, 45, 60, 80];
+    for (const iDeg of iSet) {
+      for (let j = 0; j < nSet.length - 1; j++) {
+        const nSmall = nSet[j];
+        const nBig = nSet[j + 1];
+        // n↑ → r↓ (больший n2 → сильнее преломление к нормали → меньший r)
+        expect(refractionAngle(iDeg, 1, nBig)).toBeLessThan(refractionAngle(iDeg, 1, nSmall));
+        iters++;
+      }
     }
     expect(iters).toBeGreaterThanOrEqual(50000);
   });
