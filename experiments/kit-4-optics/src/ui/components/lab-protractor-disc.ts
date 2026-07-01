@@ -218,6 +218,7 @@ export class LabProtractorDisc extends HTMLElement {
   // Ссылки на SVG-элементы (кешируются после render)
   #glassBody: SVGPathElement | null = null;
   #emitterGroup: SVGGElement | null = null;
+  #nLabel: SVGTextElement | null = null;
   #rendered = false;
 
   constructor() {
@@ -270,8 +271,6 @@ export class LabProtractorDisc extends HTMLElement {
   setSlotHover(id: string, active: boolean): void {
     const slotEl = this.shadowRoot?.querySelector<SVGGElement>(`[data-slot="${id}"]`);
     slotEl?.classList.toggle('drop-zone--active', active);
-    const rect = slotEl?.querySelector<SVGRectElement>('.slot-rect');
-    rect?.classList.toggle('drop-zone--active', active);
   }
 
   /**
@@ -282,6 +281,7 @@ export class LabProtractorDisc extends HTMLElement {
   setPlaced(kind: 'semicylinder' | 'emitter' | string, on: boolean): void {
     if (kind === 'semicylinder') {
       this.#toggleHidden(this.#glassBody, !on);
+      this.#toggleHidden(this.#nLabel, !on);
     } else if (kind === 'emitter') {
       this.#toggleHidden(this.#emitterGroup, !on);
     }
@@ -325,12 +325,13 @@ export class LabProtractorDisc extends HTMLElement {
     svg.appendChild(discRim);
 
     // ── Стекло полуцилиндра (нижний полукруг, y>CY) ───────────────────────
-    // path: M(CX-R, CY) A R R 0 0 1 (CX+R, CY) L(CX-R, CY) Z
+    // path: M(CX-R, CY) A R R 0 0 0 (CX+R, CY) Z
+    // sweep-flag=0 → дуга идёт вниз (y>CY = стекло), sweep-flag=1 → вверх (воздух).
     const glassBody = svgEl<SVGPathElement>('path');
     glassBody.setAttribute('class', 'glass-body');
     glassBody.setAttribute(
       'd',
-      `M ${FACE_X1} ${FACE_Y} A ${R} ${R} 0 0 1 ${FACE_X2} ${FACE_Y} Z`,
+      `M ${FACE_X1} ${FACE_Y} A ${R} ${R} 0 0 0 ${FACE_X2} ${FACE_Y} Z`,
     );
     svg.appendChild(glassBody);
     this.#glassBody = glassBody;
@@ -492,13 +493,14 @@ export class LabProtractorDisc extends HTMLElement {
     svg.appendChild(emitterGroup);
     this.#emitterGroup = emitterGroup;
 
-    // ── Подпись n≈1,5 (внутри нижнего полукруга, видима всегда) ──────────
+    // ── Подпись n≈1,5 (внутри нижнего полукруга, видима только при setPlaced('semicylinder',true)) ──
     const nLabel = svgEl<SVGTextElement>('text');
     nLabel.setAttribute('class', 'n-label');
     nLabel.setAttribute('x', String(CX));
     nLabel.setAttribute('y', String(CY + 50));
-    nLabel.textContent = 'n ≈1,5';  // n≈1,5
+    nLabel.textContent = 'n ≈1,5';
     svg.appendChild(nLabel);
+    this.#nLabel = nLabel;
   }
 }
 

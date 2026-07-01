@@ -132,6 +132,7 @@ describe('lab-protractor-disc — статический каркас', () => {
     const el = mount();
     el.setSlotHover('emitter', true);
     const slot = el.shadowRoot!.querySelector('[data-slot="emitter"]');
+    expect(slot).not.toBeNull();
     expect(slot!.classList.contains('drop-zone--active')).toBe(true);
   });
 
@@ -183,7 +184,7 @@ describe('lab-protractor-disc — статический каркас', () => {
     expect(el.refractiveIndex).toBe(1.7);
   });
 
-  it('CSS стили содержат svg[hidden]{display:none} — glass-body hidden по умолчанию скрывает группу', () => {
+  it('по умолчанию .glass-body имеет атрибут hidden', () => {
     // В happy-dom атрибут hidden работает через [hidden]{display:none} в Shadow DOM CSS.
     // Проверяем через атрибут (CSS-computed не работает в happy-dom).
     const el = mount();
@@ -202,5 +203,38 @@ describe('lab-protractor-disc — статический каркас', () => {
     const el = mount();
     const svg = el.shadowRoot!.querySelector('svg');
     expect(svg!.getAttribute('viewBox')).toBe('0 0 420 420');
+  });
+
+  it('.glass-body имеет sweep-flag=0 (нижняя дуга = стекло, y>210)', () => {
+    // Гео-тест: sweep-flag=1 → верхняя дуга (воздух) — НЕВЕРНО.
+    // sweep-flag=0 → нижняя дуга (стекло, y>210) — ВЕРНО по спеке.
+    // Ассерт умеет краснеть: при sweep-flag=1 regex не совпадает.
+    const el = mount();
+    const glass = el.shadowRoot!.querySelector('.glass-body') as SVGPathElement;
+    expect(glass).not.toBeNull();
+    expect(glass.getAttribute('d')).toMatch(/A\s*180\s+180\s+0\s+0\s+0/);
+  });
+
+  it('по умолчанию .n-label скрыта (полуцилиндр в лотке)', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    expect(nLabel).not.toBeNull();
+    expect(nLabel.hasAttribute('hidden')).toBe(true);
+  });
+
+  it('setPlaced(semicylinder,true) показывает .n-label', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    el.setPlaced('semicylinder', true);
+    expect(nLabel.hasAttribute('hidden')).toBe(false);
+  });
+
+  it('setPlaced(semicylinder,false) скрывает .n-label', () => {
+    const el = mount();
+    const nLabel = el.shadowRoot!.querySelector('.n-label') as SVGElement;
+    el.setPlaced('semicylinder', true);
+    expect(nLabel.hasAttribute('hidden')).toBe(false);
+    el.setPlaced('semicylinder', false);
+    expect(nLabel.hasAttribute('hidden')).toBe(true);
   });
 });
