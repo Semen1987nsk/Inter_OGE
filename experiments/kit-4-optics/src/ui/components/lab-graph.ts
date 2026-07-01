@@ -29,6 +29,10 @@ export interface GraphData {
   yLabel: string;
   xMax: number;
   yMax: number;
+  /** Шаг сетки по оси X. Default 1 → обратная совместимость. */
+  gridXStep?: number;
+  /** Шаг сетки по оси Y. Default 1 → обратная совместимость. */
+  gridYStep?: number;
 }
 
 const PADDING = { top: 16, right: 16, bottom: 32, left: 40 };
@@ -238,12 +242,14 @@ export class LabGraph extends HTMLElement {
   #drawGrid(x0: number, innerW: number, innerH: number, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
     const xMax = this.#data.xMax;
     const yMax = this.#data.yMax;
-    for (let i = 1; i <= xMax; i++) {
-      const x = xToPx(i);
+    const xStep = this.#data.gridXStep ?? 1;
+    const yStep = this.#data.gridYStep ?? 1;
+    for (let v = xStep; v <= xMax + 1e-9; v += xStep) {
+      const x = xToPx(v);
       this.#svg.appendChild(this.#line(x, PADDING.top, x, PADDING.top + innerH, 'grid-line'));
     }
-    for (let f = 1; f <= yMax; f++) {
-      const y = yToPx(f);
+    for (let v = yStep; v <= yMax + 1e-9; v += yStep) {
+      const y = yToPx(v);
       this.#svg.appendChild(this.#line(x0, y, x0 + innerW, y, 'grid-line'));
     }
   }
@@ -256,17 +262,27 @@ export class LabGraph extends HTMLElement {
   #drawAxisTicks(x0: number, y0: number, xToPx: (x: number) => number, yToPx: (y: number) => number): void {
     const xMax = this.#data.xMax;
     const yMax = this.#data.yMax;
-    const xStep = Math.max(1, Math.floor(xMax / 5));
-    const yStep = Math.max(1, Math.floor(yMax / 4));
-    for (let i = 0; i <= xMax; i += xStep) {
-      const x = xToPx(i);
+    // Если задан явный шаг сетки — используем его для тиков тоже.
+    // Иначе — авто (≈5 делений).
+    const xStep = this.#data.gridXStep ?? Math.max(1, Math.floor(xMax / 5));
+    const yStep = this.#data.gridYStep ?? Math.max(1, Math.floor(yMax / 4));
+    // 0-тик всегда
+    this.#svg.appendChild(this.#line(xToPx(0), y0, xToPx(0), y0 + 4, 'axis-tick'));
+    this.#svg.appendChild(this.#text('0', xToPx(0), y0 + 16, 'axis-label', 'middle'));
+    this.#svg.appendChild(this.#line(x0 - 4, yToPx(0), x0, yToPx(0), 'axis-tick'));
+    this.#svg.appendChild(this.#text('0', x0 - 8, yToPx(0) + 4, 'axis-label', 'end'));
+    for (let v = xStep; v <= xMax + 1e-9; v += xStep) {
+      const x = xToPx(v);
+      // Округляем для чистоты отображения дробных шагов (0.2 → «0.2» а не «0.20000000000000004»)
+      const label = Number.isInteger(v) ? String(v) : String(Math.round(v * 1e9) / 1e9);
       this.#svg.appendChild(this.#line(x, y0, x, y0 + 4, 'axis-tick'));
-      this.#svg.appendChild(this.#text(String(i), x, y0 + 16, 'axis-label', 'middle'));
+      this.#svg.appendChild(this.#text(label, x, y0 + 16, 'axis-label', 'middle'));
     }
-    for (let f = 0; f <= yMax; f += yStep) {
-      const y = yToPx(f);
+    for (let v = yStep; v <= yMax + 1e-9; v += yStep) {
+      const y = yToPx(v);
+      const label = Number.isInteger(v) ? String(v) : String(Math.round(v * 1e9) / 1e9);
       this.#svg.appendChild(this.#line(x0 - 4, y, x0, y, 'axis-tick'));
-      this.#svg.appendChild(this.#text(String(f), x0 - 8, y + 4, 'axis-label', 'end'));
+      this.#svg.appendChild(this.#text(label, x0 - 8, y + 4, 'axis-label', 'end'));
     }
   }
 

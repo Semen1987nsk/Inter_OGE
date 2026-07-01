@@ -23,6 +23,7 @@
 import type { LabEquipmentCard } from '@ui/components/lab-equipment-card';
 import { Store } from '@controller/Store';
 import { OpticalDragController } from '@controller/OpticalDragController';
+import type { LabGraph } from '@ui/components/lab-graph';
 
 // §21 — единый журнал v2
 import {
@@ -40,6 +41,9 @@ import type { JournalRow, JournalVerdict, JournalSpec } from '@labosfera/shared-
 
 /** ID активной задачи экрана refraction. */
 export type RefractionTaskId = 'A-index' | 'B-angle';
+
+/** Режим отображения графика: r(i) или sin r – sin i. */
+export type GraphMode = 'ri' | 'sin';
 
 /** ID/Kind оборудования комплекта преломления. */
 export type RefractionEquipmentId = 'semicylinder' | 'emitter';
@@ -203,6 +207,9 @@ export class RefractionExperiment {
   #lastRecordedSignature = '';
   #lastResultHtml = '';
 
+  // График r(i) / sin r–sin i (только в B-angle)
+  #graphMode: GraphMode = 'ri';
+
   constructor(refs: RefractionRefs) {
     this.#refs = refs;
     // Клонируем INITIAL_STATE: Set мутируется, нельзя делить между экземплярами
@@ -306,6 +313,10 @@ export class RefractionExperiment {
     this.#journalVerdicts.clear();
     this.#lastRecordedSignature = '';
     this.#lastResultHtml = '';
+    this.#graphMode = 'ri';
+    if (this.#refs.graphToggleBtn) {
+      this.#refs.graphToggleBtn.setAttribute('aria-pressed', 'false');
+    }
     // Сбросить карточки в available
     for (const card of this.#cardByEquipmentId.values()) {
       card.setAttribute('status', 'available');
@@ -485,6 +496,16 @@ export class RefractionExperiment {
         this.recordMeasurement();
       });
     }
+
+    // ── График toggle (r(i) ↔ sin r–sin i) ───────────────────────────────
+    if (this.#refs.graphToggleBtn) {
+      this.#refs.graphToggleBtn.addEventListener('click', () => {
+        this.#graphMode = this.#graphMode === 'ri' ? 'sin' : 'ri';
+        const btn = this.#refs.graphToggleBtn!;
+        btn.setAttribute('aria-pressed', this.#graphMode === 'sin' ? 'true' : 'false');
+        this.#refreshGraph();
+      });
+    }
   }
 
   // ─── Внутренняя логика ────────────────────────────────────────────────────
@@ -618,6 +639,9 @@ export class RefractionExperiment {
     // ── Result-panel (a11y no-leak: n только в fully-auto) ─────────────────
     this.#renderResultPanel(taskMeasurements, mode);
 
+    // ── График r(i) / sin r–sin i (только B-angle) ─────────────────────────
+    this.#refreshGraph();
+
     this.#refreshTaskStepper();
   }
 
@@ -648,6 +672,75 @@ export class RefractionExperiment {
       values['n'] = isFullyAuto ? refractiveIndexFrom(m.iDeg, m.rDeg) : null;
     }
     return { idx, timestamp: m.timestamp, values };
+  }
+
+  /**
+   * Обновить лаб-граф r(i) или sin r–sin i.
+   * Вызывается из #refreshUi() и из переключателя.
+   * Блок #graph-block показывается только в B-angle.
+   */
+  #refreshGraph(): void {
+    const graphBlock = this.#refs.graphHost;
+    const st = this.#store.get();
+
+    if (!graphBlock) return;
+
+    // Показываем блок только в B-angle
+    const isTaskB = st.activeTask === 'B-angle';
+    graphBlock.hidden = !isTaskB;
+
+    if (!isTaskB) return;
+
+    const graph = graphBlock.querySelector<LabGraph & HTMLElement>('#refraction-graph');
+    if (!graph) return;
+
+    const taskMeasurements = st.measurements.filter((m) => m.task === 'B-angle');
+
+    if (this.#graphMode === 'ri') {
+      graph.data = {
+        series: [
+          {
+            id: 'ri',
+            color: '#a855f7',
+            fit: 'curve',
+            points: taskMeasurements.map((m, k) => ({
+              id: String(k),
+              x: m.iDeg,
+              y: m.rDeg,
+              label: `i=${m.iDeg}°, r=${m.rDeg}°`,
+            })),
+          },
+        ],
+        xLabel: 'i, °',
+        yLabel: 'r, °',
+        xMax: 90,
+        yMax: 45,
+        gridXStep: 10,
+        gridYStep: 5,
+      };
+    } else {
+      graph.data = {
+        series: [
+          {
+            id: 'ri-sin',
+            color: '#a855f7',
+            fit: 'line',
+            points: taskMeasurements.map((m, k) => ({
+              id: String(k),
+              x: Math.sin(m.iDeg * DEG_TO_RAD),
+              y: Math.sin(m.rDeg * DEG_TO_RAD),
+              label: `sin i=${Math.sin(m.iDeg * DEG_TO_RAD).toFixed(3)}, sin r=${Math.sin(m.rDeg * DEG_TO_RAD).toFixed(3)}`,
+            })),
+          },
+        ],
+        xLabel: 'sin i',
+        yLabel: 'sin r',
+        xMax: 1,
+        yMax: 1,
+        gridXStep: 0.2,
+        gridYStep: 0.2,
+      };
+    }
   }
 
   /**
@@ -684,11 +777,10 @@ export class RefractionExperiment {
           `от угла падения — вычислите n = sin i / sin r по своим измерениям.</p>`;
       }
     } else {
-      // B-angle (4.6): вывод про зависимость r(i), без числа n.
+      // B-angle (4.6): качественный вывод без числа n (a11y no-leak).
       html =
-        `<p class="result-line">С ростом угла падения растёт и угол преломления, ` +
-        `но медленнее: r &lt; i для перехода воздух → стекло.</p>` +
-        `<p class="result-note">В осях sin i — sin r точки ложатся на прямую (закон преломления).</p>`;
+        `<p class="result-line">Угол преломления растёт с углом падения, но всё медленнее (нелинейно).</p>` +
+        `<p class="result-note">В осях sin r–sin i зависимость линейна (закон Снелла).</p>`;
     }
 
     panel.hidden = false;

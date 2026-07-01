@@ -11,9 +11,10 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-// Регистрируем lab-protractor-disc (реальный компонент, не мок)
+// Регистрируем компоненты (реальные, не мок)
 import '../../../ui/components/lab-protractor-disc';
 import '../../../ui/components/lab-equipment-card';
+import '../../../ui/components/lab-graph';
 
 import { RefractionExperiment, type RefractionRefs } from '../RefractionExperiment';
 
@@ -45,6 +46,13 @@ function buildRefs(): { refs: RefractionRefs; host: HTMLElement } {
           <span id="record-pending-summary"></span>
         </button>
       </div>
+      <!-- Блок графика (опыт 4.6) -->
+      <div id="graph-block" hidden>
+        <lab-graph id="refraction-graph"
+          aria-label="График зависимости угла преломления от угла падения"
+        ></lab-graph>
+        <button id="graph-toggle-btn" type="button" aria-pressed="false"></button>
+      </div>
     </div>
     <lab-equipment-card data-eq="semicylinder" status="available">
       <div class="eq-glyph" aria-label="Полуцилиндр"></div>
@@ -75,6 +83,8 @@ function buildRefs(): { refs: RefractionRefs; host: HTMLElement } {
     steps: host.querySelector<HTMLElement>('#steps')!,
     resultPanel: host.querySelector<HTMLElement>('#result-panel')!,
     cards: host.querySelectorAll<any>('lab-equipment-card'),
+    graphHost: host.querySelector<HTMLElement>('#graph-block') ?? undefined,
+    graphToggleBtn: (host.querySelector('#graph-toggle-btn') as HTMLButtonElement | null) ?? undefined,
     recordModeSlot: host.querySelector<HTMLElement>('#record-mode-slot') ?? undefined,
     journalHost: host.querySelector<HTMLElement>('#journal-host') ?? undefined,
     recordPendingSlot: host.querySelector<HTMLElement>('#record-pending-slot') ?? undefined,
@@ -603,5 +613,195 @@ describe('RefractionExperiment — журнал 4.3', () => {
     exp.recordMeasurement();
     expect(exp.measurements.length).toBe(2);
     exp.destroy();
+  });
+});
+
+// ─── RefractionExperiment — график 4.6 ────────────────────────────────────────
+
+describe('RefractionExperiment — график 4.6', () => {
+  let currentHost: HTMLElement | null = null;
+
+  afterEach(() => {
+    currentHost?.remove();
+    currentHost = null;
+    localStorage.removeItem('inter-oge.record-mode.kit-4');
+    globalThis.gc?.();
+  });
+
+  it('B-angle: после 3 записей lab-graph.data.series[0].points.length === 3, режим ri', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    for (const i of [30, 45, 60]) {
+      exp.setIncidenceAngle(i);
+      exp.recordMeasurement();
+    }
+    // graphHost обязан быть видимым в B-angle — обязан давать красный если hidden
+    expect(refs.graphHost!.hidden).toBe(false);
+    const graph = refs.graphHost!.querySelector('#refraction-graph') as any;
+    // Обязан давать красный если #refreshGraph не передал данные в lab-graph
+    expect(graph).not.toBeNull();
+    expect(graph.data.series[0].points.length).toBe(3);
+    expect(graph.data.xLabel).toBe('i, °');
+    expect(graph.data.series[0].fit).toBe('curve');
+    exp.destroy();
+  });
+
+  it('переключатель на sin: xLabel sin i, fit line, точка x≈sin(i°)', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    // Обязан давать красный если toggle не подключён к graphToggleBtn
+    refs.graphToggleBtn!.click();
+    const graph = refs.graphHost!.querySelector('#refraction-graph') as any;
+    expect(graph.data.xLabel).toBe('sin i');
+    expect(graph.data.series[0].fit).toBe('line');
+    // Обязан давать красный если x не Math.sin(i°) (а просто iDeg)
+    expect(
+      Math.abs(graph.data.series[0].points[0].x - Math.sin(45 * Math.PI / 180)),
+    ).toBeLessThan(1e-6);
+    exp.destroy();
+  });
+
+  it('graph-toggle-btn: aria-pressed=true после переключения в sin', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    // aria-pressed=false по умолчанию (ri-режим)
+    expect(refs.graphToggleBtn!.getAttribute('aria-pressed')).toBe('false');
+    refs.graphToggleBtn!.click();
+    // Обязан давать красный если aria-pressed не обновляется при клике
+    expect(refs.graphToggleBtn!.getAttribute('aria-pressed')).toBe('true');
+    refs.graphToggleBtn!.click();
+    // Обратный переключатель: ri → aria-pressed=false
+    expect(refs.graphToggleBtn!.getAttribute('aria-pressed')).toBe('false');
+    exp.destroy();
+  });
+
+  it('график скрыт в A-index', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    // Дефолтная задача A-index → блок скрыт
+    // Обязан давать красный если #graph-block показывается при A-index
+    expect(refs.graphHost!.hidden).toBe(true);
+    exp.destroy();
+  });
+
+  it('график скрыт после переключения с B-angle обратно в A-index', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    expect(refs.graphHost!.hidden).toBe(false); // guard: было видно
+    exp.setActiveTask('A-index');
+    // Обязан давать красный если блок остаётся видимым после смены задачи
+    expect(refs.graphHost!.hidden).toBe(true);
+    exp.destroy();
+  });
+
+  it('result-panel B-angle: содержит текст о нелинейности и законе Снелла (без числа n)', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    const text = refs.resultPanel.textContent ?? '';
+    // Обязан давать красный если result-panel пуст или не содержит ключевых слов
+    expect(text.length).toBeGreaterThan(10);
+    // Проверяем слова-маркеры по брифу
+    expect(/нелинейно/i.test(text)).toBe(true);
+    expect(/Снелл/i.test(text)).toBe(true);
+    // a11y no-leak: число n (1,5 / 1.5) не утекает
+    expect(/1[.,]5\d?/.test(text)).toBe(false);
+    exp.destroy();
+  });
+
+  it('sin-режим: gridXStep=0.2, gridYStep=0.2 переданы в lab-graph.data', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(30);
+    exp.recordMeasurement();
+    exp.setIncidenceAngle(60);
+    exp.recordMeasurement();
+    refs.graphToggleBtn!.click(); // → sin-режим
+    const graph = refs.graphHost!.querySelector('#refraction-graph') as any;
+    // Обязан давать красный если gridXStep не передаётся (сетка окажется по default=1)
+    expect(graph.data.gridXStep).toBeCloseTo(0.2, 9);
+    expect(graph.data.gridYStep).toBeCloseTo(0.2, 9);
+    exp.destroy();
+  });
+
+  it('ri-режим: gridXStep=10, gridYStep=5 переданы в lab-graph.data', () => {
+    const { refs, host } = buildRefs();
+    currentHost = host;
+    const exp = new RefractionExperiment(refs);
+    exp.setActiveTask('B-angle');
+    (exp as any).placeInSlot('semicylinder', 'semicylinder');
+    (exp as any).placeInSlot('emitter', 'emitter');
+    exp.setIncidenceAngle(45);
+    exp.recordMeasurement();
+    const graph = refs.graphHost!.querySelector('#refraction-graph') as any;
+    // Обязан давать красный если gridXStep не 10 в ri-режиме
+    expect(graph.data.gridXStep).toBe(10);
+    expect(graph.data.gridYStep).toBe(5);
+    exp.destroy();
+  });
+});
+
+// ─── lab-graph: обратная совместимость gridXStep/gridYStep ───────────────────
+
+describe('lab-graph — обратная совместимость gridXStep/gridYStep', () => {
+  it('вызов без gridXStep/gridYStep: компонент создаётся и data.xMax сохраняется (обратная совместимость)', () => {
+    const el = document.createElement('lab-graph') as any;
+    document.body.appendChild(el);
+    el.data = {
+      series: [{ id: 'test', color: '#fff', fit: null, points: [] }],
+      xLabel: 'U, В',
+      yLabel: 'I, А',
+      xMax: 10,
+      yMax: 5,
+      // gridXStep и gridYStep НЕ переданы → default 1
+    };
+    // Обязан давать красный если интерфейс сломан (TypeScript-уровень проверяется typecheck)
+    expect(el.data.xMax).toBe(10);
+    // Поля не переданы → undefined (обратная совместимость)
+    expect(el.data.gridXStep).toBeUndefined();
+    expect(el.data.gridYStep).toBeUndefined();
+    el.remove();
+  });
+
+  it('вызов С gridXStep=10: поле сохраняется в data', () => {
+    const el = document.createElement('lab-graph') as any;
+    document.body.appendChild(el);
+    el.data = {
+      series: [],
+      xLabel: 'i, °',
+      yLabel: 'r, °',
+      xMax: 90,
+      yMax: 45,
+      gridXStep: 10,
+      gridYStep: 5,
+    };
+    // Обязан давать красный если setter не сохраняет переданные поля
+    expect(el.data.gridXStep).toBe(10);
+    expect(el.data.gridYStep).toBe(5);
+    el.remove();
   });
 });
