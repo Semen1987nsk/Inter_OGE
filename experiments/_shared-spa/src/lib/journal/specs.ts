@@ -845,6 +845,55 @@ export const TWO_LENS_SPEC: JournalSpec = {
   ],
 };
 
+/**
+ * Опыт 4.3 «Измерение показателя преломления стекла».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19), сноска (4):
+ * «...показателя преломления стекла...». КОДИФ §1.29.
+ *
+ * Метод: узкий луч на плоскую грань полуцилиндра в центре кругового транспортира →
+ *   снять i (в воздухе) и r (в стекле) от нормали → n = sin i / sin r ≈ 1,5.
+ * i,r (по транспортиру) — direct; n — derived (ученик считает; программа в fully-auto).
+ * Инлайн-формула считает ТОЛЬКО из прямых i_deg,r_deg (§21.A.4).
+ */
+const REFR_DEG = Math.PI / 180;
+
+export const REFRACTION_INDEX_SPEC: JournalSpec = {
+  experimentId: '4.3',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'i_deg', label: 'i, °', source: 'direct', unit: '°', format: 'int' },
+    { key: 'r_deg', label: 'r, °', source: 'direct', unit: '°', format: 'int' },
+    {
+      key: 'n', label: 'n', source: 'derived', format: 'fixed2', tolerance: 0.05,
+      // n = sin i / sin r (закон преломления; из прямых i_deg,r_deg)
+      expectedFromRow: (r) => {
+        const sr = Math.sin((r.r_deg ?? 0) * REFR_DEG);
+        return sr > 1e-9 ? Math.sin((r.i_deg ?? 0) * REFR_DEG) / sr : 0;
+      },
+    },
+  ],
+};
+
+/**
+ * Опыт 4.6 «Исследование зависимости угла преломления от угла падения».
+ * ФИПИ ОГЭ-2026, СПЕЦ Прил.2 компл.№4 (стр.19), сноска (4):
+ * «...зависимости угла преломления от угла падения на границе воздух – стекло.». КОДИФ §1.29.
+ *
+ * Метод: варьировать i → снимать r по транспортиру → таблица + график r(i) (нелинейный;
+ *   в осях sin r–sin i — прямая). Вывод — в #result-panel (не построчная проверка), как 3.8.
+ * i,r — direct (обе измеряемые). Derived-колонок нет.
+ */
+export const REFRACTION_ANGLE_SPEC: JournalSpec = {
+  experimentId: '4.6',
+  kitId: 'kit-4',
+  columns: [
+    { key: 'idx', label: '№', source: 'meta', format: 'int' },
+    { key: 'i_deg', label: 'i, °', source: 'direct', unit: '°', format: 'int' },
+    { key: 'r_deg', label: 'r, °', source: 'direct', unit: '°', format: 'int' },
+  ],
+};
+
 export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   DENSITY_SPEC,
   ARCHIMEDES_SPEC,
@@ -869,6 +918,8 @@ export const ALL_SPECS: ReadonlyArray<JournalSpec> = [
   FOCAL_2F_SPEC,
   IMAGE_PROPERTIES_SPEC,
   TWO_LENS_SPEC,
+  REFRACTION_INDEX_SPEC,
+  REFRACTION_ANGLE_SPEC,
 ];
 
 export function getSpecByExperimentId(experimentId: string): JournalSpec | null {
