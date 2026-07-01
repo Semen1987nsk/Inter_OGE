@@ -278,7 +278,8 @@ async function checkAngleSweepAndMonotonicity(page) {
 
       pass(`4.6 свип i=${angle}°: iDeg=${iDeg}, rDeg=${rDeg} (Снелл n=1,5)`);
 
-      // Записать через кнопку (semi-auto)
+      // Записать через кнопку (semi-auto) — ОБЯЗАТЕЛЬНО реальный клик видимой кнопки.
+      // Если кнопка не видна при bothPlaced + i>0 + semi-auto — это UI-баг, не fallback.
       const btn = page.locator('#record-pending-btn');
       const btnVisible = await btn.isVisible().catch(() => false);
       if (btnVisible) {
@@ -286,20 +287,17 @@ async function checkAngleSweepAndMonotonicity(page) {
         await page.waitForTimeout(200);
         pass(`4.6 свип i=${angle}°: запись через реальный клик #record-pending-btn`);
       } else {
-        // Если кнопка не видна (анти-дубль при повторном запуске свипа), допускаем programmatic
-        const countBefore = await page.evaluate(() =>
-          window.refractionExperiment?.measurements?.filter(m => m.task === 'B-angle').length ?? 0
+        const diag = await page.evaluate((a) => ({
+          bothPlaced: window.refractionExperiment?.bothPlaced,
+          iDeg: window.refractionExperiment?.incidenceAngleDeg,
+          activeTask: window.refractionExperiment?.activeTask,
+          slotHidden: document.querySelector('#record-pending-slot')?.hidden,
+          bodyMode: document.body?.dataset['recordMode'],
+        }), angle);
+        fail(
+          `4.6 свип i=${angle}°: #record-pending-btn НЕ видна в semi-auto после сборки+угол`,
+          `ожидалось visible; диаг=${JSON.stringify(diag)}`,
         );
-        await page.evaluate(() => window.refractionExperiment?.recordMeasurement?.());
-        await page.waitForTimeout(200);
-        const countAfter = await page.evaluate(() =>
-          window.refractionExperiment?.measurements?.filter(m => m.task === 'B-angle').length ?? 0
-        );
-        if (countAfter > countBefore) {
-          pass(`4.6 свип i=${angle}°: запись через recordMeasurement() (pending-btn не видна)`);
-        } else {
-          skip(`4.6 свип i=${angle}°: запись`, '#record-pending-btn не видна и recordMeasurement() не увеличил count');
-        }
       }
 
       recordedR.push({ angle, rDeg });
@@ -503,8 +501,8 @@ async function checkRecordModes(page) {
       if (bodyMode === mode) {
         pass(`4.6 record-mode: "${mode}" — body[data-record-mode]="${bodyMode}" (приложение читает ключ верно)`);
       } else {
-        skip(`4.6 record-mode body attr: "${mode}"`,
-          `body[data-record-mode]="${bodyMode}" (ожидалось "${mode}")`);
+        fail(`4.6 record-mode body attr: "${mode}"`,
+          `body[data-record-mode]="${bodyMode}" (ожидалось "${mode}") — renderRecordModeToggle обязан ставить attribut через applyRecordModeAttribute`);
       }
     } catch (err) {
       fail(`4.6 record-mode: "${mode}"`, err.message);

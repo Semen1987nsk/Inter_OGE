@@ -521,7 +521,7 @@ async function checkA11yNoLeak(page) {
   try {
     const resultInfo = await page.evaluate(() => {
       const el = document.querySelector('#result-panel');
-      return el ? { text: el.textContent ?? '', hidden: el.hidden } : null;
+      return el ? { text: el.textContent ?? '', html: el.innerHTML ?? '', hidden: el.hidden } : null;
     });
 
     if (resultInfo === null) {
@@ -529,22 +529,21 @@ async function checkA11yNoLeak(page) {
     } else if (resultInfo.hidden) {
       pass('4.3 a11y: #result-panel скрыт (hidden) — утечки нет');
     } else {
-      const text = resultInfo.text;
-      // В semi-auto result-panel должен показывать только качественный текст,
-      // без числового значения n. Паттерн «≈1,5» / «= 1,5» = утечка ответа.
-      // Качественный текст типа «вычислите n = sin i / sin r» — НЕ утечка.
-      const leaked = N_LEAK_PATTERNS.filter(p => {
-        // Проверяем «≈1,5» или «n = 1,5» в контексте ответа (не «sin r»)
-        // Простое включение «1,5» — слишком широко (может быть в инструкции).
-        // Поэтому проверяем контекст: «n» рядом с числом «1,5»/«1.5».
-        const nWithValue = new RegExp(`n[\\s]*[=≈][\\s]*${p.replace('.', '\\.')}`, 'i');
-        return nWithValue.test(text);
-      });
-      if (leaked.length === 0) {
-        pass(`4.3 a11y: #result-panel (visible) не содержит «n = 1,5» как ответ в semi-auto`);
+      // Расширенный паттерн: «=» или «≈» + пробелы + «1,5» или «1.5».
+      // Покрывает и textContent, и aria-label-атрибуты (через innerHTML).
+      // Инструкционный текст «n = sin i / sin r» НЕ совпадает (после «=» нет «1,5»).
+      const LEAK_RE = /[=≈]\s*1[,.]5/i;
+
+      // Проверяем и textContent и innerHTML (aria-label атрибуты не попадают в textContent)
+      const textLeaked = LEAK_RE.test(resultInfo.text);
+      const htmlLeaked = LEAK_RE.test(resultInfo.html);
+
+      if (!textLeaked && !htmlLeaked) {
+        pass(`4.3 a11y: #result-panel (visible) не содержит «= 1,5» / «≈ 1,5» в textContent или innerHTML в semi-auto`);
       } else {
+        const where = [textLeaked && 'textContent', htmlLeaked && 'innerHTML'].filter(Boolean).join(', ');
         fail('4.3 a11y: #result-panel палит числовой ответ n в semi-auto',
-          `найдено паттерн n≈1.5: в «${text.trim().substring(0, 200)}»`);
+          `паттерн /[=≈]\\s*1[,.]5/ найден в ${where}: «${resultInfo.text.trim().substring(0, 200)}»`);
       }
     }
   } catch (err) {
@@ -646,11 +645,14 @@ async function checkFullyAutoJournal(page) {
     } else if (nTd.hasInput) {
       fail('4.3 fully-auto: td[data-key="n"] содержит input',
         'в fully-auto derived-ячейка должна быть readonly-текстом, не input');
-    } else if (/1[,.]4[0-9]|1[,.]5[0-9]/.test(nTd.text) || /1[,.]5/.test(nTd.text)) {
-      pass(`4.3 fully-auto: td[data-key="n"] readonly="${nTd.text}" (≈1,5 для стекла)`);
     } else {
-      fail('4.3 fully-auto: td[data-key="n"] значение не ≈1,5',
-        `текст="${nTd.text}", ожидалось ≈1,5 (sin45°/sin28°)`);
+      const nVal = parseFloat(nTd.text.replace(',', '.'));
+      if (Math.abs(nVal - 1.5) < 0.1) {
+        pass(`4.3 fully-auto: td[data-key="n"] readonly="${nTd.text}" (≈1,5 для стекла)`);
+      } else {
+        fail('4.3 fully-auto: td[data-key="n"] значение не ≈1,5',
+          `текст="${nTd.text}", parseFloat=${nVal}, ожидалось ≈1,5 (sin45°/sin28°)`);
+      }
     }
   } catch (err) {
     fail('4.3 fully-auto', err.message);
@@ -691,8 +693,8 @@ async function checkRecordModes(page) {
       if (bodyMode === mode) {
         pass(`4.3 record-mode: "${mode}" — body[data-record-mode]="${bodyMode}" (приложение читает ключ верно)`);
       } else {
-        skip(`4.3 record-mode body attr: "${mode}"`,
-          `body[data-record-mode]="${bodyMode}" (ожидалось "${mode}")`);
+        fail(`4.3 record-mode body attr: "${mode}"`,
+          `body[data-record-mode]="${bodyMode}" (ожидалось "${mode}") — renderRecordModeToggle обязан ставить атрибут через applyRecordModeAttribute`);
       }
     } catch (err) {
       fail(`4.3 record-mode: "${mode}"`, err.message);
