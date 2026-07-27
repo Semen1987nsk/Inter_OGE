@@ -1,0 +1,19 @@
+#!/bin/sh
+# Pre-commit: секреты не уходят в историю.
+#
+# Форма вызова каноническая — ровно та, что публикует сам gitleaks в своём
+# .pre-commit-hooks.yaml. Подкоманда `protect` устарела: она ещё работает
+# как алиас, но в справке 8.30 её уже нет, и она рапортует «0 commits
+# scanned» вместо разбора проиндексированного содержимого.
+#
+# Хук лежит под версионированием и включается после клона:
+#   git config core.hooksPath .githooks
+# Обойти разово (человеку в терминале): git commit --no-verify.
+# Агенту этот путь закрыт — глобальный PreToolUse-guard блокирует --no-verify.
+
+set -e
+
+echo "[pre-commit] gitleaks (staged)"
+gitleaks git --pre-commit --redact --staged --verbose
+
+echo "[pre-commit] OK"
