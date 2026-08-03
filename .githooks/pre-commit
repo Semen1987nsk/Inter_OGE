@@ -16,4 +16,16 @@ set -e
 echo "[pre-commit] gitleaks (staged)"
 gitleaks git --pre-commit --redact --staged --verbose
 
+# Линтер спек по затронутым .md. Радиус того, что считается спекой (specs/,
+# docs/SPEC-*, docs/PLAN-*), напечатан в одном месте — gate_guard.is_spec;
+# spec_lint --staged импортирует его, хук лишь передаёт кандидатов.
+# core.quotepath=false — иначе кириллица в путях уходит восьмеричными кодами.
+echo "[pre-commit] линтер спек"
+MD=$(git -c core.quotepath=false diff --cached --name-only --diff-filter=ACM \
+     | grep -E '\.md$' || true)
+if [ -n "$MD" ]; then
+    # shellcheck disable=SC2086
+    python "$HOME/.claude/hooks/spec_lint.py" --staged $MD
+fi
+
 echo "[pre-commit] OK"
