@@ -25,7 +25,9 @@ while read -r lref lsha rref rsha; do
     case "$rref" in refs/heads/main|refs/heads/master) ;; *) continue ;; esac
     [ "$lsha" = "$ZERO" ] && continue
     to_main=1
-    if [ "$rsha" = "$ZERO" ]; then log="$lsha --not --remotes"; else log="$rsha..$lsha"; fi
+    # Удалённого main ещё нет — вся история: исключение по --remotes доверяло
+    # бы любой локально настроенной удалённой ветке.
+    if [ "$rsha" = "$ZERO" ]; then log="$lsha"; else log="$rsha..$lsha"; fi
     echo "[pre-push → main] gitleaks ($log)"
     gitleaks git --redact --log-opts "$log" . || exit 1
 done <<EOF
