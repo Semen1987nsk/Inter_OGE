@@ -35,6 +35,12 @@ $refs
 EOF
 [ "$to_main" = 1 ] || exit 0
 
+# Снятый CI ставил зависимости через npm ci и падал на package-lock.json,
+# разошедшемся с package.json. Здесь npm ci переписал бы отслеживаемый
+# node_modules, а сверка дерева lock-файла с диапазонами — нет.
+echo "[pre-push → main] package-lock.json совпадает с package.json"
+npm ls --package-lock-only --all >/dev/null || exit 1
+
 # В индексе лежит старая копия node_modules с одним playwright, jest в ней нет;
 # npm ci перепишет и её — после установки `git checkout -- node_modules`.
 if [ ! -f node_modules/jest/bin/jest.js ]; then
