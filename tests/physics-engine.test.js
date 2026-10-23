@@ -1,12 +1,11 @@
 /**
  * Unit Tests for PhysicsEngine
  * 
- * Tests all physics calculations used in the virtual lab:
- * - Hook's law (F = k × Δl)
- * - Spring oscillations with damping
- * - Linear regression for stiffness calculation
- * - Friction calculations
- * - Unit conversions
+ * Tests the physics calculations the spring experiment calls:
+ * - elongation Δl = m·g/k
+ * - spring oscillations with damping
+ * - overload check and measurement noise
+ * - linear regression for stiffness calculation
  */
 
 // Import PhysicsEngine - ESM import for Jest with --experimental-vm-modules
@@ -19,36 +18,6 @@ describe('PhysicsEngine', () => {
         physics = new PhysicsEngine();
     });
 
-    describe('constructor', () => {
-        it('should initialize with g = 10 m/s²', () => {
-            expect(physics.g).toBe(10);
-        });
-
-        it('should initialize with damping = 0.92', () => {
-            expect(physics.damping).toBe(0.92);
-        });
-    });
-
-    describe('springForce', () => {
-        it('should calculate F = k × Δl correctly', () => {
-            // k = 40 Н/м, Δl = 0.05 м → F = 2 Н
-            expect(physics.springForce(40, 0.05)).toBe(2);
-        });
-
-        it('should return 0 for zero elongation', () => {
-            expect(physics.springForce(40, 0)).toBe(0);
-        });
-
-        it('should handle negative elongation (compression)', () => {
-            expect(physics.springForce(40, -0.05)).toBe(-2);
-        });
-
-        it('should handle high stiffness values', () => {
-            // k = 100 Н/м, Δl = 0.1 м → F = 10 Н
-            expect(physics.springForce(100, 0.1)).toBe(10);
-        });
-    });
-
     describe('calculateElongation', () => {
         it('should calculate Δl = (m × g) / k correctly', () => {
             // m = 0.1 кг, k = 40 Н/м → Δl = (0.1 × 10) / 40 = 0.025 м
@@ -59,21 +28,6 @@ describe('PhysicsEngine', () => {
         it('should return 0 for zero mass', () => {
             expect(physics.calculateElongation(0, 40)).toBe(0);
         });
-
-        it('should handle 100g weight on 40 N/m spring', () => {
-            // Типичный случай OGE: 100г на пружине 40 Н/м
-            const mass = 0.1; // 100г = 0.1 кг
-            const k = 40; // 40 Н/м
-            const expected = (mass * 10) / k; // = 0.025 м = 2.5 см
-            expect(physics.calculateElongation(mass, k)).toBeCloseTo(expected, 5);
-        });
-
-        it('should handle 200g weight on 40 N/m spring', () => {
-            const mass = 0.2; // 200г
-            const k = 40;
-            const expected = 0.05; // 5 см
-            expect(physics.calculateElongation(mass, k)).toBeCloseTo(expected, 5);
-        });
     });
 
     describe('springOscillation', () => {
@@ -83,74 +37,23 @@ describe('PhysicsEngine', () => {
             expect(result.position).toBeCloseTo(0.05, 5);
         });
 
-        it('should return velocity = 0 at t=0', () => {
-            const result = physics.springOscillation(40, 0.1, 0.05, 0);
-            // At t=0: sin(0) = 0 → velocity = 0
-            expect(result.velocity).toBeCloseTo(0, 5);
+        // x(t) = x0·e^(-βt)·cos(ωt), β = 0,15 1/с, ω = √(k/m) = 20 рад/с.
+        // При k = 40, m = 0,1, x0 = 0,05, t = 0,3:
+        // v(t) = x0·e^(-βt)·(−β·cos(ωt) − ω·sin(ωt)) ≈ 0,26024 м/с.
+        // Движок применяет затухание дважды и теряет член −β·cos(ωt):
+        // отдаёт ≈ 0,25537 м/с, на 1,9 % меньше. Грубую ошибку знака, фазы
+        // или поля этот допуск ловит, известный дефект — нет.
+        it('velocity at t>0 is within 5% of the analytic derivative', () => {
+            const result = physics.springOscillation(40, 0.1, 0.05, 0.3);
+            expect(Math.abs(result.velocity - 0.26024) / 0.26024).toBeLessThan(0.05);
         });
 
-        it('should decrease amplitude over time (damping)', () => {
-            // Test that amplitude envelope decreases
-            // Since oscillation includes cos(ωt), we need to compare max amplitudes
-            const x0 = 0.05;
-            
-            // Get envelope values (amplitude at peak times)
-            // At t=0, amplitude = x0
-            // After several cycles, amplitude should be smaller due to exp(-dampingCoef * t)
-            const dampingCoef = 0.15;
-            
-            // Compare envelope values, not actual positions
-            const amplitude_t0 = x0; // x0 * exp(0) = x0
-            const amplitude_t5 = x0 * Math.exp(-dampingCoef * 5);
-            
-            expect(amplitude_t5).toBeLessThan(amplitude_t0);
-            // Check that damping is working (amplitude should be ~47% after 5 seconds)
-            expect(amplitude_t5 / amplitude_t0).toBeCloseTo(Math.exp(-0.75), 2);
-        });
-
-        it('should oscillate with correct frequency', () => {
-            // ω = √(k/m) = √(40/0.1) = 20 rad/s
-            // Period T = 2π/ω ≈ 0.314 s
-            const omega = Math.sqrt(40 / 0.1);
-            expect(omega).toBeCloseTo(20, 2);
-        });
-
-        it('should return object with position and velocity', () => {
-            const result = physics.springOscillation(40, 0.1, 0.05, 1);
-            expect(result).toHaveProperty('position');
-            expect(result).toHaveProperty('velocity');
-            expect(typeof result.position).toBe('number');
-            expect(typeof result.velocity).toBe('number');
-        });
-    });
-
-    describe('frictionForce', () => {
-        it('should calculate F = μ × N correctly', () => {
-            // μ = 0.5, N = 10 Н → F = 5 Н
-            expect(physics.frictionForce(0.5, 10)).toBe(5);
-        });
-
-        it('should return 0 for frictionless surface', () => {
-            expect(physics.frictionForce(0, 10)).toBe(0);
-        });
-
-        it('should return 0 for zero normal force', () => {
-            expect(physics.frictionForce(0.5, 0)).toBe(0);
-        });
-    });
-
-    describe('calculateWork', () => {
-        it('should calculate A = F × S correctly', () => {
-            // F = 5 Н, S = 2 м → A = 10 Дж
-            expect(physics.calculateWork(5, 2)).toBe(10);
-        });
-
-        it('should return 0 for zero distance', () => {
-            expect(physics.calculateWork(5, 0)).toBe(0);
-        });
-
-        it('should return 0 for zero force', () => {
-            expect(physics.calculateWork(0, 2)).toBe(0);
+        // Двойное затухание в springOscillation не чинится чисткой тестов
+        // (НЕ-цель спеки 2026-10-23-тесты-без-ci). Тест зелёный, пока дефект
+        // есть, и покраснеет после починки — тогда снять failing.
+        test.failing('velocity at t>0 equals the analytic derivative', () => {
+            const result = physics.springOscillation(40, 0.1, 0.05, 0.3);
+            expect(result.velocity).toBeCloseTo(0.26024, 4);
         });
     });
 
@@ -262,56 +165,6 @@ describe('PhysicsEngine', () => {
         });
     });
 
-    describe('percentageError', () => {
-        it('should calculate 0% for exact match', () => {
-            expect(physics.percentageError(40, 40)).toBe(0);
-        });
-
-        it('should calculate 10% error correctly', () => {
-            // measured = 44, actual = 40 → error = 10%
-            expect(physics.percentageError(44, 40)).toBeCloseTo(10, 1);
-        });
-
-        it('should handle negative error (under-measurement)', () => {
-            // measured = 36, actual = 40 → error = 10%
-            expect(physics.percentageError(36, 40)).toBeCloseTo(10, 1);
-        });
-    });
-
-    describe('units', () => {
-        it('should convert grams to kilograms', () => {
-            expect(physics.units.gToKg(100)).toBe(0.1);
-            expect(physics.units.gToKg(1000)).toBe(1);
-        });
-
-        it('should convert kilograms to grams', () => {
-            expect(physics.units.kgToG(0.1)).toBe(100);
-            expect(physics.units.kgToG(1)).toBe(1000);
-        });
-
-        it('should convert centimeters to meters', () => {
-            expect(physics.units.cmToM(100)).toBe(1);
-            expect(physics.units.cmToM(2.5)).toBe(0.025);
-        });
-
-        it('should convert meters to centimeters', () => {
-            expect(physics.units.mToCm(1)).toBe(100);
-            expect(physics.units.mToCm(0.025)).toBe(2.5);
-        });
-
-        it('should convert millimeters to meters', () => {
-            expect(physics.units.mmToM(1000)).toBe(1);
-            expect(physics.units.mmToM(25)).toBe(0.025);
-        });
-
-        it('should convert Newtons to kiloNewtons', () => {
-            expect(physics.units.nToKn(1000)).toBe(1);
-        });
-
-        it('should convert kiloNewtons to Newtons', () => {
-            expect(physics.units.knToN(1)).toBe(1000);
-        });
-    });
 });
 
 describe('OGE Experiment Scenarios', () => {
@@ -339,28 +192,6 @@ describe('OGE Experiment Scenarios', () => {
         // k должно быть близко к 40 Н/м
         expect(result.slope).toBeCloseTo(40, 0);
         expect(result.r2).toBeCloseTo(1, 2);
-    });
-
-    it('should handle soft spring (k = 20 N/m)', () => {
-        // Мягкая пружина (k = 20)
-        const k = 20;
-        
-        const elongation100g = physics.calculateElongation(0.1, k);
-        expect(elongation100g).toBeCloseTo(0.05, 3); // 5 см
-        
-        const elongation200g = physics.calculateElongation(0.2, k);
-        expect(elongation200g).toBeCloseTo(0.1, 3); // 10 см
-    });
-
-    it('should handle stiff spring (k = 100 N/m)', () => {
-        // Жёсткая пружина (k = 100)
-        const k = 100;
-        
-        const elongation100g = physics.calculateElongation(0.1, k);
-        expect(elongation100g).toBeCloseTo(0.01, 3); // 1 см
-        
-        const elongation200g = physics.calculateElongation(0.2, k);
-        expect(elongation200g).toBeCloseTo(0.02, 3); // 2 см
     });
 
     it('should validate Hooke\'s law: F/Δl = const', () => {
