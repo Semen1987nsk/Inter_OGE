@@ -50,4 +50,13 @@ fi
 echo "[pre-push → main] тесты"
 npm test || exit 1
 
+# Браузер Playwright ставится отдельно от npm ci; без него e2e упал бы на
+# запуске, а не на проверке — отказ должен сказать, что поставить.
+if ! node -e "require('playwright').chromium.launch().then((b) => b.close())" >/dev/null 2>&1; then
+    echo "[pre-push → main] нет браузера chromium для Playwright: npx playwright install chromium" >&2
+    exit 1
+fi
+echo "[pre-push → main] e2e chromium"
+npx playwright test --project=chromium || exit 1
+
 echo "[pre-push → main] OK"
