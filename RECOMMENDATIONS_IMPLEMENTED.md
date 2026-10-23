@@ -75,19 +75,7 @@
 
 ### ✅ 5. Test Suite Expansion
 
-**New Tests:**
-- `tests/error-handler.test.js` - 21 tests
-- `tests/animation-loop.test.js` - 11 tests
-
-**Total Tests: 79 passing**
-
-```bash
-npm test
-# PASS tests/animation-loop.test.js
-# PASS tests/error-handler.test.js  
-# PASS tests/physics-engine.test.js
-# Tests: 79 passed
-```
+Тесты модулей обработки ошибок и цикла анимации сняты 2026-10-23: модули не подключены к опытам. Вернуть вместе с подключением модуля.
 
 ---
 
