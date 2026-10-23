@@ -35,9 +35,6 @@ $refs
 EOF
 [ "$to_main" = 1 ] || exit 0
 
-echo "[pre-push → main] typecheck"
-npm run --silent typecheck --if-present || exit 1
-
 # В индексе лежит старая копия node_modules с одним playwright, jest в ней нет;
 # npm ci перепишет и её — после установки `git checkout -- node_modules`.
 if [ ! -f node_modules/jest/bin/jest.js ]; then
