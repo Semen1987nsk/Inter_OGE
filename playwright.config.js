@@ -7,79 +7,53 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  
+
   /* Run tests in files in parallel */
   fullyParallel: true,
-  
+
   /* Fail the build on CI if you accidentally left test.only in the source code */
   forbidOnly: !!process.env.CI,
-  
+
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  
+
   /* Opt out of parallel tests on CI */
   workers: process.env.CI ? 1 : undefined,
-  
-  /* Reporter to use */
+
+  /* Отчёт не открывается сам: на провале он поднял бы сервер и подвесил pre-push. */
   reporter: [
-    ['html', { outputFolder: 'playwright-report' }],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
     ['list']
   ],
-  
+
   /* Shared settings for all the projects below */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')` */
-    baseURL: 'http://localhost:8080',
+    /* localhost в Node может уйти на ::1, а сервер слушает только IPv4 */
+    baseURL: 'http://127.0.0.1:8091',
 
     /* Collect trace when retrying the failed test */
     trace: 'on-first-retry',
-    
+
     /* Screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Video on failure */
     video: 'on-first-retry',
   },
 
-  /* Configure projects for major browsers */
+  /* e2e — только chromium (решение владельца 2026-10-23) */
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    /* Touch device testing */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Interactive panel simulation (large touch screen) */
-    {
-      name: 'Interactive Panel',
-      use: {
-        viewport: { width: 1920, height: 1080 },
-        hasTouch: true,
-        isMobile: false,
-      },
-    },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Свой порт и без чужого сервера: `npm run serve` на 8080 может раздавать другое дерево. */
   webServer: {
-    command: 'npx http-server . -p 8080 -c-1',
-    url: 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
+    command: 'npx http-server . -a 127.0.0.1 -p 8091 -c-1 -s',
+    url: 'http://127.0.0.1:8091',
+    reuseExistingServer: false,
     timeout: 120 * 1000,
   },
 });
